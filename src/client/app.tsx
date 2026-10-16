@@ -83,6 +83,18 @@ const FALLBACK_PROJECT: PublicProject = {
 
 type Place = { project?: string; version?: string; screen?: string };
 
+// A version id is "<revision>-<resolution>", e.g. "local-abc1234-r4-desktop-1440".
+// Versions without a recognisable resolution suffix are their own revision.
+const RESOLUTION_SUFFIX = /(-[a-z]+)?-\d+$/;
+
+function revisionOf(version: string) {
+  return version.replace(RESOLUTION_SUFFIX, "");
+}
+
+function resolutionOf(version: string) {
+  return RESOLUTION_SUFFIX.exec(version)?.[0].slice(1) ?? version;
+}
+
 function readPlace(): Place {
   const params = new URLSearchParams(window.location.hash.slice(1));
   return {
@@ -191,9 +203,9 @@ export function App() {
   const [projects, setProjects] = useState<PublicProject[] | null>(null);
   const [projectProblems, setProjectProblems] = useState<string[]>([]);
   const [projectId, setProjectId] = useState(initialPlace.project ?? "");
-  const [versionChoice, setVersionChoice] = useState(
-    initialPlace.version ?? "",
-  );
+  // A reload opens the newest capture; the version in the URL only follows
+  // in-page navigation (hashchange), not a fresh page load.
+  const [versionChoice, setVersionChoice] = useState("");
   const [selectedChoice, setSelectedId] = useState(initialPlace.screen ?? "");
   // "all" lists every resolution in the rail; a version narrows it to one.
   const [resolutionChoice, setResolutionChoice] = useState("all");
@@ -202,15 +214,27 @@ export function App() {
     projects?.[0] ??
     FALLBACK_PROJECT;
   const screens: PublicScreen[] = project.screens;
-  const resolution = project.versions.includes(resolutionChoice)
+  const [revisionChoice, setRevisionChoice] = useState("");
+  const revisions = useMemo(
+    () => [...new Set(project.versions.map(revisionOf))],
+    [project.versions],
+  );
+  const revision = revisions.includes(revisionChoice)
+    ? revisionChoice
+    : revisions.at(-1)!;
+  const revisionVersions = useMemo(
+    () => project.versions.filter((item) => revisionOf(item) === revision),
+    [project.versions, revision],
+  );
+  const resolution = revisionVersions.includes(resolutionChoice)
     ? resolutionChoice
     : "all";
   const version =
     resolution !== "all"
       ? resolution
-      : project.versions.includes(versionChoice)
+      : revisionVersions.includes(versionChoice)
         ? versionChoice
-        : project.versions.at(-1)!;
+        : revisionVersions.at(-1)!;
   const selectedId = screens.some((item) => item.id === selectedChoice)
     ? selectedChoice
     : screens[0]!.id;
@@ -290,7 +314,10 @@ export function App() {
     const follow = () => {
       const place = readPlace();
       if (place.project) setProjectId(place.project);
-      if (place.version) setVersionChoice(place.version);
+      if (place.version) {
+        setVersionChoice(place.version);
+        setRevisionChoice(revisionOf(place.version));
+      }
       if (place.screen) setSelectedId(place.screen);
     };
     window.addEventListener("hashchange", follow);
@@ -512,7 +539,7 @@ export function App() {
   const flatItems = useMemo(() => {
     const label = (name: string) => /-(\d+)$/.exec(name)?.[1] ?? name;
     const width = (name: string) => Number(/-(\d+)$/.exec(name)?.[1] ?? NaN);
-    const versions = [...project.versions]
+    const versions = [...revisionVersions]
       .filter((item) => resolution === "all" || item === resolution)
       .sort((a, b) => (width(a) || 0) - (width(b) || 0));
     let ordinal = 0;
@@ -526,8 +553,8 @@ export function App() {
         title: `${screen.title} · ${label(item)}`,
       })),
     );
-  }, [project.versions, resolution, screens]);
-  const flatMode = project.versions.length > 1;
+  }, [revisionVersions, resolution, screens]);
+  const flatMode = revisionVersions.length > 1;
   const flatIndex = flatItems.findIndex(
     (item) => item.screenId === selectedId && item.version === version,
   );
@@ -673,6 +700,7 @@ export function App() {
   const switchProject = useCallback((id: string) => {
     setProjectId(id);
     setVersionChoice("");
+    setRevisionChoice("");
     setResolutionChoice("all");
     setSelectedId("");
     setFeedbackRecords([]);
@@ -1050,7 +1078,36 @@ export function App() {
           ) : (
             <span className="header-project">{project.name}</span>
           )}
-          {project.versions.length > 1 ? (
+          {revisions.length > 1 ? (
+            <label>
+              Revision
+              <select
+                onChange={(event) => {
+                  const next = event.target.value;
+                  const sameResolution = project.versions.find(
+                    (item) =>
+                      revisionOf(item) === next &&
+                      resolutionOf(item) === resolutionOf(version),
+                  );
+                  setRevisionChoice(next);
+                  setVersionChoice(sameResolution ?? "");
+                  setResolutionChoice(
+                    resolution !== "all" && sameResolution
+                      ? sameResolution
+                      : "all",
+                  );
+                }}
+                value={revision}
+              >
+                {[...revisions].reverse().map((item) => (
+                  <option key={item} value={item}>
+                    {item.replace(/^local-/, "")}
+                  </option>
+                ))}
+              </select>
+            </label>
+          ) : null}
+          {revisionVersions.length > 1 ? (
             <label>
               Resolution
               <select
@@ -1062,9 +1119,9 @@ export function App() {
                 value={resolution}
               >
                 <option value="all">All</option>
-                {project.versions.map((item) => (
+                {revisionVersions.map((item) => (
                   <option key={item} value={item}>
-                    {item}
+                    {resolutionOf(item)}
                   </option>
                 ))}
               </select>
