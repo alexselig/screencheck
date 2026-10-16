@@ -21,7 +21,9 @@ function reply(status: number, body: unknown) {
 }
 
 // Routes the client's relative /api calls to a real storage instance on disk.
-export async function installFakeFeedbackApi() {
+export async function installFakeFeedbackApi(
+  project: typeof EXAMPLE_PROJECT = EXAMPLE_PROJECT,
+) {
   const root = await mkdtemp(join(process.cwd(), "tests/.feedback-data-"));
   const storage = createFeedbackStorage({ dataRoot: root });
   const requests: { method: string; path: string }[] = [];
@@ -33,7 +35,7 @@ export async function installFakeFeedbackApi() {
     const path = new URL(url, "http://127.0.0.1").pathname;
     // The project list is not feedback traffic; keep it out of failNext/hold.
     if (path === "/api/projects") {
-      return reply(200, { projects: [EXAMPLE_PROJECT], problems: [] });
+      return reply(200, { projects: [project], problems: [] });
     }
     // Element maps are optional reads; the example project has none.
     if (/^\/api\/projects\/[^/]+\/elements\//.test(path)) {

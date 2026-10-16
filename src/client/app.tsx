@@ -128,7 +128,9 @@ function useFollowPage(ref: RefObject<HTMLElement | null>, gap = 0) {
 }
 
 type LoadState =
-  { kind: "loading" } | { kind: "ready" } | { kind: "error"; message: string };
+  | { kind: "loading" }
+  | { kind: "ready" }
+  | { kind: "error"; message: string };
 
 const HIDDEN_PINS_KEY = "screencheck:hidden-pin-statuses";
 
@@ -193,14 +195,22 @@ export function App() {
     initialPlace.version ?? "",
   );
   const [selectedChoice, setSelectedId] = useState(initialPlace.screen ?? "");
+  // "all" lists every resolution in the rail; a version narrows it to one.
+  const [resolutionChoice, setResolutionChoice] = useState("all");
   const project =
     projects?.find((item) => item.id === projectId) ??
     projects?.[0] ??
     FALLBACK_PROJECT;
   const screens: PublicScreen[] = project.screens;
-  const version = project.versions.includes(versionChoice)
-    ? versionChoice
-    : project.versions.at(-1)!;
+  const resolution = project.versions.includes(resolutionChoice)
+    ? resolutionChoice
+    : "all";
+  const version =
+    resolution !== "all"
+      ? resolution
+      : project.versions.includes(versionChoice)
+        ? versionChoice
+        : project.versions.at(-1)!;
   const selectedId = screens.some((item) => item.id === selectedChoice)
     ? selectedChoice
     : screens[0]!.id;
@@ -497,6 +507,49 @@ export function App() {
       ),
     [approvals, version],
   );
+  // With several versions (viewport widths), the rail lists every screen at
+  // every version so review is one scroll rather than a dropdown per screen.
+  const flatItems = useMemo(() => {
+    const label = (name: string) => /-(\d+)$/.exec(name)?.[1] ?? name;
+    const width = (name: string) => Number(/-(\d+)$/.exec(name)?.[1] ?? NaN);
+    const versions = [...project.versions]
+      .filter((item) => resolution === "all" || item === resolution)
+      .sort((a, b) => (width(a) || 0) - (width(b) || 0));
+    let ordinal = 0;
+    return screens.flatMap((screen) =>
+      versions.map((item) => ({
+        ...screen,
+        id: `${screen.id}@@${item}`,
+        screenId: screen.id,
+        version: item,
+        ordinal: ++ordinal,
+        title: `${screen.title} · ${label(item)}`,
+      })),
+    );
+  }, [project.versions, resolution, screens]);
+  const flatMode = project.versions.length > 1;
+  const flatIndex = flatItems.findIndex(
+    (item) => item.screenId === selectedId && item.version === version,
+  );
+  const flatOpenCounts = useMemo(() => {
+    const counts = new Map<string, number>();
+    for (const item of feedbackRecords) {
+      if (isOpenFeedback(item)) {
+        const key = `${item.screenId}@@${item.version}`;
+        counts.set(key, (counts.get(key) ?? 0) + 1);
+      }
+    }
+    return counts;
+  }, [feedbackRecords]);
+  const flatApprovedIds = useMemo(
+    () =>
+      new Set(
+        (approvals ?? []).map(
+          (approval) => `${approval.screenId}@@${approval.version}`,
+        ),
+      ),
+    [approvals],
+  );
   const screenApproved = approvals
     ? isApproved(approvals, version, selectedId)
     : false;
@@ -596,10 +649,18 @@ export function App() {
 
   const stepScreen = useCallback(
     (delta: number) => {
+      if (flatMode) {
+        const next = flatItems[flatIndex + delta];
+        if (next) {
+          setVersionChoice(next.version);
+          selectScreen(next.screenId);
+        }
+        return;
+      }
       const next = screens[selectedIndex + delta];
       if (next) selectScreen(next.id);
     },
-    [screens, selectedIndex, selectScreen],
+    [flatMode, flatItems, flatIndex, screens, selectedIndex, selectScreen],
   );
 
   const startPin = useCallback(() => {
@@ -612,6 +673,7 @@ export function App() {
   const switchProject = useCallback((id: string) => {
     setProjectId(id);
     setVersionChoice("");
+    setResolutionChoice("all");
     setSelectedId("");
     setFeedbackRecords([]);
     setAddingFeedback(false);
@@ -658,11 +720,21 @@ export function App() {
     <ScreenRail
       mode={fullscreen ? "compact" : railMode}
       onModeChange={fullscreen ? undefined : setRailMode}
-      approvedIds={approvedIds}
-      onSelect={selectScreen}
-      openCounts={openCounts}
-      screens={screens}
-      selectedId={selectedId}
+      approvedIds={flatMode ? flatApprovedIds : approvedIds}
+      onSelect={(id) => {
+        const item = flatMode
+          ? flatItems.find((entry) => entry.id === id)
+          : undefined;
+        if (item) {
+          setVersionChoice(item.version);
+          selectScreen(item.screenId);
+        } else {
+          selectScreen(id);
+        }
+      }}
+      openCounts={flatMode ? flatOpenCounts : openCounts}
+      screens={flatMode ? flatItems : screens}
+      selectedId={flatMode ? `${selectedId}@@${version}` : selectedId}
     />
   );
   const feedback = (
@@ -877,7 +949,7 @@ export function App() {
       <div className="action-bar-nav">
         <button
           aria-label="Previous screen"
-          disabled={selectedIndex <= 0}
+          disabled={(flatMode ? flatIndex : selectedIndex) <= 0}
           onClick={() => stepScreen(-1)}
           title="Previous screen (←)"
           type="button"
@@ -892,7 +964,10 @@ export function App() {
         </span>
         <button
           aria-label="Next screen"
-          disabled={selectedIndex >= screens.length - 1}
+          disabled={
+            (flatMode ? flatIndex : selectedIndex) >=
+            (flatMode ? flatItems.length : screens.length) - 1
+          }
           onClick={() => stepScreen(1)}
           title="Next screen (→)"
           type="button"
@@ -977,11 +1052,16 @@ export function App() {
           )}
           {project.versions.length > 1 ? (
             <label>
-              Version
+              Resolution
               <select
-                onChange={(event) => setVersionChoice(event.target.value)}
-                value={version}
+                onChange={(event) => {
+                  const next = event.target.value;
+                  setResolutionChoice(next);
+                  if (next !== "all") setVersionChoice(next);
+                }}
+                value={resolution}
               >
+                <option value="all">All</option>
                 {project.versions.map((item) => (
                   <option key={item} value={item}>
                     {item}
