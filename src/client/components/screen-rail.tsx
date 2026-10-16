@@ -4,6 +4,8 @@ import type { ReviewScreen } from "../../shared/manifest";
 
 export type RailMode = "wide" | "compact";
 
+const HIDE_APPROVED_KEY = "screencheck:hide-approved-screens";
+
 export function ScreenRail({
   screens,
   selectedId,
@@ -24,6 +26,31 @@ export function ScreenRail({
 }) {
   const [temporaryExpanded, setTemporaryExpanded] = useState(false);
   const [pinned, setPinned] = useState(false);
+  const [hideApproved, setHideApproved] = useState(() => {
+    try {
+      return localStorage.getItem(HIDE_APPROVED_KEY) === "1";
+    } catch {
+      return false;
+    }
+  });
+  const approvedCount = screens.filter((screen) =>
+    approvedIds?.has(screen.id),
+  ).length;
+  // The current screen stays listed even when approved, so you never lose it.
+  const visibleScreens = hideApproved
+    ? screens.filter(
+        (screen) => screen.id === selectedId || !approvedIds?.has(screen.id),
+      )
+    : screens;
+  function toggleHideApproved() {
+    const next = !hideApproved;
+    setHideApproved(next);
+    try {
+      localStorage.setItem(HIDE_APPROVED_KEY, next ? "1" : "0");
+    } catch {
+      // Storage can be unavailable; the toggle still works for this session.
+    }
+  }
   const expanded = mode === "wide" || temporaryExpanded || pinned;
   let previousGroup = "";
   let groupIndex = -1;
@@ -71,18 +98,19 @@ export function ScreenRail({
     const target = event.target as HTMLElement;
     const focusedId = target.dataset?.screenId;
     if (!focusedId) return;
-    const from = screens.findIndex(
+    const from = visibleScreens.findIndex(
       (screen) => screen.id === (selectedId || focusedId),
     );
     let to: number;
     if (event.key === "ArrowDown") to = from + 1;
     else if (event.key === "ArrowUp") to = from - 1;
     else if (event.key === "Home") to = 0;
-    else if (event.key === "End") to = screens.length - 1;
+    else if (event.key === "End") to = visibleScreens.length - 1;
     else return;
     event.preventDefault();
-    if (from < 0 || to < 0 || to >= screens.length || to === from) return;
-    onSelect(screens[to].id);
+    if (from < 0 || to < 0 || to >= visibleScreens.length || to === from)
+      return;
+    onSelect(visibleScreens[to].id);
   }
 
   return (
@@ -145,8 +173,20 @@ export function ScreenRail({
           </button>
         ) : null}
       </div>
+      {approvedCount > 0 ? (
+        <button
+          aria-pressed={hideApproved}
+          className="rail-filter-button"
+          onClick={toggleHideApproved}
+          type="button"
+        >
+          {hideApproved
+            ? `Show approved screens (${approvedCount})`
+            : "Hide approved screens"}
+        </button>
+      ) : null}
       <ol onKeyDown={onListKeyDown}>
-        {screens.map((screen) => {
+        {visibleScreens.map((screen) => {
           const showGroup = screen.group !== previousGroup;
           if (showGroup) groupIndex += 1;
           previousGroup = screen.group;

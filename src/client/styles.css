@@ -723,6 +723,34 @@ h1 {
   display: none;
 }
 
+.rail-filter-button {
+  display: block;
+  margin: 4px 0 8px;
+  padding: 4px 0;
+  border: 0;
+  background: transparent;
+  color: var(--bauhaus-blue);
+  font: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  text-align: left;
+  cursor: pointer;
+}
+
+.rail-filter-button:hover {
+  text-decoration: underline;
+}
+
+.rail-filter-button:focus-visible {
+  outline: 2px solid var(--bauhaus-blue);
+  outline-offset: 2px;
+}
+
+.screen-rail[data-mode="compact"]:not([data-expanded="true"])
+  .rail-filter-button {
+  display: none;
+}
+
 .review-canvas {
   position: relative;
   min-width: 0;
@@ -1919,6 +1947,7 @@ button.tag-chip:hover {
   }
 
   .rail-toolbar,
+  .rail-filter-button,
   .screen-rail h2 {
     display: none;
   }

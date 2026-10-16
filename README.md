@@ -112,6 +112,10 @@ through each feature, from dropping a pin to an agent replying over MCP.
   in the same spot. Numbers stay dead center; badges hang off their left edge,
   and a screen that is approved and still has open comments stacks the check
   above the count so both fit the collapsed rail.
+- **Hide approved screens**, a text button at the top of the screen index,
+  drops approved screens from the list (the current screen always stays) so
+  only what's left to review remains. ↑ / ↓ skip the hidden rows; the choice
+  is remembered.
 - A **Showing** strip above each capture says exactly what it shows (for
   example "Step 3 of 5, manual path selected"). Click it to edit; Enter saves,
   Esc cancels. Text is saved per version and screen in `captions.json`; a
