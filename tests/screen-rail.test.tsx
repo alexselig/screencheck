@@ -78,4 +78,65 @@ describe("ScreenRail", () => {
     const second = screen.getByRole("button", { name: "02. Dashboard" });
     expect(second.querySelector("[data-testid=screen-open-count]")).toBeNull();
   });
+
+  it("steps through screens with the up and down arrows, focus following", () => {
+    const three = [
+      ...screens,
+      {
+        id: "three",
+        ordinal: 3,
+        title: "Settings",
+        group: "Portfolio",
+        viewport: { width: 1440, height: 1000 },
+      },
+    ];
+    const onSelect = vi.fn();
+    const { rerender } = render(
+      <ScreenRail
+        mode="wide"
+        onSelect={onSelect}
+        screens={three}
+        selectedId="one"
+      />,
+    );
+    const first = screen.getByRole("button", { name: "01. Public landing" });
+    first.focus();
+
+    fireEvent.keyDown(first, { key: "ArrowDown" });
+    expect(onSelect).toHaveBeenLastCalledWith("two");
+    rerender(
+      <ScreenRail
+        mode="wide"
+        onSelect={onSelect}
+        screens={three}
+        selectedId="two"
+      />,
+    );
+    const second = screen.getByRole("button", { name: "02. Dashboard" });
+    expect(second).toHaveFocus();
+
+    fireEvent.keyDown(second, { key: "ArrowUp" });
+    expect(onSelect).toHaveBeenLastCalledWith("one");
+
+    fireEvent.keyDown(second, { key: "End" });
+    expect(onSelect).toHaveBeenLastCalledWith("three");
+    fireEvent.keyDown(second, { key: "Home" });
+    expect(onSelect).toHaveBeenLastCalledWith("one");
+  });
+
+  it("stops at the ends of the list and ignores modified arrows", () => {
+    const onSelect = vi.fn();
+    render(
+      <ScreenRail
+        mode="wide"
+        onSelect={onSelect}
+        screens={screens}
+        selectedId="one"
+      />,
+    );
+    const first = screen.getByRole("button", { name: "01. Public landing" });
+    fireEvent.keyDown(first, { key: "ArrowUp" });
+    fireEvent.keyDown(first, { key: "ArrowDown", metaKey: true });
+    expect(onSelect).not.toHaveBeenCalled();
+  });
 });

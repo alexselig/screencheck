@@ -49,7 +49,8 @@ The version picker (top right) opens on **build-42**, the newer build.
    Orange badges are open counts; a green check means approved. Click
    **«** to collapse the rail to numbers.
 2. **Move between screens.** Use **‹ Prev / Next ›** in the bottom bar, the
-   **← →** keys, or **[ ]**.
+   **← →** keys, or **[ ]**. After clicking a screen in the rail, **↑ ↓**
+   step through the list and **Home / End** jump to the first or last screen.
 3. **Showing caption.** Above each capture, click the text after "SHOWING" to
    edit the note on what state the screen is in.
 4. **Feedback panel (right).** Cards are grouped by status (Backlog, In

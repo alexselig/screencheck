@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { type KeyboardEvent, useEffect, useRef, useState } from "react";
 
 import type { ReviewScreen } from "../../shared/manifest";
 
@@ -52,6 +52,38 @@ export function ScreenRail({
       nav.scrollTop = top + current.offsetHeight - nav.clientHeight + 48;
     }
   }, [selectedId]);
+
+  // When a screen button has focus, keep focus on the current screen so the
+  // arrow keys (here and the global ← →) always move from what's selected.
+  useEffect(() => {
+    const nav = navRef.current;
+    const active = document.activeElement;
+    if (!nav || !(active instanceof HTMLElement)) return;
+    if (!active.dataset.screenId || !nav.contains(active)) return;
+    nav
+      .querySelector<HTMLElement>('[aria-current="page"]')
+      ?.focus({ preventScroll: true });
+  }, [selectedId]);
+
+  function onListKeyDown(event: KeyboardEvent<HTMLOListElement>) {
+    if (event.metaKey || event.ctrlKey || event.altKey || event.shiftKey)
+      return;
+    const target = event.target as HTMLElement;
+    const focusedId = target.dataset?.screenId;
+    if (!focusedId) return;
+    const from = screens.findIndex(
+      (screen) => screen.id === (selectedId || focusedId),
+    );
+    let to: number;
+    if (event.key === "ArrowDown") to = from + 1;
+    else if (event.key === "ArrowUp") to = from - 1;
+    else if (event.key === "Home") to = 0;
+    else if (event.key === "End") to = screens.length - 1;
+    else return;
+    event.preventDefault();
+    if (from < 0 || to < 0 || to >= screens.length || to === from) return;
+    onSelect(screens[to].id);
+  }
 
   return (
     <nav
@@ -113,7 +145,7 @@ export function ScreenRail({
           </button>
         ) : null}
       </div>
-      <ol>
+      <ol onKeyDown={onListKeyDown}>
         {screens.map((screen) => {
           const showGroup = screen.group !== previousGroup;
           if (showGroup) groupIndex += 1;
@@ -129,6 +161,7 @@ export function ScreenRail({
               ) : null}
               <button
                 aria-current={screen.id === selectedId ? "page" : undefined}
+                data-screen-id={screen.id}
                 aria-label={`${String(screen.ordinal).padStart(2, "0")}. ${screen.title}${approved ? " (approved)" : ""}${openCount ? `, ${openCount} open` : ""}`}
                 onClick={() => onSelect(screen.id)}
                 title={[
