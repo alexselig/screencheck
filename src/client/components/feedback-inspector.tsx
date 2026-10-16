@@ -77,6 +77,10 @@ function sameTags(left: readonly string[], right: readonly string[]) {
 const RECOVERY_PREFIX = "screencheck.feedback-recovery.v1:";
 const COLLAPSED_STATUSES_KEY = "screencheck:collapsed-feedback-statuses";
 const NOTE_SAVE_DELAY_MS = 500;
+const shortcutLabel =
+  typeof navigator !== "undefined" && /Mac|iPhone|iPad/.test(navigator.platform)
+    ? "⌘A"
+    : "Ctrl+A";
 
 function recoveryStorageKey(projectId: string) {
   return `${RECOVERY_PREFIX}${projectId}`;
@@ -324,6 +328,35 @@ export function FeedbackInspector({
   // reviewer's cursor when the first autosave lands. New comments are Backlog.
   const [freshId, setFreshId] = useState<string | null>(null);
   const editorRef = useRef(editor);
+  // ⌘A / Ctrl+A toggles approval; the handler is refreshed every render.
+  const approveShortcutRef = useRef<(() => void) | null>(null);
+  useEffect(() => {
+    const onKeyDown = (event: globalThis.KeyboardEvent) => {
+      if (
+        event.key.toLowerCase() !== "a" ||
+        !(event.metaKey || event.ctrlKey) ||
+        event.shiftKey ||
+        event.altKey ||
+        event.defaultPrevented
+      ) {
+        return;
+      }
+      const target = event.target;
+      if (
+        target instanceof HTMLElement &&
+        (target.isContentEditable ||
+          ["INPUT", "TEXTAREA", "SELECT"].includes(target.tagName) ||
+          target.closest("[role=dialog]"))
+      ) {
+        return;
+      }
+      if (!approveShortcutRef.current) return;
+      event.preventDefault();
+      approveShortcutRef.current();
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, []);
   const effectiveDraftPin = draftPin ?? recoveredPin;
 
   const screenFeedback = useMemo(
@@ -1002,6 +1035,21 @@ export function FeedbackInspector({
   const unverifiedFixes = visibleFeedback.filter(
     (item) => item.status === "RESOLVED",
   ).length;
+  approveShortcutRef.current =
+    approval && approval.ready && ready
+      ? () => {
+          if (
+            approval.approved ||
+            unverifiedFixes === 0 ||
+            confirmingApproval
+          ) {
+            setConfirmingApproval(false);
+            approval.onToggle();
+          } else {
+            setConfirmingApproval(true);
+          }
+        }
+      : null;
   const slotKey = effectiveDraftPin ? "draft" : (editingRecord?.id ?? null);
   if ((heldSlot?.key ?? null) !== slotKey) {
     if (!slotKey) {
@@ -1349,13 +1397,15 @@ export function FeedbackInspector({
                   approval.onToggle();
                 }
               }}
-              title={approval.approved ? "Click to unapprove" : undefined}
+              aria-keyshortcuts="Meta+A Control+A"
+              title={`${approval.approved ? "Click to unapprove" : "Approve screen"} (${shortcutLabel})`}
               type="button"
             >
               <span aria-hidden="true" className="screen-approval-box">
                 {approval.approved ? "✓" : ""}
               </span>
               {approval.approved ? "Screen approved" : "Approve screen"}
+              <kbd aria-hidden="true">{shortcutLabel}</kbd>
             </button>
           )}
         </div>

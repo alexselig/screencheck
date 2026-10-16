@@ -69,8 +69,8 @@ The version picker (top right) opens on **build-42**, the newer build.
 6. **Reply thread.** Go to **03 Choose route** and open pin 1 under Fixed. You'll
    see the agent's reply, your follow-up and the agent's second fix. Add a
    reply in the Reply box.
-7. **Approval guard.** Still on Choose route, tick **Approve screen**.
-   ScreenCheck asks "1 fix not verified. Approve anyway?" Click **Cancel**.
+7. **Approval guard.** Still on Choose route, tick **Approve screen** (or press
+   **⌘A**). ScreenCheck asks "1 fix not verified. Approve anyway?" Click **Cancel**.
 8. **Verify a fix.** On pin 1, click **Verify**. It moves to Verified. Only a
    reviewer can verify; agents can't. Tick **Approve screen** again: no
    warning this time, and the rail shows a green check.

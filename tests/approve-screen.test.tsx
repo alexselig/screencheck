@@ -64,6 +64,29 @@ describe("approve screen toggle", () => {
     );
   });
 
+  it("toggles approval with Cmd+A / Ctrl+A, but not while typing", async () => {
+    render(<App />);
+    const button = await approveButton();
+
+    fireEvent.keyDown(window, { key: "a", metaKey: true });
+    expect(button).toHaveAttribute("aria-pressed", "true");
+    await waitFor(async () =>
+      expect(await api.storage.listApprovals("example")).toHaveLength(1),
+    );
+
+    fireEvent.keyDown(window, { key: "a", ctrlKey: true });
+    expect(button).toHaveAttribute("aria-pressed", "false");
+
+    const field = document.createElement("textarea");
+    document.body.append(field);
+    fireEvent.keyDown(field, { key: "a", metaKey: true });
+    expect(button).toHaveAttribute("aria-pressed", "false");
+    field.remove();
+
+    fireEvent.keyDown(window, { key: "a", metaKey: true, shiftKey: true });
+    expect(button).toHaveAttribute("aria-pressed", "false");
+  });
+
   it("rolls back and says so when the save fails", async () => {
     render(<App />);
     const button = await approveButton();

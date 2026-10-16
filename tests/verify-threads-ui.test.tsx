@@ -189,6 +189,31 @@ describe("verify step", () => {
   });
 });
 
+describe("approve shortcut", () => {
+  it("asks first on Cmd+A when fixes are unverified; a second press approves", async () => {
+    render(<App />);
+    await screen.findByText("Footer floats mid-page.");
+    const approve = await screen.findByRole("button", {
+      name: "Approve screen",
+    });
+    await waitFor(() => expect(approve).toBeEnabled());
+
+    fireEvent.keyDown(window, { key: "a", metaKey: true });
+    expect(
+      screen.getByRole("group", { name: "Confirm approval" }),
+    ).toHaveTextContent("1 fix not verified. Approve anyway?");
+    expect(await api.storage.listApprovals("example")).toEqual([]);
+
+    fireEvent.keyDown(window, { key: "a", metaKey: true });
+    expect(
+      await screen.findByRole("button", { name: "Screen approved" }),
+    ).toBeInTheDocument();
+    await waitFor(async () =>
+      expect(await api.storage.listApprovals("example")).toHaveLength(1),
+    );
+  });
+});
+
 describe("threads", () => {
   it("shows only the latest message on a collapsed card", async () => {
     render(<App />);

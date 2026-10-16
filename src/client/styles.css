@@ -462,7 +462,8 @@ h1 {
   padding: 0 16px;
 }
 
-.feedback-add-button kbd {
+.feedback-add-button kbd,
+.screen-approval-toggle kbd {
   padding: 2px 6px;
   border: 1px solid currentColor;
   font-family: var(--font-sans);
@@ -2048,6 +2049,7 @@ button.tag-chip:hover {
   }
 
   .feedback-add-button kbd,
+  .screen-approval-toggle kbd,
   .header-project {
     display: none;
   }
@@ -2136,6 +2138,12 @@ button.tag-chip:hover {
   letter-spacing: 0.04em;
   text-transform: uppercase;
   cursor: pointer;
+}
+
+.screen-approval-toggle kbd {
+  font-weight: 400;
+  letter-spacing: 0;
+  text-transform: none;
 }
 
 .screen-approval-toggle:hover {

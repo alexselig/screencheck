@@ -142,6 +142,7 @@ through each feature, from dropping a pin to an agent replying over MCP.
 | ⌘F / Ctrl+F       | Add feedback (replaces the browser's find in this app)    |
 | ← / → or [ / ]    | Previous / next screen (ignored while typing)             |
 | ↑ / ↓, Home / End | In the screen index: previous / next, first / last screen |
+| ⌘A / Ctrl+A       | Approve / unapprove the screen (ignored while typing)     |
 | Esc               | Cancel placing a pin                                      |
 
 - Atomic file storage with serialized mutations, conflict checks, and restart
