@@ -188,12 +188,23 @@ export function ScreenRail({
         {expanded ? <h2 className="rail-title">Screen index</h2> : null}
         {mode === "compact" && expanded ? (
           <button
+            aria-label="Keep open"
             aria-pressed={pinned}
             className="rail-pin-button"
             onClick={() => setPinned((value) => !value)}
+            title={pinned ? "Let the index collapse" : "Keep the index open"}
             type="button"
           >
-            {pinned ? "Unpin" : "Pin"}
+            {/* A thumbtack; "pin" already names feedback markers. */}
+            <svg aria-hidden="true" height="16" viewBox="0 0 16 16" width="16">
+              <path
+                d="M6 2h4M7 2v4L4.5 9h7L9 6V2M8 9v5"
+                fill={pinned ? "currentColor" : "none"}
+                stroke="currentColor"
+                strokeLinejoin="round"
+                strokeWidth="1.5"
+              />
+            </svg>
           </button>
         ) : null}
         {onModeChange ? (

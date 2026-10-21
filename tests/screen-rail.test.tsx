@@ -194,4 +194,27 @@ describe("ScreenRail", () => {
     expect(groupAbbreviation("Sign in")).toBe("SI");
     expect(groupAbbreviation("Portfolio")).toBe("P");
   });
+
+  it("keeps a hovered compact rail open with an icon toggle (ds-34)", () => {
+    render(
+      <ScreenRail
+        mode="compact"
+        onModeChange={vi.fn()}
+        onSelect={vi.fn()}
+        screens={screens}
+        selectedId="one"
+      />,
+    );
+    const rail = screen.getByRole("navigation", { name: "Screen navigation" });
+    fireEvent.mouseEnter(rail);
+    const keep = screen.getByRole("button", { name: "Keep open" });
+    expect(keep).toHaveAttribute("aria-pressed", "false");
+    expect(keep).toHaveTextContent("");
+    expect(keep.querySelector("svg")).not.toBeNull();
+    expect(screen.queryByRole("button", { name: /^(Un)?pin$/i })).toBeNull();
+    fireEvent.click(keep);
+    expect(keep).toHaveAttribute("aria-pressed", "true");
+    fireEvent.mouseLeave(rail);
+    expect(rail).toHaveAttribute("data-expanded", "true");
+  });
 });

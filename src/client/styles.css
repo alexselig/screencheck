@@ -971,9 +971,20 @@ h1 {
 }
 
 .icon-button:hover,
-.rail-mode-button:hover {
+.rail-mode-button:hover,
+.rail-pin-button:hover {
   background: var(--surface-alt);
   box-shadow: inset 0 0 0 1px var(--ink);
+}
+
+.rail-pin-button[aria-pressed="true"] {
+  box-shadow: inset 0 0 0 1px var(--ink);
+}
+
+.rail-mode-button:focus-visible,
+.rail-pin-button:focus-visible {
+  outline: 2px solid var(--bauhaus-blue);
+  outline-offset: 0;
 }
 
 .fullscreen-review {
