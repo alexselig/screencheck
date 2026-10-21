@@ -1251,6 +1251,19 @@ export function FeedbackInspector({
     item.id === editingRecord?.id && editorSlot
       ? editorSlot
       : { status: item.status, priority: priorityTag(item.tags) };
+  // The open comment keeps its slot, but once its saved status or priority
+  // differs from the slot, say where it goes and leave it out of the counts.
+  const movingTo =
+    editingRecord &&
+    editorSlot &&
+    (editingRecord.status !== editorSlot.status ||
+      priorityTag(editingRecord.tags) !== editorSlot.priority)
+      ? [STATUS_LABELS[editingRecord.status], priorityTag(editingRecord.tags)]
+          .filter(Boolean)
+          .join(" · ")
+      : null;
+  const counted = (items: FeedbackRecord[]) =>
+    movingTo ? items.filter((item) => item.id !== editingRecord?.id) : items;
   const editorSection = (
     <section
       className="feedback-editor"
@@ -1276,6 +1289,11 @@ export function FeedbackInspector({
             : "New pin"}
         </span>
         {editingRecord ? collapseButton(editingRecord) : null}
+        {movingTo ? (
+          <span className="feedback-editor-moves">
+            Moves to {movingTo} when closed
+          </span>
+        ) : null}
       </header>
       <label>
         Feedback note
@@ -1478,7 +1496,7 @@ export function FeedbackInspector({
                 type="button"
               >
                 <span>{section.label}</span>
-                <span className="feedback-count">{items.length}</span>
+                <span className="feedback-count">{counted(items).length}</span>
               </button>
               {onTogglePinStatus ? (
                 <button
@@ -1511,7 +1529,9 @@ export function FeedbackInspector({
                         className={`feedback-group-title tag-${priority.toLowerCase()}`}
                       >
                         {priority}
-                        <span className="feedback-count">{group.length}</span>
+                        <span className="feedback-count">
+                          {counted(group).length}
+                        </span>
                       </h4>
                       <ol className="feedback-list">
                         {[

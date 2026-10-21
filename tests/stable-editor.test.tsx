@@ -105,10 +105,17 @@ describe("typing feedback keeps the same input", () => {
     expect(screen.getByRole("textbox", { name: "Feedback note" })).toBe(
       reopened,
     );
-    expect(reopened.closest("section.feedback-section")).toHaveAttribute(
-      "aria-label",
-      "Backlog",
-    );
+    const backlog = reopened.closest("section.feedback-section")!;
+    expect(backlog).toHaveAttribute("aria-label", "Backlog");
+    // ux-21: the held slot says where the comment goes and the old section
+    // stops counting it.
+    await screen.findByText("Moves to In progress · P0 when closed");
+    expect(
+      backlog.querySelector(".feedback-section-toggle .feedback-count"),
+    ).toHaveTextContent("0");
+    expect(
+      backlog.querySelector(".feedback-group-title .feedback-count"),
+    ).toHaveTextContent("0");
 
     fireEvent.click(screen.getByRole("button", { name: /^Collapse comment/ }));
     const card = await screen.findByText("Retag me", {

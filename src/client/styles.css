@@ -1197,6 +1197,16 @@ h1 {
   gap: 12px;
 }
 
+.feedback-editor-header:has(.feedback-editor-moves) {
+  flex-wrap: wrap;
+}
+
+.feedback-editor-moves {
+  flex-basis: 100%;
+  color: var(--ink-muted);
+  font-size: 11px;
+}
+
 .feedback-editor-header .pin-dot {
   /* Dot is a label here, not a placed pin. */
   position: static;
