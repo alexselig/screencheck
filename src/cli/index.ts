@@ -7,6 +7,7 @@ import { DataRootInUseError } from "../server/lock";
 import { readRuntimeInfo, type RuntimeInfo } from "../server/runtime";
 import { CAPTURE_USAGE, parseCaptureArgs, runCapture } from "./capture";
 import { DOCTOR_USAGE, runDoctor } from "./doctor";
+import { ADD_USAGE, INIT_USAGE, runAdd, runInit } from "./init";
 import { REPLY_USAGE, runReply } from "./reply";
 
 export const VERSION = version;
@@ -17,6 +18,8 @@ Usage: screencheck <command> [options]
 
 Commands:
   serve     Start the review server (default port 4173)
+  init      Register a project from a folder of captures
+  add       Add a folder of captures as a new version of a project
   status    Show whether a server is running and where
   reply     List open comments or reply to one
   mcp       Run the MCP server on stdio for coding agents
@@ -205,6 +208,12 @@ export async function main(
         await runCapture(job, { log });
         return 0;
       }
+      case "init":
+        if (wantsHelp(rest)) return (log(INIT_USAGE), 0);
+        return await runInit(rest, { log, env });
+      case "add":
+        if (wantsHelp(rest)) return (log(ADD_USAGE), 0);
+        return await runAdd(rest, { log, env });
       case "doctor":
         if (wantsHelp(rest)) return (log(DOCTOR_USAGE), 0);
         return await runDoctor(rest, { log });

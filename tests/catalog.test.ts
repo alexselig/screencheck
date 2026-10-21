@@ -82,6 +82,34 @@ describe("relative capture paths (pr-8)", () => {
   });
 });
 
+describe("registration errors (pr-6)", () => {
+  it("names the screen field that is wrong", async () => {
+    await register(
+      {
+        id: "try",
+        name: "Try",
+        versions: [{ id: "v1", captureRoot: root }],
+        screens: [
+          {
+            id: "a",
+            ordinal: 1,
+            title: "A",
+            viewport: { width: 1, height: 1 },
+          },
+          { id: "b", ordinal: 2, title: "B" },
+        ],
+      },
+      "try.json",
+    );
+    const list = await createProjectCatalog({
+      projectsRoot: join(root, "projects"),
+    }).list();
+    expect(list.problems).toHaveLength(1);
+    expect(list.problems[0]).toMatch(/^try\.json: screens\[1\]\.viewport: /);
+    expect(list.projects.map((item) => item.id)).not.toContain("try");
+  });
+});
+
 describe("registry cache (be-14)", () => {
   it("parses registrations once until a file changes", async () => {
     const captures = join(root, "captures");

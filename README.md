@@ -45,6 +45,8 @@ and `server.json` — for a sandboxed trial, a test run or CI.
 | ---------------------------------------------------- | ---------------------------------------------------------------- |
 | `screencheck serve [--port 4173] [--open]`           | Start the review server                                          |
 | `screencheck status`                                 | Print the running server's origin, or "not running"              |
+| `screencheck init <id> --captures <dir>`             | Register a project from a folder of captures (see below)         |
+| `screencheck add <id> <dir>`                         | Add a folder of captures as a new version                        |
 | `screencheck reply --project <id> ...`               | List open comments or reply to one (see below)                   |
 | `screencheck mcp [--url <origin>] [--author <name>]` | Run the MCP server on stdio for coding agents                    |
 | `screencheck capture <url> --out <file>`             | Full-page screenshot without mid-page footers (needs Playwright) |
@@ -344,6 +346,25 @@ claude mcp add screencheck -- npx -y screencheck mcp
 
 ## Register a project
 
+The quickest way is to point ScreenCheck at a folder of captures:
+
+```bash
+# One version per subfolder (captures/build-41, captures/build-42, ...);
+# a folder with images and no subfolders becomes version "v1".
+npx screencheck init shop --captures ./captures --name Shop
+
+# Later, add the next build as another version
+npx screencheck add shop ./captures/build-43
+```
+
+`init` turns every PNG, JPEG or WebP into a screen: the id and title come from
+the file name (`03_order-history.png` becomes "Order history"), the group is
+"Screens", the description is the title and the viewport is the image size.
+It writes `<id>.json` into the registry and refuses to overwrite one without
+`--force`; `--projects <dir>` writes somewhere else. A running server picks
+the file up on the next request. Edit the JSON afterwards to group screens
+and describe what each capture shows.
+
 Each project is one JSON file in `~/.screencheck/projects/` (or
 `SCREENCHECK_PROJECTS`). Captures stay wherever they already live; each
 version points at its folder:
@@ -368,6 +389,11 @@ version points at its folder:
   ]
 }
 ```
+
+Only `id`, `ordinal`, `title` and `viewport` are required per screen: `group`
+defaults to "Screens" and `description` to the title. A registration that
+doesn't parse is listed in `problems` with the field at fault, for example
+`try.json: screens[1].viewport: Invalid input: expected object, received undefined`.
 
 A capture must sit inside its version's `captureRoot`. A relative
 `capturePath` is read from the `captureRoot`, subfolders included

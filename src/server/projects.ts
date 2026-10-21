@@ -125,10 +125,15 @@ function createRegistry({
       try {
         const raw = JSON.parse(await read(path.join(projectsRoot, name)));
         const parsed = registrationSchema.parse(raw);
-        registrations.push({
-          ...parsed,
-          screens: parseScreens(parsed.screens),
-        });
+        let screens: ReviewScreen[];
+        try {
+          screens = parseScreens(parsed.screens);
+        } catch (error) {
+          if (!(error instanceof z.ZodError)) throw error;
+          problems.push(`${name}: ${formatZodError(error, ["screens"])}`);
+          continue;
+        }
+        registrations.push({ ...parsed, screens });
       } catch (error) {
         problems.push(`${name}: ${issueText(error)}`);
       }

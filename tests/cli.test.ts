@@ -56,6 +56,8 @@ describe("screencheck CLI", () => {
       ["reply", "--project <id> --list"],
       ["mcp", "--author <name>"],
       ["capture", "--wait-for <selector>"],
+      ["init", "--captures <dir>"],
+      ["add", "--version <id>"],
     ]) {
       const run = io();
       expect(await main([command!, "--help"], run.io)).toBe(0);
