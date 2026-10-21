@@ -37,6 +37,10 @@ import {
 // single `reply` per comment; v2 holds `thread`. Older files are migrated in
 // memory on read and only rewritten by the next mutation. `version` stays 1 so
 // older builds can still read the envelope.
+//
+// Additive fields don't bump the schema version: records and thread messages
+// are parsed loosely, so an older build keeps fields it doesn't know. Bump it
+// only when an existing field changes meaning.
 export const FEEDBACK_SCHEMA_VERSION = 2;
 
 const feedbackEnvelopeSchema = z.object({
