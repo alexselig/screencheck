@@ -184,73 +184,87 @@ export function ScreenRail({
       onMouseEnter={() => mode === "compact" && setTemporaryExpanded(true)}
       onMouseLeave={() => !pinned && setTemporaryExpanded(false)}
     >
-      <div className="rail-toolbar">
-        {expanded ? <h2 className="rail-title">Screen index</h2> : null}
-        {mode === "compact" && expanded ? (
+      <div className="rail-head">
+        <div className="rail-toolbar">
+          {expanded ? <h2 className="rail-title">Screen index</h2> : null}
+          {mode === "compact" && expanded ? (
+            <button
+              aria-label="Keep open"
+              aria-pressed={pinned}
+              className="rail-pin-button"
+              onClick={() => setPinned((value) => !value)}
+              title={pinned ? "Let the index collapse" : "Keep the index open"}
+              type="button"
+            >
+              {/* A thumbtack; "pin" already names feedback markers. */}
+              <svg
+                aria-hidden="true"
+                height="16"
+                viewBox="0 0 16 16"
+                width="16"
+              >
+                <path
+                  d="M6 2h4M7 2v4L4.5 9h7L9 6V2M8 9v5"
+                  fill={pinned ? "currentColor" : "none"}
+                  stroke="currentColor"
+                  strokeLinejoin="round"
+                  strokeWidth="1.5"
+                />
+              </svg>
+            </button>
+          ) : null}
+          {onModeChange ? (
+            <button
+              aria-label={
+                mode === "wide"
+                  ? "Collapse screen index"
+                  : "Expand screen index"
+              }
+              aria-expanded={mode === "wide"}
+              className="rail-mode-button"
+              title={
+                mode === "wide" ? "Collapse to numbers" : "Expand screen index"
+              }
+              onClick={() => {
+                setPinned(false);
+                setTemporaryExpanded(false);
+                onModeChange(mode === "wide" ? "compact" : "wide");
+              }}
+              type="button"
+            >
+              <svg
+                aria-hidden="true"
+                height="16"
+                viewBox="0 0 16 16"
+                width="16"
+              >
+                <path
+                  d={
+                    mode === "wide"
+                      ? "M9 3 4 8l5 5M13 3 8 8l5 5"
+                      : "M3 3l5 5-5 5M7 3l5 5-5 5"
+                  }
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="1.75"
+                />
+              </svg>
+            </button>
+          ) : null}
+        </div>
+        {approvedCount > 0 ? (
           <button
-            aria-label="Keep open"
-            aria-pressed={pinned}
-            className="rail-pin-button"
-            onClick={() => setPinned((value) => !value)}
-            title={pinned ? "Let the index collapse" : "Keep the index open"}
+            aria-pressed={hideApproved}
+            className="rail-filter-button"
+            onClick={toggleHideApproved}
             type="button"
           >
-            {/* A thumbtack; "pin" already names feedback markers. */}
-            <svg aria-hidden="true" height="16" viewBox="0 0 16 16" width="16">
-              <path
-                d="M6 2h4M7 2v4L4.5 9h7L9 6V2M8 9v5"
-                fill={pinned ? "currentColor" : "none"}
-                stroke="currentColor"
-                strokeLinejoin="round"
-                strokeWidth="1.5"
-              />
-            </svg>
-          </button>
-        ) : null}
-        {onModeChange ? (
-          <button
-            aria-label={
-              mode === "wide" ? "Collapse screen index" : "Expand screen index"
-            }
-            aria-expanded={mode === "wide"}
-            className="rail-mode-button"
-            title={
-              mode === "wide" ? "Collapse to numbers" : "Expand screen index"
-            }
-            onClick={() => {
-              setPinned(false);
-              setTemporaryExpanded(false);
-              onModeChange(mode === "wide" ? "compact" : "wide");
-            }}
-            type="button"
-          >
-            <svg aria-hidden="true" height="16" viewBox="0 0 16 16" width="16">
-              <path
-                d={
-                  mode === "wide"
-                    ? "M9 3 4 8l5 5M13 3 8 8l5 5"
-                    : "M3 3l5 5-5 5M7 3l5 5-5 5"
-                }
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="1.75"
-              />
-            </svg>
+            {hideApproved
+              ? `Show approved screens (${approvedCount})`
+              : "Hide approved screens"}
           </button>
         ) : null}
       </div>
-      {approvedCount > 0 ? (
-        <button
-          aria-pressed={hideApproved}
-          className="rail-filter-button"
-          onClick={toggleHideApproved}
-          type="button"
-        >
-          {hideApproved
-            ? `Show approved screens (${approvedCount})`
-            : "Hide approved screens"}
-        </button>
-      ) : null}
       <ol onKeyDown={onListKeyDown}>
         {visibleScreens.map((screen, index) => {
           const showGroup = screen.group !== previousGroup;

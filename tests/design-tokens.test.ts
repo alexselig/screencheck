@@ -255,6 +255,14 @@ describe("panel layout", () => {
     );
   });
 
+  it("keeps the rail title, mode controls and filter in view (ds-9)", () => {
+    const head = ruleBody(".rail-head");
+    expect(head).toMatch(/position: sticky;/);
+    expect(head).toMatch(/top: 0;/);
+    expect(head).toMatch(/background: var\(--surface-alt\);/);
+    expect(head).toMatch(/border-bottom: 1px solid var\(--line\);/);
+  });
+
   it("gives the empty panel a blue-soft field with a blue rule (ds-30)", () => {
     const empty = ruleBody(".feedback-empty");
     expect(empty).toMatch(/border-left: 4px solid var\(--bauhaus-blue\);/);
