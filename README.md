@@ -42,6 +42,7 @@ so they don't take that slot from your real one. Node 22 or later.
 | `screencheck reply --project <id> ...`               | List open comments or reply to one (see below)                   |
 | `screencheck mcp [--url <origin>] [--author <name>]` | Run the MCP server on stdio for coding agents                    |
 | `screencheck capture <url> --out <file>`             | Full-page screenshot without mid-page footers (needs Playwright) |
+| `screencheck doctor [<project>] [--restore]`         | Check stored feedback; restore a damaged file from its backup    |
 
 `screencheck --help` lists them; `screencheck <command> --help` shows options.
 
@@ -198,6 +199,17 @@ max); requests with a non-loopback `Host` header are refused. If
 `feedback.json` cannot be parsed, the API returns `500` and the UI shows the
 error with a Retry button — it never treats a damaged file as empty or
 overwrites it.
+
+Each write goes to a unique temp file that is renamed into place, and the
+previous version is kept as `<file>.bak` (`feedback.json.bak`,
+`approvals.json.bak`, `captions.json.bak`). Fields this build doesn't know
+are kept when it rewrites a record, so an older build can't strip what a newer
+one added. If a single record is invalid, the others still load: `GET` lists
+the valid ones with a `problems` entry naming the bad record and field, and
+writes return `409` until it is fixed or quarantined. `screencheck doctor`
+checks every project; `--restore` puts a damaged file back from its `.bak`
+(keeping the damaged copy as `<file>.damaged-<time>`), and `--quarantine`
+moves invalid records to `feedback.rejected.json`.
 
 Feedback saved by earlier builds in browser `localStorage` is imported on first
 load. The browser copy is removed only after every record is accepted; anything

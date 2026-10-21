@@ -13,6 +13,7 @@ import { ACTOR_HEADER, REVIEWER_ACTOR } from "../shared/feedback";
 import {
   FeedbackConflictError,
   FeedbackNotFoundError,
+  FeedbackQuarantineError,
   type FeedbackStorage,
 } from "./storage";
 
@@ -233,8 +234,16 @@ export async function handleApi(
     }
 
     if (!id && !isImport && method === "GET") {
+      const { feedback, rejected } = await storage.inspectFeedback(projectId);
       sendJson(response, 200, {
-        feedback: await storage.listFeedback(projectId),
+        feedback,
+        ...(rejected.length
+          ? {
+              problems: [
+                new FeedbackQuarantineError(projectId, rejected).message,
+              ],
+            }
+          : {}),
       });
     } else if (!id && !isImport && method === "POST") {
       const body = await readJsonBody(request);
@@ -279,6 +288,8 @@ export async function handleApi(
       });
     } else if (error instanceof FeedbackConflictError) {
       sendJson(response, 409, { error: error.message, current: error.current });
+    } else if (error instanceof FeedbackQuarantineError) {
+      sendJson(response, 409, { error: error.message });
     } else if (error instanceof FeedbackNotFoundError) {
       sendJson(response, 404, { error: error.message });
     } else if (

@@ -5,6 +5,7 @@ import { version } from "../../package.json";
 import { serve } from "../server/index";
 import { readRuntimeInfo, type RuntimeInfo } from "../server/runtime";
 import { CAPTURE_USAGE, parseCaptureArgs, runCapture } from "./capture";
+import { DOCTOR_USAGE, runDoctor } from "./doctor";
 import { REPLY_USAGE, runReply } from "./reply";
 
 export const VERSION = version;
@@ -19,6 +20,7 @@ Commands:
   reply     List open comments or reply to one
   mcp       Run the MCP server on stdio for coding agents
   capture   Take a full-page screenshot without mid-page footers
+  doctor    Check stored feedback and restore damaged files from backup
 
 Run "screencheck <command> --help" for a command's options.
 Data lives in ~/.screencheck (override with SCREENCHECK_DATA and
@@ -163,6 +165,9 @@ export async function main(
         await runCapture(job, { log });
         return 0;
       }
+      case "doctor":
+        if (wantsHelp(rest)) return (log(DOCTOR_USAGE), 0);
+        return await runDoctor(rest, { log });
       default:
         error(`Unknown command: ${command}\n`);
         error(HELP);
