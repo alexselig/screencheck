@@ -1,7 +1,11 @@
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-import { ScreenRail } from "../src/client/components/screen-rail";
+import {
+  groupAbbreviation,
+  ScreenRail,
+  versionTag,
+} from "../src/client/components/screen-rail";
 
 const screens = [
   {
@@ -138,5 +142,56 @@ describe("ScreenRail", () => {
     fireEvent.keyDown(first, { key: "ArrowUp" });
     fireEvent.keyDown(first, { key: "ArrowDown", metaKey: true });
     expect(onSelect).not.toHaveBeenCalled();
+  });
+
+  it("labels versions and groups when collapsed (ux-23)", () => {
+    const { container } = render(
+      <ScreenRail
+        mode="compact"
+        onModeChange={vi.fn()}
+        onSelect={vi.fn()}
+        screens={[
+          { ...screens[0]!, id: "one@@a", versionLabel: "1440 × 1000" },
+          {
+            ...screens[0]!,
+            id: "one@@b",
+            ordinal: 2,
+            versionLabel: "390 × 844",
+          },
+        ]}
+        selectedId="one@@a"
+      />,
+    );
+    expect(
+      [...container.querySelectorAll(".screen-version-tag")].map(
+        (tag) => tag.textContent,
+      ),
+    ).toEqual(["1440", "390"]);
+    expect(container.querySelector(".group-short")).toHaveTextContent("A");
+    // Tags are visual only; the accessible names already carry the version.
+    expect(container.querySelector(".screen-version-tag")).toHaveAttribute(
+      "aria-hidden",
+      "true",
+    );
+  });
+
+  it("omits the version tag when the rail lists one version", () => {
+    const { container } = render(
+      <ScreenRail
+        mode="compact"
+        onSelect={vi.fn()}
+        screens={screens}
+        selectedId="one"
+      />,
+    );
+    expect(container.querySelector(".screen-version-tag")).toBeNull();
+  });
+
+  it("shortens version and group labels", () => {
+    expect(versionTag("build-42")).toBe("42");
+    expect(versionTag("1440 × 1000")).toBe("1440");
+    expect(versionTag("Mobile")).toBe("Mob");
+    expect(groupAbbreviation("Sign in")).toBe("SI");
+    expect(groupAbbreviation("Portfolio")).toBe("P");
   });
 });

@@ -37,6 +37,25 @@ export function visibleRailScreens<T extends { id: string }>(
     : [...screens];
 }
 
+// Short labels for the collapsed rail, where only the number column shows.
+// "1440 × 1000" → "1440", "build-42" → "42", "Mobile" → "Mob".
+export function versionTag(label: string) {
+  const digits = label.match(/\d+/g);
+  if (digits)
+    return label.includes("×") ? digits[0] : digits[digits.length - 1];
+  return label.trim().slice(0, 3);
+}
+
+// "Sign in" → "SI", "Onboarding" → "O".
+export function groupAbbreviation(group: string) {
+  return group
+    .split(/[\s/_-]+/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((word) => word[0]!.toUpperCase())
+    .join("");
+}
+
 export function ScreenRail({
   screens,
   selectedId,
@@ -48,7 +67,8 @@ export function ScreenRail({
   hideApproved: hideApprovedProp,
   onHideApprovedChange,
 }: {
-  screens: ReviewScreen[];
+  // versionLabel is set when the rail lists one row per version.
+  screens: (ReviewScreen & { versionLabel?: string })[];
   selectedId: string;
   openCounts?: ReadonlyMap<string, number>;
   approvedIds?: ReadonlySet<string>;
@@ -233,6 +253,9 @@ export function ScreenRail({
               {showGroup ? (
                 <h3 data-tone={groupIndex % 4} title={screen.group}>
                   <span className="group-full">{screen.group}</span>
+                  <span aria-hidden="true" className="group-short">
+                    {groupAbbreviation(screen.group)}
+                  </span>
                 </h3>
               ) : null}
               <button
@@ -277,6 +300,11 @@ export function ScreenRail({
                   <span className="screen-ordinal">
                     {String(screen.ordinal).padStart(2, "0")}
                   </span>
+                  {screen.versionLabel ? (
+                    <span aria-hidden="true" className="screen-version-tag">
+                      {versionTag(screen.versionLabel)}
+                    </span>
+                  ) : null}
                 </span>
                 <span className="screen-name">{screen.title}</span>
               </button>

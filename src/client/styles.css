@@ -566,12 +566,33 @@ h1 {
   text-overflow: clip;
 }
 
-/* Collapsed: the tinted band keeps its height but shows no label. */
+/* Collapsed: the tinted band keeps its height and swaps the full label for
+   a short one, so groups read apart without hovering. */
+.screen-rail[data-mode="compact"]:not([data-expanded="true"]) ol h3 .group-full,
+.screen-rail .group-short,
+.screen-rail .screen-version-tag {
+  display: none;
+}
+
 .screen-rail[data-mode="compact"]:not([data-expanded="true"])
   ol
-  h2
-  .group-full {
-  visibility: hidden;
+  h3
+  .group-short {
+  display: inline;
+}
+
+/* Collapsed with one row per version: a small tag under the number names
+   the version. */
+.screen-rail[data-mode="compact"]:not([data-expanded="true"])
+  .screen-version-tag {
+  display: block;
+  margin-top: 3px;
+  font-size: 9px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  line-height: 1;
+  text-align: center;
+  opacity: 0.75;
 }
 
 /* Each section gets a quiet tint so sections read apart, even collapsed. */
@@ -998,7 +1019,7 @@ h1 {
   .fullscreen-rail
     .screen-rail[data-mode="compact"]:not([data-expanded="true"])
     ol
-    h2 {
+    h3 {
     margin-inline: -3px;
     padding-inline: 3px;
   }
