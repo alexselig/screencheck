@@ -102,6 +102,15 @@ function readPlace(): Place {
   };
 }
 
+type NoticeKind =
+  | "migration"
+  | "approvals-load"
+  | "captions-load"
+  | "caption-save"
+  | "approval-save";
+type Notice = { kind: NoticeKind; text: string };
+const SAVE_NOTICES = new Set<NoticeKind>(["caption-save", "approval-save"]);
+
 const CLOSED_DRAWER: FullscreenDrawer = { open: false, pinned: false };
 
 function revisionName(revision: string) {
@@ -261,7 +270,10 @@ export function App() {
   const [drawer, setDrawer] = useState<FullscreenDrawer>(CLOSED_DRAWER);
   const [feedbackRecords, setFeedbackRecords] = useState<FeedbackRecord[]>([]);
   const [loadState, setLoadState] = useState<LoadState>({ kind: "loading" });
-  const [notice, setNotice] = useState<string | null>(null);
+  const [notice, setNotice] = useState<Notice | null>(null);
+  const clearNotice = useCallback((kind: NoticeKind) => {
+    setNotice((current) => (current?.kind === kind ? null : current));
+  }, []);
   const [loadAttempt, setLoadAttempt] = useState(0);
   const [visibleFeedback, setVisibleFeedback] =
     useState<FeedbackRecord[]>(feedbackRecords);
@@ -367,7 +379,7 @@ export function App() {
         const records = await fetchFeedback(project.id);
         if (cancelled) return;
         setFeedbackRecords(records);
-        setNotice(warning);
+        setNotice(warning ? { kind: "migration", text: warning } : null);
         setLoadState({ kind: "ready" });
       } catch (error) {
         if (cancelled) return;
@@ -394,11 +406,12 @@ export function App() {
       },
       (error: unknown) => {
         if (cancelled) return;
-        setNotice(
-          `Screen approvals could not load: ${
+        setNotice({
+          kind: "approvals-load",
+          text: `Screen approvals could not load: ${
             error instanceof Error ? error.message : "unknown error"
           }`,
-        );
+        });
       },
     );
     return () => {
@@ -416,11 +429,12 @@ export function App() {
       },
       (error: unknown) => {
         if (cancelled) return;
-        setNotice(
-          `Screen descriptions could not load: ${
+        setNotice({
+          kind: "captions-load",
+          text: `Screen descriptions could not load: ${
             error instanceof Error ? error.message : "unknown error"
           }`,
-        );
+        });
       },
     );
     return () => {
@@ -683,18 +697,22 @@ export function App() {
           screenId: selectedId,
           text,
         });
-        if (request === captionRequest.current) setCaptions(saved);
+        if (request === captionRequest.current) {
+          setCaptions(saved);
+          clearNotice("caption-save");
+        }
       } catch (error) {
         if (request !== captionRequest.current) return;
         setCaptions(previous);
-        setNotice(
-          `Description was not saved: ${
+        setNotice({
+          kind: "caption-save",
+          text: `Description was not saved: ${
             error instanceof Error ? error.message : "unknown error"
           }`,
-        );
+        });
       }
     },
-    [captions, project.id, selectedId, version],
+    [captions, clearNotice, project.id, selectedId, version],
   );
 
   const toggleApproval = useCallback(async () => {
@@ -723,17 +741,28 @@ export function App() {
         approved,
       });
       // A quick re-toggle supersedes this response.
-      if (request === approvalRequest.current) setApprovals(saved);
+      if (request === approvalRequest.current) {
+        setApprovals(saved);
+        clearNotice("approval-save");
+      }
     } catch (error) {
       if (request !== approvalRequest.current) return;
       setApprovals(previous);
-      setNotice(
-        `Approval was not saved: ${
+      setNotice({
+        kind: "approval-save",
+        text: `Approval was not saved: ${
           error instanceof Error ? error.message : "unknown error"
         }`,
-      );
+      });
     }
-  }, [approvals, project.id, selectedId, version]);
+  }, [approvals, clearNotice, project.id, selectedId, version]);
+
+  // A failed save is about the screen it happened on; moving on retires it.
+  useEffect(() => {
+    setNotice((current) =>
+      current && SAVE_NOTICES.has(current.kind) ? null : current,
+    );
+  }, [project.id, selectedId, version]);
 
   const selectScreen = useCallback((id: string) => {
     setSelectedId(id);
@@ -1247,9 +1276,16 @@ export function App() {
         </div>
       ) : null}
       {notice ? (
-        <p className="workbench-banner workbench-banner-error" role="alert">
-          {notice}
-        </p>
+        <div className="workbench-banner workbench-banner-error" role="alert">
+          <span>{notice.text}</span>
+          <button
+            aria-label="Dismiss message"
+            onClick={() => setNotice(null)}
+            type="button"
+          >
+            Dismiss
+          </button>
+        </div>
       ) : null}
       <section
         className="workbench-grid"
