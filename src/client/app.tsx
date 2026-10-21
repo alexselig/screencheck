@@ -111,6 +111,13 @@ type NoticeKind =
 type Notice = { kind: NoticeKind; text: string };
 const SAVE_NOTICES = new Set<NoticeKind>(["caption-save", "approval-save"]);
 
+// A comment about the whole screen sits at its top left.
+const WHOLE_SCREEN_PIN = { x: 0.02, y: 0.02 };
+
+function clampUnit(value: number) {
+  return Math.min(1, Math.max(0, Math.round(value * 1000) / 1000));
+}
+
 const CLOSED_DRAWER: FullscreenDrawer = { open: false, pinned: false };
 
 function revisionName(revision: string) {
@@ -287,6 +294,9 @@ export function App() {
   const [hiddenPinStatuses, setHiddenPinStatuses] = useState<FeedbackStatus[]>(
     readHiddenPinStatuses,
   );
+  // Keyboard pin placement: a crosshair the arrow keys move over the frame.
+  const [crosshair, setCrosshair] = useState({ x: 0.5, y: 0.5 });
+  const frameRef = useRef<HTMLDivElement>(null);
   const [draftPin, setDraftPin] = useState<{ x: number; y: number } | null>(
     null,
   );
@@ -481,6 +491,18 @@ export function App() {
   useEffect(() => {
     if (!fullscreen) setDrawer(CLOSED_DRAWER);
   }, [fullscreen]);
+
+  const placingPin = addingFeedback && !draftPin;
+  useEffect(() => {
+    if (!placingPin) return;
+    setCrosshair({ x: 0.5, y: 0.5 });
+    frameRef.current?.focus({ preventScroll: true });
+  }, [placingPin]);
+
+  const placePin = useCallback((pin: { x: number; y: number }) => {
+    setDraftPin(pin);
+    setSelectedFeedbackId(null);
+  }, []);
 
   const upsertRecord = useCallback((record: FeedbackRecord) => {
     setFeedbackRecords((current) =>
@@ -841,6 +863,7 @@ export function App() {
         return;
       }
       if (
+        event.defaultPrevented ||
         event.metaKey ||
         event.ctrlKey ||
         event.altKey ||
@@ -963,11 +986,36 @@ export function App() {
           // Pins are stored relative to the screen frame, which keeps the
           // screen's aspect ratio, so they land on the same spot at any size.
           const rect = event.currentTarget.getBoundingClientRect();
-          setDraftPin(
-            normalizePinCoordinates(event.clientX, event.clientY, rect),
-          );
-          setSelectedFeedbackId(null);
+          placePin(normalizePinCoordinates(event.clientX, event.clientY, rect));
         }}
+        onKeyDown={(event) => {
+          if (!placingPin || !ready) return;
+          const step = event.shiftKey ? 0.1 : 0.01;
+          const move = {
+            ArrowLeft: [-step, 0],
+            ArrowRight: [step, 0],
+            ArrowUp: [0, -step],
+            ArrowDown: [0, step],
+          }[event.key];
+          if (move) {
+            event.preventDefault();
+            setCrosshair((current) => ({
+              x: clampUnit(current.x + move[0]!),
+              y: clampUnit(current.y + move[1]!),
+            }));
+          } else if (event.key === "Enter" || event.key === " ") {
+            event.preventDefault();
+            placePin(crosshair);
+          }
+        }}
+        ref={frameRef}
+        {...(placingPin
+          ? {
+              "aria-label": `Place a pin at ${Math.round(crosshair.x * 100)}% across, ${Math.round(crosshair.y * 100)}% down. Arrow keys move, Shift moves further, Enter drops the pin.`,
+              role: "application",
+              tabIndex: 0,
+            }
+          : {})}
         style={
           {
             "--screen-ratio": `${frameSize.width} / ${frameSize.height}`,
@@ -1036,6 +1084,16 @@ export function App() {
                 {pinNumbers.get(item.id) ?? 0}
               </button>
             ))}
+          {placingPin ? (
+            <span
+              aria-hidden="true"
+              className="pin-crosshair"
+              style={{
+                left: `${crosshair.x * 100}%`,
+                top: `${crosshair.y * 100}%`,
+              }}
+            />
+          ) : null}
           {draftPin ? (
             <span
               className="feedback-pin pin-dot feedback-pin-draft"
@@ -1078,10 +1136,20 @@ export function App() {
             />
           </svg>
         </button>
-        {addingFeedback && !draftPin ? (
-          <p className="action-bar-hint" role="status">
-            Click the screen to place a pin · Esc to cancel
-          </p>
+        {placingPin ? (
+          <>
+            <p className="action-bar-hint" role="status">
+              Click the screen to place a pin, or use the arrow keys and Enter ·
+              Esc to cancel
+            </p>
+            <button
+              className="action-bar-whole-screen"
+              onClick={() => placePin(WHOLE_SCREEN_PIN)}
+              type="button"
+            >
+              Comment on whole screen
+            </button>
+          </>
         ) : null}
       </div>
       <div className="action-bar-nav">

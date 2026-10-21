@@ -2270,3 +2270,23 @@ button.tag-chip:hover {
 .skip-links a:focus {
   transform: none;
 }
+
+/* Keyboard pin placement: shown while the frame has focus in adding mode. */
+.pin-crosshair {
+  display: none;
+  position: absolute;
+  width: 24px;
+  height: 24px;
+  border: 2px solid var(--bauhaus-blue);
+  border-radius: 50%;
+  pointer-events: none;
+  transform: translate(-50%, -50%);
+}
+
+.screen-frame:focus-visible .pin-crosshair {
+  display: block;
+}
+
+.action-bar-whole-screen {
+  white-space: nowrap;
+}

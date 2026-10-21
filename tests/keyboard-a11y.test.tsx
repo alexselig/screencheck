@@ -63,3 +63,50 @@ describe("screen rail tab stops (ux-14)", () => {
     expect(window.location.hash).toBe(hash);
   });
 });
+
+describe("keyboard pin placement (ux-8)", () => {
+  it("places a pin with the arrow keys and Enter without changing screens", async () => {
+    await ready();
+    fireEvent.keyDown(window, { key: "f", metaKey: true });
+    const frame = screen.getByTestId("screen-frame");
+    await waitFor(() => expect(frame).toHaveFocus());
+    expect(frame).toHaveAccessibleName(/Place a pin at 50% across, 50% down/);
+
+    for (let i = 0; i < 3; i += 1)
+      fireEvent.keyDown(frame, { key: "ArrowRight" });
+    fireEvent.keyDown(frame, { key: "ArrowDown", shiftKey: true });
+    expect(frame).toHaveAccessibleName(/53% across, 60% down/);
+    expect(
+      screen.getByRole("contentinfo", { name: "Review actions" }),
+    ).toHaveTextContent("01 / 3");
+
+    fireEvent.keyDown(frame, { key: "Enter" });
+    const note = await screen.findByRole("textbox", { name: "Feedback note" });
+    await waitFor(() => expect(note).toHaveFocus());
+    fireEvent.change(note, { target: { value: "Keyboard pin." } });
+    await waitFor(
+      async () =>
+        expect(await api.storage.listFeedback("example")).toEqual([
+          expect.objectContaining({ note: "Keyboard pin.", x: 0.53, y: 0.6 }),
+        ]),
+      { timeout: 3000 },
+    );
+  });
+
+  it("offers a comment on the whole screen", async () => {
+    await ready();
+    fireEvent.click(screen.getByRole("button", { name: "Add feedback" }));
+    fireEvent.click(
+      screen.getByRole("button", { name: "Comment on whole screen" }),
+    );
+    const note = await screen.findByRole("textbox", { name: "Feedback note" });
+    fireEvent.change(note, { target: { value: "Whole screen." } });
+    await waitFor(
+      async () =>
+        expect(await api.storage.listFeedback("example")).toEqual([
+          expect.objectContaining({ x: 0.02, y: 0.02 }),
+        ]),
+      { timeout: 3000 },
+    );
+  });
+});
