@@ -14,7 +14,10 @@ import {
   pinDotClassName,
 } from "./components/feedback-inspector";
 import { ExportDialog } from "./components/export-dialog";
-import { FullscreenReview } from "./components/fullscreen-review";
+import {
+  FullscreenReview,
+  type FullscreenDrawer,
+} from "./components/fullscreen-review";
 import { ScreenCaption } from "./components/screen-caption";
 import {
   ScreenRail,
@@ -98,6 +101,8 @@ function readPlace(): Place {
     screen: params.get("screen") ?? undefined,
   };
 }
+
+const CLOSED_DRAWER: FullscreenDrawer = { open: false, pinned: false };
 
 function revisionName(revision: string) {
   return revision.replace(/^local-/, "");
@@ -253,6 +258,7 @@ export function App() {
     ? selectedChoice
     : screens[0]!.id;
   const [fullscreen, setFullscreen] = useState(false);
+  const [drawer, setDrawer] = useState<FullscreenDrawer>(CLOSED_DRAWER);
   const [feedbackRecords, setFeedbackRecords] = useState<FeedbackRecord[]>([]);
   const [loadState, setLoadState] = useState<LoadState>({ kind: "loading" });
   const [notice, setNotice] = useState<string | null>(null);
@@ -422,14 +428,45 @@ export function App() {
     };
   }, [loadAttempt, projects, project.id]);
 
+  // One Escape handler undoes only the innermost thing: an open dialog or
+  // confirm (they handle Esc themselves and preventDefault), then pin
+  // placement, then the fullscreen drawer, then fullscreen itself. The drawer
+  // and fullscreen levels are skipped while typing so the field stays put.
+  const escapeRef = useRef({
+    exportOpen,
+    addingFeedback,
+    draftPin,
+    fullscreen,
+    drawer,
+  });
+  escapeRef.current = {
+    exportOpen,
+    addingFeedback,
+    draftPin,
+    fullscreen,
+    drawer,
+  };
   useEffect(() => {
-    if (!addingFeedback || draftPin) return;
-    const cancel = (event: KeyboardEvent) => {
-      if (event.key === "Escape") setAddingFeedback(false);
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key !== "Escape" || event.defaultPrevented) return;
+      const state = escapeRef.current;
+      if (state.exportOpen) return;
+      if (state.addingFeedback && !state.draftPin) {
+        event.preventDefault();
+        setAddingFeedback(false);
+        return;
+      }
+      if (!state.fullscreen || isTyping(event.target)) return;
+      event.preventDefault();
+      if (state.drawer.open) setDrawer(CLOSED_DRAWER);
+      else setFullscreen(false);
     };
-    window.addEventListener("keydown", cancel);
-    return () => window.removeEventListener("keydown", cancel);
-  }, [addingFeedback, draftPin]);
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, []);
+  useEffect(() => {
+    if (!fullscreen) setDrawer(CLOSED_DRAWER);
+  }, [fullscreen]);
 
   const upsertRecord = useCallback((record: FeedbackRecord) => {
     setFeedbackRecords((current) =>
@@ -1076,7 +1113,8 @@ export function App() {
         <FullscreenReview
           feedback={feedback}
           navigation={navigation}
-          onExit={() => setFullscreen(false)}
+          drawer={drawer}
+          onDrawerChange={setDrawer}
         >
           {canvas}
         </FullscreenReview>

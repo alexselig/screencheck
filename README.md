@@ -146,13 +146,13 @@ through each feature, from dropping a pin to an agent replying over MCP.
 
 ### Keyboard
 
-| Keys              | Action                                                    |
-| ----------------- | --------------------------------------------------------- |
-| ⌘F / Ctrl+F       | Add feedback (replaces the browser's find in this app)    |
-| ← / → or [ / ]    | Previous / next screen (ignored while typing)             |
-| ↑ / ↓, Home / End | In the screen index: previous / next, first / last screen |
-| ⌘A / Ctrl+A       | Approve / unapprove the screen (ignored while typing)     |
-| Esc               | Cancel placing a pin                                      |
+| Keys              | Action                                                                                                                                                                                              |
+| ----------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| ⌘F / Ctrl+F       | Add feedback (replaces the browser's find in this app)                                                                                                                                              |
+| ← / → or [ / ]    | Previous / next screen (ignored while typing)                                                                                                                                                       |
+| ↑ / ↓, Home / End | In the screen index: previous / next, first / last screen                                                                                                                                           |
+| ⌘A / Ctrl+A       | Approve / unapprove the screen (ignored while typing)                                                                                                                                               |
+| Esc               | Undo the innermost thing only: close a dialog or confirm, cancel placing a pin, close the fullscreen feedback panel, then leave fullscreen. While typing, Esc never closes the panel or fullscreen. |
 
 - Atomic file storage with serialized mutations, conflict checks, and restart
   recovery.

@@ -100,6 +100,7 @@ export function ExportDialog({
 
   function onKeyDown(event: React.KeyboardEvent) {
     if (event.key === "Escape") {
+      event.preventDefault();
       event.stopPropagation();
       onClose();
       return;
