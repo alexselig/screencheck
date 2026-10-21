@@ -14,4 +14,11 @@ describe("vitest config", () => {
     expect(config.server).toMatchObject({ hmr: false, ws: false });
     expect(config.optimizeDeps).toMatchObject({ noDiscovery: true });
   });
+
+  it("pre-bundles nothing under test, even what plugin-react asks for", async () => {
+    const { resolveConfig } = await import("vite");
+    const resolved = await resolveConfig({}, "serve");
+    expect(resolved.optimizeDeps.include ?? []).toEqual([]);
+    expect(resolved.optimizeDeps.noDiscovery).toBe(true);
+  });
 });
