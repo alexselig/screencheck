@@ -1,4 +1,11 @@
-import { cleanup, render, screen, within } from "@testing-library/react";
+import {
+  cleanup,
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+  within,
+} from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
 import { App } from "../src/client/app";
@@ -67,5 +74,46 @@ describe("README-style build versions", () => {
       within(rail).getAllByRole("button", { name: /^\d\d\./ }),
     ).toHaveLength(EXAMPLE_PROJECT.screens.length);
     expect(within(rail).queryByRole("button", { name: /· 4[12]/ })).toBeNull();
+  });
+});
+
+describe("shared link to an older build", () => {
+  let api: Awaited<ReturnType<typeof installFakeFeedbackApi>>;
+
+  beforeEach(async () => {
+    window.history.replaceState(
+      null,
+      "",
+      "#project=example&version=build-41&screen=bootstrap",
+    );
+    api = await installFakeFeedbackApi({
+      ...EXAMPLE_PROJECT,
+      versions: ["build-41", "build-42"],
+    });
+  });
+
+  afterEach(async () => {
+    cleanup();
+    localStorage.clear();
+    window.history.replaceState(null, "", "#");
+    await api.dispose();
+  });
+
+  it("opens the linked version and offers the newer one instead of switching", async () => {
+    render(<App />);
+    const picker = await screen.findByRole("combobox", { name: "Revision" });
+    expect(picker).toHaveValue("build-41");
+    await waitFor(() =>
+      expect(window.location.hash).toBe(
+        "#project=example&version=build-41&screen=bootstrap",
+      ),
+    );
+    const notice = screen.getByText(/Showing build-41 from the link/);
+    expect(notice).toHaveTextContent("A newer build, build-42, is available.");
+
+    fireEvent.click(screen.getByRole("button", { name: "Switch to build-42" }));
+    expect(picker).toHaveValue("build-42");
+    expect(screen.queryByText(/from the link/)).toBeNull();
+    await waitFor(() => expect(window.location.hash).toContain("build-42"));
   });
 });
