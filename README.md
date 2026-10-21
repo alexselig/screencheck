@@ -178,20 +178,20 @@ page forbids framing (`frame-ancestors 'none'`, `X-Frame-Options: DENY`). A
 malformed path or project id gets `400`; storage failures get a `500` whose
 details (including file paths) go only to the server log.
 
-| Route                                                      | Purpose                                                                                                                          |
-| ---------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------- |
-| `GET /api/projects/:projectId/feedback`                    | List feedback                                                                                                                    |
-| `POST /api/projects/:projectId/feedback`                   | Create (idempotent on `clientMutationId`)                                                                                        |
-| `PATCH /api/projects/:projectId/feedback/:id`              | Update; `409` with the current record if `expectedUpdatedAt` is stale. See below for replies, messages and Verified              |
-| `DELETE /api/projects/:projectId/feedback/:id`             | Delete the expected revision                                                                                                     |
-| `GET /api/projects`                                        | Registered projects and screens (no local paths or proxy settings)                                                               |
-| `GET /api/projects/:projectId/captures/:version/:screenId` | A screen's capture image, only from inside that version's `captureRoot`; revalidated by `ETag`, so a re-capture shows at once    |
-| `GET /api/projects/:projectId/elements/:version/:screenId` | A screen's element map (`<capture>.elements.json`), only from inside `captureRoot`; `404` when there is none, `500` if malformed |
-| `POST /api/projects/:projectId/feedback/import`            | Merge records saved elsewhere, keeping ids                                                                                       |
-| `GET /api/projects/:projectId/approvals`                   | Approved screens (stored beside `feedback.json` in `approvals.json`)                                                             |
-| `PUT /api/projects/:projectId/approvals`                   | Set `{version, screenId, approved}`; returns the full list                                                                       |
-| `GET /api/projects/:projectId/captions`                    | Screen descriptions (stored beside `feedback.json` in `captions.json`)                                                           |
-| `PUT /api/projects/:projectId/captions`                    | Set `{version, screenId, text}`; empty text clears; returns the list                                                             |
+| Route                                                      | Purpose                                                                                                                                                                                                          |
+| ---------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `GET /api/projects/:projectId/feedback`                    | List feedback                                                                                                                                                                                                    |
+| `POST /api/projects/:projectId/feedback`                   | Create (idempotent on `clientMutationId`)                                                                                                                                                                        |
+| `PATCH /api/projects/:projectId/feedback/:id`              | Update; `409` with the current record if `expectedUpdatedAt` is stale. See below for replies, messages and Verified                                                                                              |
+| `DELETE /api/projects/:projectId/feedback/:id`             | Delete the expected revision                                                                                                                                                                                     |
+| `GET /api/projects`                                        | Registered projects and screens (no local paths or proxy settings)                                                                                                                                               |
+| `GET /api/projects/:projectId/captures/:version/:screenId` | A screen's capture image, only from inside that version's `captureRoot`; revalidated by `ETag`, so a re-capture shows at once                                                                                    |
+| `GET /api/projects/:projectId/elements/:version/:screenId` | A screen's element map (`<capture>.elements.json`), only from inside `captureRoot`; `404` when there is none, `500` if malformed                                                                                 |
+| `POST /api/projects/:projectId/feedback/import`            | Merge records saved elsewhere, keeping ids                                                                                                                                                                       |
+| `GET /api/projects/:projectId/approvals`                   | Approved screens (stored beside `feedback.json` in `approvals.json`)                                                                                                                                             |
+| `PUT /api/projects/:projectId/approvals`                   | Set `{version, screenId, approved}`; reviewer only (`x-screencheck-actor: reviewer`, else `403`); `409` with `unverified: N` while the screen has Fixed comments, unless `override: true`; returns the full list |
+| `GET /api/projects/:projectId/captions`                    | Screen descriptions (stored beside `feedback.json` in `captions.json`)                                                                                                                                           |
+| `PUT /api/projects/:projectId/captions`                    | Set `{version, screenId, text}`; empty text clears; returns the list                                                                                                                                             |
 
 Feedback records carry `thread: [{id, author, role, note, at, status?}]`
 (`role` is `reviewer` or `agent`; `status` is the change that message made)
@@ -350,9 +350,23 @@ version points at its folder:
 }
 ```
 
-A capture must sit inside its version's `captureRoot`. To register a project
-from its own manifests, keep a small importer script beside the registrations
-rather than in this repository.
+A capture must sit inside its version's `captureRoot`. A relative
+`capturePath` is read from the `captureRoot`, subfolders included
+(`flows/checkout.png`); a path that climbs out of it is refused. An absolute
+path outside the root falls back to the same file name inside it. Without a
+`capturePath`, the capture is `<screen id>.webp`. A declared capture that is
+missing, or one that points outside the root, is listed in `problems` from
+`GET /api/projects` (and the inspector) rather than silently showing "No
+capture". Registrations are re-read only when a file in the folder changes.
+
+Feedback, approvals and captions are checked against the registry: a write
+for an unregistered project, version or screen gets `404` naming the valid
+ids (for example `Unknown project "shpo". Projects: shop, try.`), so a typo in
+a script or agent can't save comments nobody will see. The `example`
+placeholder project is always accepted.
+
+To register a project from its own manifests, keep a small importer script
+beside the registrations rather than in this repository.
 
 ## Capturing long pages
 

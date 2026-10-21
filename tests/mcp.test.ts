@@ -61,10 +61,19 @@ function record(
   };
 }
 
-async function api(method: string, path: string, body?: unknown) {
+async function api(
+  method: string,
+  path: string,
+  body?: unknown,
+  headers: Record<string, string> = {},
+) {
   const response = await fetch(`${server.origin}${path}`, {
     method,
-    headers: { "content-type": "application/json", origin: server.origin },
+    headers: {
+      "content-type": "application/json",
+      origin: server.origin,
+      ...headers,
+    },
     body: body === undefined ? undefined : JSON.stringify(body),
   });
   return response.json();
@@ -190,11 +199,12 @@ beforeEach(async () => {
       }),
     ],
   });
-  await api("PUT", "/api/projects/demo/approvals", {
-    version: "v1",
-    screenId: "checkout",
-    approved: true,
-  });
+  await api(
+    "PUT",
+    "/api/projects/demo/approvals",
+    { version: "v1", screenId: "checkout", approved: true },
+    { "x-screencheck-actor": "reviewer" },
+  );
   await api("PUT", "/api/projects/demo/captions", {
     version: "v1",
     screenId: "home",

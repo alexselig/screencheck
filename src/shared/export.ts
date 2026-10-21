@@ -51,7 +51,9 @@ export function createPinNumbers(feedback: FeedbackRecord[]) {
   const grouped = new Map<string, FeedbackRecord[]>();
   for (const item of feedback) {
     const key = feedbackGroupKey(item);
-    grouped.set(key, [...(grouped.get(key) ?? []), item]);
+    const group = grouped.get(key);
+    if (group) group.push(item);
+    else grouped.set(key, [item]);
   }
   const pinNumbers = new Map<string, number>();
   for (const records of grouped.values()) {

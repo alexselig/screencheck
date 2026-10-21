@@ -9,6 +9,8 @@ import {
   loopbackOrigins,
 } from "./origin";
 import type { ProjectCatalog } from "./projects";
+import { setApprovalInputSchema } from "../shared/approvals";
+import { setCaptionInputSchema } from "../shared/captions";
 import { ACTOR_HEADER, REVIEWER_ACTOR } from "../shared/feedback";
 import { API_HEADERS, streamFile } from "./send-file";
 import {
@@ -103,6 +105,21 @@ export function assertMaySetVerified(
   );
 }
 
+// Approving a screen is the reviewer's call, like Verified.
+function assertReviewer(headers: IncomingMessage["headers"], action: string) {
+  if (headers[ACTOR_HEADER] === REVIEWER_ACTOR) return;
+  throw new HttpError(
+    403,
+    `Only a reviewer can ${action} in ScreenCheck (requests must carry ${ACTOR_HEADER}: ${REVIEWER_ACTOR}).`,
+  );
+}
+
+function stringField(body: unknown, key: string) {
+  if (typeof body !== "object" || body === null) return undefined;
+  const value = (body as Record<string, unknown>)[key];
+  return typeof value === "string" ? value : undefined;
+}
+
 const ROUTE =
   /^\/api\/projects\/([^/]+)\/feedback(?:\/(import)|\/([^/]+))?\/?$/;
 
@@ -131,6 +148,17 @@ export async function handleApi(
 ): Promise<boolean> {
   const url = new URL(request.url ?? "/", "http://placeholder");
   if (!url.pathname.startsWith("/api/")) return false;
+
+  // With a catalog, writes for an unregistered project, version or screen are
+  // refused instead of creating data nothing will ever show (a typo in a
+  // script or agent would otherwise look like success).
+  async function requireRegistered(
+    projectId: string,
+    target: { version?: string; screenId?: string } = {},
+  ) {
+    const miss = await catalog?.resolve(projectId, target);
+    if (miss) throw new HttpError(404, miss.error);
+  }
 
   try {
     if (!isLoopbackHostHeader(request.headers.host, port)) {
@@ -197,6 +225,7 @@ export async function handleApi(
     if (approvals) {
       const projectId = decodePart(approvals[1]!);
       if (request.method === "GET") {
+        await requireRegistered(projectId);
         sendJson(response, 200, {
           approvals: await storage.listApprovals(projectId),
         });
@@ -206,11 +235,26 @@ export async function handleApi(
         } catch (error) {
           throw new HttpError(403, (error as Error).message);
         }
+        assertReviewer(request.headers, "approve a screen");
+        const input = setApprovalInputSchema.parse(await readJsonBody(request));
+        await requireRegistered(projectId, input);
+        if (input.approved && !input.override) {
+          const unverified = (await storage.listFeedback(projectId)).filter(
+            (item) =>
+              item.version === input.version &&
+              item.screenId === input.screenId &&
+              item.status === "RESOLVED",
+          ).length;
+          if (unverified > 0) {
+            sendJson(response, 409, {
+              error: `${unverified} fix${unverified === 1 ? " is" : "es are"} not verified on this screen yet. Verify ${unverified === 1 ? "it" : "them"} first, or send override: true to approve anyway.`,
+              unverified,
+            });
+            return true;
+          }
+        }
         sendJson(response, 200, {
-          approvals: await storage.setApproval(
-            projectId,
-            (await readJsonBody(request)) as never,
-          ),
+          approvals: await storage.setApproval(projectId, input),
         });
       } else {
         throw new HttpError(405, "Method not allowed.");
@@ -221,6 +265,7 @@ export async function handleApi(
     if (captions) {
       const projectId = decodePart(captions[1]!);
       if (request.method === "GET") {
+        await requireRegistered(projectId);
         sendJson(response, 200, {
           captions: await storage.listCaptions(projectId),
         });
@@ -230,11 +275,10 @@ export async function handleApi(
         } catch (error) {
           throw new HttpError(403, (error as Error).message);
         }
+        const input = setCaptionInputSchema.parse(await readJsonBody(request));
+        await requireRegistered(projectId, input);
         sendJson(response, 200, {
-          captions: await storage.setCaption(
-            projectId,
-            (await readJsonBody(request)) as never,
-          ),
+          captions: await storage.setCaption(projectId, input),
         });
       } else {
         throw new HttpError(405, "Method not allowed.");
@@ -255,6 +299,7 @@ export async function handleApi(
         throw new HttpError(403, (error as Error).message);
       }
     }
+    await requireRegistered(projectId);
 
     if (!id && !isImport && method === "GET") {
       const { feedback, rejected } = await storage.inspectFeedback(projectId);
@@ -271,6 +316,10 @@ export async function handleApi(
     } else if (!id && !isImport && method === "POST") {
       const body = await readJsonBody(request);
       assertMaySetVerified(request.headers, [body]);
+      await requireRegistered(projectId, {
+        version: stringField(body, "version"),
+        screenId: stringField(body, "screenId"),
+      });
       const created = await storage.createFeedback(projectId, body as never);
       sendJson(response, 201, { feedback: created });
     } else if (isImport && method === "POST") {
