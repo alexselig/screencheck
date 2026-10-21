@@ -53,16 +53,25 @@ select {
   outline-offset: 2px;
 }
 
+/* A slim bar: the canvas title, not the wordmark, is the largest type. */
 .workbench-header {
   display: flex;
-  min-height: 96px;
+  min-height: 56px;
   align-items: center;
   justify-content: space-between;
-  padding: var(--space-3) var(--space-4);
+  gap: var(--space-3);
+  padding: var(--space-1) var(--space-4);
   border-bottom: 1px solid var(--ink);
   /* Ink, not orange: orange is reserved for the one loud action (Add feedback). */
   background: var(--ink);
   color: var(--on-blue);
+}
+
+.workbench-brand {
+  display: flex;
+  min-width: 0;
+  align-items: baseline;
+  gap: var(--space-3);
 }
 
 .workbench-header .eyebrow {
@@ -86,8 +95,7 @@ h2 {
 }
 
 h1 {
-  margin-top: var(--space-1);
-  font-size: clamp(28px, 4vw, 52px);
+  font-size: 22px;
 }
 
 .eyebrow {
@@ -173,11 +181,13 @@ h1 {
 
 .header-controls {
   display: flex;
+  min-width: 0;
   align-items: center;
   gap: var(--space-3);
 }
 
-.header-controls label {
+.header-controls label,
+.header-label {
   display: flex;
   align-items: center;
   gap: var(--space-2);
@@ -188,17 +198,27 @@ h1 {
 }
 
 .header-controls select {
-  min-height: 44px;
+  min-height: 36px;
   border: 1px solid var(--ink);
   background-color: var(--surface);
   color: var(--ink);
-  font-size: 13px;
+  font-size: 15px;
   letter-spacing: 0;
   text-transform: none;
 }
 
 .header-project {
-  font-weight: 700;
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.header-project strong {
+  overflow: hidden;
+  font-size: 15px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .action-bar {
@@ -2289,6 +2309,11 @@ button.tag-chip:hover {
     justify-content: flex-end;
   }
 
+  /* Touch layouts keep full-size targets. */
+  .header-controls select {
+    min-height: var(--size-touch);
+  }
+
   .action-bar {
     padding: 0 var(--space-3);
   }
@@ -2349,8 +2374,20 @@ button.tag-chip:hover {
 
   .feedback-add-button kbd,
   .screen-approval-toggle kbd,
-  .header-project {
+  .workbench-header .eyebrow {
     display: none;
+  }
+
+  /* Wordmark on one row, controls on the next; the project name truncates
+     rather than disappearing. */
+  .workbench-header {
+    flex-wrap: wrap;
+    padding: var(--space-2) var(--space-3);
+  }
+
+  .header-controls {
+    flex: 1 1 100%;
+    justify-content: flex-start;
   }
 
   .canvas-header-actions a {

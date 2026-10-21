@@ -286,6 +286,27 @@ describe("panel layout", () => {
     expect(hit).toMatch(/height: var\(--size-touch\);/);
   });
 
+  it("slims the header to a 56px bar under the canvas title (ds-23)", () => {
+    expect(ruleBody(".workbench-header")).toMatch(/min-height: 56px;/);
+    expect(ruleBody("h1")).toMatch(/font-size: 22px;/);
+    const select = ruleBody(".header-controls select");
+    expect(select).toMatch(/min-height: 36px;/);
+    expect(select).toMatch(/font-size: 15px;/);
+    expect(ruleBody(".canvas-header h2")).toMatch(/font-size: 28px;/);
+  });
+
+  it("wraps the phone header and truncates, never hides, the project (ds-24)", () => {
+    const phone = rules.slice(rules.lastIndexOf("@media (max-width: 480px)"));
+    expect(phone).toMatch(/\.workbench-header \.eyebrow \{\s*display: none;/);
+    expect(phone).toMatch(/\.workbench-header \{[^}]*flex-wrap: wrap;/);
+    expect(phone).toMatch(/\.header-controls \{[^}]*flex: 1 1 100%;/);
+    expect(styles).not.toMatch(/\.header-project \{\s*display: none;/);
+    expect(styles).not.toMatch(/\.header-project,\s*[^{]*\{\s*display: none;/);
+    expect(ruleBody(".header-project strong")).toMatch(
+      /text-overflow: ellipsis;/,
+    );
+  });
+
   it("gives the empty panel a blue-soft field with a blue rule (ds-30)", () => {
     const empty = ruleBody(".feedback-empty");
     expect(empty).toMatch(/border-left: 4px solid var\(--bauhaus-blue\);/);

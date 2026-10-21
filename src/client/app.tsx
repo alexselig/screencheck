@@ -235,9 +235,9 @@ function NoProjects({ list }: { list: ProjectList }) {
   return (
     <main className="workbench-shell">
       <header className="workbench-header">
-        <div>
-          <span className="eyebrow">Design review</span>
+        <div className="workbench-brand">
           <h1>ScreenCheck</h1>
+          <span className="eyebrow">Design review</span>
         </div>
       </header>
       {list.problems.map((problem) => (
@@ -1197,9 +1197,9 @@ function Workbench({
     <main className="workbench-shell">
       {skipLinks}
       <header className="workbench-header">
-        <div>
-          <span className="eyebrow">Design review</span>
+        <div className="workbench-brand">
           <h1>ScreenCheck</h1>
+          <span className="eyebrow">Design review</span>
         </div>
         <div className="header-controls">
           {projects.length > 1 ? (
@@ -1217,7 +1217,10 @@ function Workbench({
               </select>
             </label>
           ) : (
-            <span className="header-project">{project.name}</span>
+            <span className="header-project">
+              <span className="header-label">Project</span>
+              <strong title={project.name}>{project.name}</strong>
+            </span>
           )}
           {revisions.length > 1 ? (
             <label>
