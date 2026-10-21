@@ -16,13 +16,21 @@ import { build } from "esbuild";
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const DIST = path.join(ROOT, "dist");
-const bin = (name) => path.join(ROOT, "node_modules/.bin", name);
-const run = (command, args) =>
-  execFileSync(command, args, { cwd: ROOT, stdio: "inherit" });
+// Run each tool's JS entry through node: node_modules/.bin holds .cmd shims on
+// Windows, which execFileSync can't start without a shell.
+const BINS = {
+  vite: "node_modules/vite/bin/vite.js",
+  tsc: "node_modules/typescript/bin/tsc",
+};
+const run = (tool, args) =>
+  execFileSync(process.execPath, [path.join(ROOT, BINS[tool]), ...args], {
+    cwd: ROOT,
+    stdio: "inherit",
+  });
 
 rmSync(DIST, { recursive: true, force: true });
 
-run(bin("vite"), ["build"]);
+run("vite", ["build"]);
 
 const entryPoints = {
   cli: "src/cli/bin.ts",
@@ -51,7 +59,7 @@ await build({
 });
 chmodSync(path.join(DIST, "cli.js"), 0o755);
 
-run(bin("tsc"), [
+run("tsc", [
   "src/capture/full-page.ts",
   "--declaration",
   "--emitDeclarationOnly",
