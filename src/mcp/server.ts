@@ -6,6 +6,7 @@ import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js"
 import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import { z } from "zod";
 
+import { version as VERSION } from "../../package.json";
 import { isApproved } from "../shared/approvals";
 import { captionFor } from "../shared/captions";
 import {
@@ -43,8 +44,6 @@ export type McpServerOptions = {
   fetchImpl?: typeof fetch;
   author?: string;
 };
-
-const VERSION = "0.1.0";
 
 const INSTRUCTIONS = `ScreenCheck holds design-review feedback: numbered pins on screen captures, each with a note, tags (P0/P1/P2 priority plus free text) and a status.
 Typical loop: list_feedback to see open comments, get_comment for the note and a crop of the capture around the pin, fix the code, then reply with what you did and status "fixed" (or "wont-fix" with the reason).
