@@ -57,6 +57,7 @@ import {
   putCaption,
   removeFeedback,
 } from "./feedback-api";
+import { SHORTCUTS, useShortcuts } from "./shortcuts";
 import { versionModel } from "./versions";
 
 type Place = { project?: string; version?: string; screen?: string };
@@ -91,18 +92,6 @@ const CLOSED_DRAWER: FullscreenDrawer = { open: false, pinned: false };
 function revisionName(revision: string) {
   return revision.replace(/^local-/, "");
 }
-
-function isTyping(target: EventTarget | null) {
-  return (
-    target instanceof HTMLElement &&
-    (target.isContentEditable ||
-      ["INPUT", "TEXTAREA", "SELECT"].includes(target.tagName))
-  );
-}
-
-const isMac =
-  typeof navigator !== "undefined" &&
-  /Mac|iPhone|iPad/.test(navigator.platform);
 
 // Keeps a side column in view while the page scrolls. A column shorter than
 // the window sticks to the top; a taller one scrolls with the page until its
@@ -494,42 +483,6 @@ function Workbench({
     };
   }, [loadAttempt, projects, project.id]);
 
-  // One Escape handler undoes only the innermost thing: an open dialog or
-  // confirm (they handle Esc themselves and preventDefault), then pin
-  // placement, then the fullscreen drawer, then fullscreen itself. The drawer
-  // and fullscreen levels are skipped while typing so the field stays put.
-  const escapeRef = useRef({
-    exportOpen,
-    addingFeedback,
-    draftPin,
-    fullscreen,
-    drawer,
-  });
-  escapeRef.current = {
-    exportOpen,
-    addingFeedback,
-    draftPin,
-    fullscreen,
-    drawer,
-  };
-  useEffect(() => {
-    const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key !== "Escape" || event.defaultPrevented) return;
-      const state = escapeRef.current;
-      if (state.exportOpen) return;
-      if (state.addingFeedback && !state.draftPin) {
-        event.preventDefault();
-        setAddingFeedback(false);
-        return;
-      }
-      if (!state.fullscreen || isTyping(event.target)) return;
-      event.preventDefault();
-      if (state.drawer.open) setDrawer(CLOSED_DRAWER);
-      else setFullscreen(false);
-    };
-    window.addEventListener("keydown", onKeyDown);
-    return () => window.removeEventListener("keydown", onKeyDown);
-  }, []);
   useEffect(() => {
     if (!fullscreen) setDrawer(CLOSED_DRAWER);
   }, [fullscreen]);
@@ -889,40 +842,33 @@ function Workbench({
   }, []);
 
   // ⌘F / Ctrl+F adds feedback instead of opening the browser's find bar;
-  // ← and → (or [ and ]) step through screens when not typing.
-  useEffect(() => {
-    const onKey = (event: KeyboardEvent) => {
-      if ((event.target as Element | null)?.closest?.('[role="dialog"]'))
-        return;
-      if (
-        event.key.toLowerCase() === "f" &&
-        (event.metaKey || event.ctrlKey) &&
-        !event.shiftKey &&
-        !event.altKey
-      ) {
-        event.preventDefault();
-        startPin();
-        return;
-      }
-      if (
-        event.defaultPrevented ||
-        event.metaKey ||
-        event.ctrlKey ||
-        event.altKey ||
-        isTyping(event.target)
-      )
-        return;
-      if (event.key === "ArrowRight" || event.key === "]") {
-        event.preventDefault();
-        stepScreen(1);
-      } else if (event.key === "ArrowLeft" || event.key === "[") {
-        event.preventDefault();
-        stepScreen(-1);
-      }
-    };
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, [startPin, stepScreen]);
+  // ← and → (or [ and ]) step through screens; ⌘A approves (the inspector
+  // fills approveShortcutRef). Escape undoes only the innermost thing: the
+  // export dialog owns it, then pin placement, then the fullscreen drawer,
+  // then fullscreen itself.
+  const approveShortcutRef = useRef<(() => void) | null>(null);
+  useShortcuts({
+    escape: [
+      { active: exportOpen, run: () => {}, block: true, whileTyping: true },
+      {
+        active: addingFeedback && !draftPin,
+        run: () => setAddingFeedback(false),
+        whileTyping: true,
+      },
+      {
+        active: fullscreen && drawer.open,
+        run: () => setDrawer(CLOSED_DRAWER),
+      },
+      { active: fullscreen, run: () => setFullscreen(false) },
+    ],
+    addFeedback: startPin,
+    approve: () => {
+      const approve = approveShortcutRef.current;
+      approve?.();
+      return Boolean(approve);
+    },
+    step: stepScreen,
+  });
 
   const navigation = (
     <ScreenRail
@@ -944,6 +890,7 @@ function Workbench({
   );
   const feedback = (
     <FeedbackInspector
+      approveShortcut={approveShortcutRef}
       draftPin={draftPin}
       feedback={feedbackRecords}
       onCancelDraft={() => {
@@ -1157,12 +1104,16 @@ function Workbench({
     <footer className="action-bar" aria-label="Review actions">
       <div className="action-bar-start">
         <button
-          aria-keyshortcuts={fullscreen ? "Escape" : undefined}
+          aria-keyshortcuts={fullscreen ? SHORTCUTS.escape.aria : undefined}
           aria-label={fullscreen ? "Exit fullscreen" : "View fullscreen"}
           aria-pressed={fullscreen}
           className="icon-button action-bar-fullscreen"
           onClick={() => setFullscreen((value) => !value)}
-          title={fullscreen ? "Exit fullscreen (Esc)" : "View fullscreen"}
+          title={
+            fullscreen
+              ? `Exit fullscreen (${SHORTCUTS.escape.label})`
+              : "View fullscreen"
+          }
           type="button"
         >
           <svg aria-hidden="true" height="18" viewBox="0 0 18 18" width="18">
@@ -1199,7 +1150,8 @@ function Workbench({
           aria-label="Previous screen"
           disabled={railIndex <= 0}
           onClick={() => stepScreen(-1)}
-          title="Previous screen (←)"
+          aria-keyshortcuts={SHORTCUTS.previous.aria}
+          title={`Previous screen (${SHORTCUTS.previous.label})`}
           type="button"
         >
           ‹ Prev
@@ -1214,7 +1166,8 @@ function Workbench({
           aria-label="Next screen"
           disabled={railIndex < 0 || railIndex >= railItems.length - 1}
           onClick={() => stepScreen(1)}
-          title="Next screen (→)"
+          aria-keyshortcuts={SHORTCUTS.next.aria}
+          title={`Next screen (${SHORTCUTS.next.label})`}
           type="button"
         >
           Next ›
@@ -1231,15 +1184,15 @@ function Workbench({
           Export
         </button>
         <button
-          aria-keyshortcuts={isMac ? "Meta+F" : "Control+F"}
+          aria-keyshortcuts={SHORTCUTS.addFeedback.aria}
           aria-pressed={addingFeedback}
           className="feedback-add-button"
           disabled={!ready}
           onClick={startPin}
-          title={`Add feedback (${isMac ? "⌘F" : "Ctrl+F"})`}
+          title={`Add feedback (${SHORTCUTS.addFeedback.label})`}
           type="button"
         >
-          Add feedback <kbd aria-hidden="true">{isMac ? "⌘F" : "Ctrl F"}</kbd>
+          Add feedback <kbd aria-hidden="true">{SHORTCUTS.addFeedback.kbd}</kbd>
         </button>
       </div>
       {exportOpen ? (

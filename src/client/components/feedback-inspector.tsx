@@ -11,6 +11,7 @@ import {
 
 import { createPinNumbers } from "../../shared/export";
 import { ElementLine } from "./element-line";
+import { type ApproveShortcut, SHORTCUTS } from "../shortcuts";
 import {
   FEEDBACK_STATUSES,
   STATUS_LABELS,
@@ -91,10 +92,7 @@ function sameTarget(left: SaveTarget, right: SaveTarget) {
 const RECOVERY_PREFIX = "screencheck.feedback-recovery.v1:";
 const COLLAPSED_STATUSES_KEY = "screencheck:collapsed-feedback-statuses";
 const NOTE_SAVE_DELAY_MS = 500;
-const shortcutLabel =
-  typeof navigator !== "undefined" && /Mac|iPhone|iPad/.test(navigator.platform)
-    ? "⌘A"
-    : "Ctrl+A";
+const shortcutLabel = SHORTCUTS.approve.label;
 
 function recoveryStorageKey(projectId: string) {
   return `${RECOVERY_PREFIX}${projectId}`;
@@ -248,6 +246,7 @@ export function FeedbackInspector({
   hiddenPinStatuses = [],
   onTogglePinStatus,
   approval,
+  approveShortcut,
   ready = true,
   adding = false,
 }: {
@@ -268,6 +267,8 @@ export function FeedbackInspector({
   hiddenPinStatuses?: readonly FeedbackStatus[];
   onTogglePinStatus?: (status: FeedbackStatus) => void;
   approval?: { approved: boolean; ready: boolean; onToggle: () => void };
+  // Filled with the ⌘A handler for App's shortcut router.
+  approveShortcut?: ApproveShortcut;
   ready?: boolean;
   adding?: boolean;
 }) {
@@ -413,35 +414,10 @@ export function FeedbackInspector({
   // reviewer's cursor when the first autosave lands. New comments are Backlog.
   const [freshId, setFreshId] = useState<string | null>(null);
   const editorRef = useRef(editor);
-  // ⌘A / Ctrl+A toggles approval; the handler is refreshed every render.
-  const approveShortcutRef = useRef<(() => void) | null>(null);
-  useEffect(() => {
-    const onKeyDown = (event: globalThis.KeyboardEvent) => {
-      if (
-        event.key.toLowerCase() !== "a" ||
-        !(event.metaKey || event.ctrlKey) ||
-        event.shiftKey ||
-        event.altKey ||
-        event.defaultPrevented
-      ) {
-        return;
-      }
-      const target = event.target;
-      if (
-        target instanceof HTMLElement &&
-        (target.isContentEditable ||
-          ["INPUT", "TEXTAREA", "SELECT"].includes(target.tagName) ||
-          target.closest("[role=dialog]"))
-      ) {
-        return;
-      }
-      if (!approveShortcutRef.current) return;
-      event.preventDefault();
-      approveShortcutRef.current();
-    };
-    window.addEventListener("keydown", onKeyDown);
-    return () => window.removeEventListener("keydown", onKeyDown);
-  }, []);
+  // ⌘A / Ctrl+A toggles approval. App's shortcut router calls this ref; the
+  // handler is refreshed every render.
+  const ownApproveShortcutRef = useRef<(() => void) | null>(null);
+  const approveShortcutRef = approveShortcut ?? ownApproveShortcutRef;
   const effectiveDraftPin = draftPin ?? recoveredPin;
 
   const screenFeedback = useMemo(
@@ -1728,7 +1704,7 @@ export function FeedbackInspector({
                   approval.onToggle();
                 }
               }}
-              aria-keyshortcuts="Meta+A Control+A"
+              aria-keyshortcuts={SHORTCUTS.approve.aria}
               title={`${approval.approved ? "Click to unapprove" : "Approve screen"} (${shortcutLabel})`}
               type="button"
             >
