@@ -25,6 +25,10 @@ export type FeedbackExportInput = {
   // Element maps keyed "version/screenId"; comments then name the element
   // under their pin.
   elements?: Record<string, ElementMap>;
+  // Versions in review order, with display labels. When given and the
+  // feedback spans more than one, Markdown groups it under a heading per
+  // version.
+  versions?: { id: string; label: string }[];
 };
 
 type ExportFeedback = FeedbackRecord & {
@@ -75,6 +79,11 @@ function safeFeedback(input: FeedbackExportInput): ExportFeedback[] {
     input.screens.map((screen) => [screen.id, screen]),
   );
   const pinNumbers = createPinNumbers(input.allFeedback ?? input.feedback);
+  const versionOrder = new Map(
+    (input.versions ?? []).map((version, index) => [version.id, index]),
+  );
+  const versionRank = (id: string) =>
+    versionOrder.get(id) ?? Number.MAX_SAFE_INTEGER;
   return input.feedback
     .map((item) => {
       const screen = screenById.get(item.screenId);
@@ -90,6 +99,7 @@ function safeFeedback(input: FeedbackExportInput): ExportFeedback[] {
     })
     .sort(
       (left, right) =>
+        versionRank(left.version) - versionRank(right.version) ||
         (left.screenOrdinal ?? Number.MAX_SAFE_INTEGER) -
           (right.screenOrdinal ?? Number.MAX_SAFE_INTEGER) ||
         left.screenId.localeCompare(right.screenId) ||
@@ -138,13 +148,29 @@ export function serializeMarkdown(input: FeedbackExportInput): string {
     ...(input.scope ? [`_Scope: ${escapeMarkdown(input.scope)}_`, ""] : []),
   ];
   let currentScreen = "";
+  let currentVersion = "";
+  const byVersion =
+    Boolean(input.versions) &&
+    new Set(records.map((item) => item.version)).size > 1;
+  const versionLabel = (id: string) =>
+    input.versions?.find((version) => version.id === id)?.label ?? id;
+  const screenLevel = byVersion ? "###" : "##";
 
   for (const item of records) {
+    if (byVersion && item.version !== currentVersion) {
+      if (currentVersion) lines.push("");
+      lines.push(
+        `## Version ${escapeMarkdown(versionLabel(item.version))}`,
+        "",
+      );
+      currentVersion = item.version;
+      currentScreen = "";
+    }
     const screenKey = `${item.screenOrdinal ?? "?"}:${item.screenId}`;
     if (screenKey !== currentScreen) {
       if (currentScreen) lines.push("");
       lines.push(
-        `## ${item.screenOrdinal === null ? "—" : String(item.screenOrdinal).padStart(2, "0")} · ${escapeMarkdown(item.screenTitle)}`,
+        `${screenLevel} ${item.screenOrdinal === null ? "—" : String(item.screenOrdinal).padStart(2, "0")} · ${escapeMarkdown(item.screenTitle)}`,
         ...(item.screenDescription
           ? [`_Screen: ${escapeMarkdown(item.screenDescription)}_`]
           : []),

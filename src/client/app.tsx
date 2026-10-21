@@ -619,6 +619,17 @@ export function App() {
     );
   }, [revisionVersions, resolution, screens, labelOf]);
   const flatMode = revisionVersions.length > 1;
+  // The versions the rail lists, which Export offers to include.
+  const exportVersions = useMemo(
+    () =>
+      (flatMode
+        ? revisionVersions.filter(
+            (item) => resolution === "all" || item === resolution,
+          )
+        : [version]
+      ).map((id) => ({ id, label: labelOf(id) })),
+    [flatMode, revisionVersions, resolution, version, labelOf],
+  );
   const flatOpenCounts = useMemo(() => {
     const counts = new Map<string, number>();
     for (const item of feedbackRecords) {
@@ -1131,6 +1142,7 @@ export function App() {
           screens={screens}
           selectedScreenId={selectedId}
           version={version}
+          versions={exportVersions}
         />
       ) : null}
     </footer>

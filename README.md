@@ -90,7 +90,9 @@ through each feature, from dropping a pin to an agent replying over MCP.
   request carries `x-screencheck-actor: reviewer`, which the browser sends and
   agents do not.
 - **Export** in the action bar opens a dialog: Markdown or JSON, all screens or
-  this screen only, and which statuses to include. Exports are deterministic,
+  this screen only, and which statuses to include. When the rail lists several
+  versions, a Version choice covers all of them (the default, grouped under a
+  heading per version) or just the current one. Exports are deterministic,
   state their scope, and keep on-screen pin numbers.
 - The feedback panel chunks comments by status, then by priority. Empty chunks
   are hidden and untagged comments sit under their status with no heading.

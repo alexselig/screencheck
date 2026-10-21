@@ -30,6 +30,7 @@ export function ExportDialog({
   screens,
   selectedScreenId,
   version,
+  versions = [{ id: version, label: version }],
 }: {
   feedback: FeedbackRecord[];
   onClose: () => void;
@@ -38,11 +39,26 @@ export function ExportDialog({
   screens: ReviewScreen[];
   selectedScreenId: string;
   version: string;
+  // The versions the rail lists; the dialog defaults to all of them.
+  versions?: { id: string; label: string }[];
 }) {
   const titleId = useId();
   const dialogRef = useRef<HTMLDivElement>(null);
   const [format, setFormat] = useState<ExportFormat>("markdown");
   const [scope, setScope] = useState<"all" | "screen">("all");
+  const [versionScope, setVersionScope] = useState<"listed" | "current">(
+    "listed",
+  );
+  const listed = versions.some((item) => item.id === version)
+    ? versions
+    : [...versions, { id: version, label: version }];
+  const included =
+    versionScope === "listed"
+      ? listed
+      : listed.filter((item) => item.id === version);
+  const includedIds = included.map((item) => item.id);
+  const currentLabel =
+    listed.find((item) => item.id === version)?.label ?? version;
   const [statuses, setStatuses] = useState<FeedbackStatus[]>([
     ...FEEDBACK_STATUSES,
   ]);
@@ -50,7 +66,9 @@ export function ExportDialog({
   const screen = screens.find((item) => item.id === selectedScreenId);
   // Pin numbers come from every comment in the version, so a partial export
   // still matches the numbers on screen.
-  const versionFeedback = feedback.filter((item) => item.version === version);
+  const versionFeedback = feedback.filter((item) =>
+    includedIds.includes(item.version),
+  );
   const records = versionFeedback.filter(
     (item) =>
       statuses.includes(item.status) &&
@@ -61,7 +79,9 @@ export function ExportDialog({
     scope === "all"
       ? `All ${screens.length} screens`
       : `Screen ${String(screen?.ordinal ?? 0).padStart(2, "0")} ${screen?.title ?? ""}`.trim(),
-    `version ${version}`,
+    included.length === 1
+      ? `version ${included[0]!.label}`
+      : `versions ${included.map((item) => item.label).join(", ")}`,
     allStatuses
       ? null
       : `${statuses.map((status) => STATUS_LABELS[status]).join(", ") || "no statuses"}`,
@@ -73,22 +93,33 @@ export function ExportDialog({
   // Element maps let each comment name what its pin points at; screens
   // without one are simply left out.
   const [elements, setElements] = useState<Record<string, ElementMap>>({});
-  const screenIdsKey = [
-    ...new Set(versionFeedback.map((item) => item.screenId)),
-  ].join("\0");
+  const pairsKey = [
+    ...new Set(
+      versionFeedback.map((item) => `${item.version}\0${item.screenId}`),
+    ),
+  ].join("\n");
   useEffect(() => {
     let live = true;
-    void fetchElementMaps(
-      projectId,
-      version,
-      screenIdsKey ? screenIdsKey.split("\0") : [],
-    ).then((maps) => {
+    const byVersion = new Map<string, string[]>();
+    for (const pair of pairsKey ? pairsKey.split("\n") : []) {
+      const [itemVersion, screenId] = pair.split("\0") as [string, string];
+      byVersion.set(itemVersion, [
+        ...(byVersion.get(itemVersion) ?? []),
+        screenId,
+      ]);
+    }
+    void Promise.all(
+      [...byVersion].map(([itemVersion, screenIds]) =>
+        fetchElementMaps(projectId, itemVersion, screenIds),
+      ),
+    ).then((list) => {
+      const maps = Object.assign({}, ...list) as Record<string, ElementMap>;
       if (live && Object.keys(maps).length) setElements(maps);
     });
     return () => {
       live = false;
     };
-  }, [projectId, version, screenIdsKey]);
+  }, [projectId, pairsKey]);
 
   useEffect(() => {
     const previous = document.activeElement as HTMLElement | null;
@@ -140,6 +171,7 @@ export function ExportDialog({
       allFeedback: versionFeedback,
       scope: scopeText,
       elements,
+      versions: included,
     };
     const contents =
       format === "json" ? serializeJson(input) : serializeMarkdown(input);
@@ -211,6 +243,29 @@ export function ExportDialog({
             This screen only
           </label>
         </fieldset>
+        {listed.length > 1 ? (
+          <fieldset>
+            <legend>Version</legend>
+            <label>
+              <input
+                checked={versionScope === "listed"}
+                name="export-version"
+                onChange={() => setVersionScope("listed")}
+                type="radio"
+              />
+              All {listed.length} versions in the list
+            </label>
+            <label>
+              <input
+                checked={versionScope === "current"}
+                name="export-version"
+                onChange={() => setVersionScope("current")}
+                type="radio"
+              />
+              This version only ({currentLabel})
+            </label>
+          </fieldset>
+        ) : null}
         <fieldset>
           <legend>Include</legend>
           {FEEDBACK_STATUSES.map((status) => (
