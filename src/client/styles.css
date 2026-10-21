@@ -315,6 +315,13 @@ h1 {
   gap: var(--space-2);
 }
 
+/* Phone-only controls: the sheet toggle, the overflow menu, the sheet's bar. */
+.action-bar-sheet,
+.action-bar-more-wrap,
+.feedback-sheet-bar {
+  display: none;
+}
+
 /* Secondary to Add feedback: borderless like Prev/Next. */
 .action-bar-export {
   min-height: 44px;
@@ -2395,8 +2402,148 @@ button.tag-chip:hover {
     display: inline;
   }
 
+  /* One task at a time: ‹ 03 / 9 › in the centre, Feedback, a menu for the
+     rest, and Add feedback as a + (ds-25). */
   .action-bar-place {
+    font-size: 13px;
+    white-space: nowrap;
+  }
+
+  .action-bar-place-title,
+  .action-bar-nav-label,
+  .feedback-add-label,
+  .action-bar .action-bar-fullscreen,
+  .action-bar .action-bar-export {
     display: none;
+  }
+
+  .feedback-add-button {
+    min-width: var(--size-touch);
+  }
+
+  .feedback-add-button::before {
+    content: "+";
+    font-size: 22px;
+    line-height: 1;
+  }
+
+  .action-bar-sheet {
+    display: flex;
+    min-height: var(--size-touch);
+    align-items: center;
+    gap: var(--space-1);
+    padding: 0 var(--space-2);
+    border: 1px solid var(--ink);
+    background: var(--surface);
+    color: var(--ink);
+    font-weight: 700;
+    cursor: pointer;
+  }
+
+  .action-bar-sheet[aria-expanded="true"] {
+    background: var(--ink);
+    color: var(--surface);
+  }
+
+  .action-bar-sheet-count {
+    display: grid;
+    min-width: 22px;
+    height: 22px;
+    place-items: center;
+    padding: 0 var(--space-1);
+    border-radius: var(--radius-pill);
+    background: var(--bauhaus-orange);
+    color: var(--ink);
+    font-size: 11px;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .action-bar-more-wrap {
+    position: relative;
+    display: block;
+  }
+
+  .action-bar .action-bar-more {
+    width: var(--size-touch);
+    height: var(--size-touch);
+    border-color: transparent;
+  }
+
+  .action-bar-menu {
+    position: absolute;
+    right: 0;
+    bottom: calc(100% + var(--space-2));
+    display: grid;
+    min-width: 180px;
+    border: 1px solid var(--ink);
+    background: var(--surface);
+  }
+
+  .action-bar-menu button {
+    min-height: var(--size-touch);
+    padding: 0 var(--space-3);
+    border: 0;
+    background: var(--surface);
+    color: var(--ink);
+    font-weight: 700;
+    text-align: left;
+    cursor: pointer;
+  }
+
+  .action-bar-menu button + button {
+    border-top: 1px solid var(--line);
+  }
+
+  .action-bar-menu button:hover:not(:disabled) {
+    background: var(--surface-alt);
+  }
+
+  /* Feedback is a bottom sheet above the action bar, closed until asked for. */
+  .feedback-column {
+    position: fixed;
+    z-index: 35;
+    right: 0;
+    bottom: var(--action-bar-height);
+    left: 0;
+    max-height: 70dvh;
+    overflow-y: auto;
+    border-top: 2px solid var(--ink);
+    background: var(--surface);
+    visibility: hidden;
+    transform: translateY(100%);
+    transition:
+      transform var(--fast) ease,
+      visibility var(--fast);
+  }
+
+  .workbench-grid[data-sheet-open="true"] .feedback-column {
+    visibility: visible;
+    transform: none;
+  }
+
+  .feedback-sheet-bar {
+    position: sticky;
+    z-index: 1;
+    top: 0;
+    display: flex;
+    justify-content: flex-end;
+    padding: 0 var(--space-3);
+    border-bottom: 1px solid var(--line);
+    background: var(--surface);
+  }
+
+  .feedback-sheet-close {
+    min-height: var(--size-touch);
+    padding: 0 var(--space-2);
+    border: 0;
+    background: transparent;
+    color: var(--ink);
+    font-weight: 700;
+    cursor: pointer;
+  }
+
+  .feedback-column .feedback-panel {
+    min-height: 0;
   }
 
   /* No room for equal side columns; the centre takes what is left. */
@@ -2409,16 +2556,18 @@ button.tag-chip:hover {
     justify-content: center;
   }
 
+  .action-bar-nav {
+    gap: 0;
+  }
+
   .action-bar-nav button {
-    padding: 0 var(--space-2);
+    width: var(--size-touch);
+    padding: 0;
+    font-size: 22px;
   }
 
   .action-bar-end {
     gap: var(--space-1);
-  }
-
-  .action-bar .action-bar-export {
-    padding: 0 var(--space-2);
   }
 
   .feedback-add-button kbd,

@@ -96,6 +96,26 @@ function revisionName(revision: string) {
 // Keeps a side column in view while the page scrolls. A column shorter than
 // the window keeps its foot on the action bar; a taller one scrolls with the
 // page until its end is reached, so the page is the only scroll area.
+// Phones get one task at a time: feedback is a sheet, extras live in a menu.
+export const PHONE_QUERY = "(max-width: 480px)";
+
+function useMediaQuery(query: string) {
+  const [matches, setMatches] = useState(
+    () =>
+      typeof window.matchMedia === "function" &&
+      window.matchMedia(query).matches,
+  );
+  useEffect(() => {
+    if (typeof window.matchMedia !== "function") return;
+    const list = window.matchMedia(query);
+    const follow = () => setMatches(list.matches);
+    follow();
+    list.addEventListener("change", follow);
+    return () => list.removeEventListener("change", follow);
+  }, [query]);
+  return matches;
+}
+
 function useFollowPage(ref: RefObject<HTMLElement | null>, gap = 0) {
   useEffect(() => {
     const element = ref.current;
@@ -377,6 +397,26 @@ function Workbench({
   const [selectedFeedbackId, setSelectedFeedbackId] = useState<string | null>(
     null,
   );
+  const phone = useMediaQuery(PHONE_QUERY);
+  const [sheetOpen, setSheetOpen] = useState(false);
+  const [moreOpen, setMoreOpen] = useState(false);
+  const moreRef = useRef<HTMLDivElement>(null);
+  // On a phone the sheet gets out of the way while a pin is placed, then
+  // comes back for the note or a tapped pin.
+  useEffect(() => {
+    if (!phone) return;
+    if (addingFeedback && !draftPin) setSheetOpen(false);
+    else if (draftPin || selectedFeedbackId) setSheetOpen(true);
+  }, [phone, addingFeedback, draftPin, selectedFeedbackId]);
+  useEffect(() => {
+    if (!moreOpen) return;
+    moreRef.current?.querySelector<HTMLElement>('[role="menuitem"]')?.focus();
+    const away = (event: PointerEvent) => {
+      if (!moreRef.current?.contains(event.target as Node)) setMoreOpen(false);
+    };
+    document.addEventListener("pointerdown", away);
+    return () => document.removeEventListener("pointerdown", away);
+  }, [moreOpen]);
   const selected = screens.find((item) => item.id === selectedId)!;
   const [captureFailed, setCaptureFailed] = useState(false);
   // A full-page capture can be taller than the registered viewport, so the
@@ -787,11 +827,13 @@ function Workbench({
   useShortcuts({
     escape: [
       { active: exportOpen, run: () => {}, block: true, whileTyping: true },
+      { active: moreOpen, run: () => setMoreOpen(false), whileTyping: true },
       {
         active: addingFeedback && !draftPin,
         run: () => setAddingFeedback(false),
         whileTyping: true,
       },
+      { active: phone && sheetOpen, run: () => setSheetOpen(false) },
       {
         active: fullscreen && drawer.open,
         run: () => setDrawer(CLOSED_DRAWER),
@@ -1110,14 +1152,18 @@ function Workbench({
           title={`Previous screen (${SHORTCUTS.previous.label})`}
           type="button"
         >
-          ‹ Prev
+          <span aria-hidden="true">‹</span>
+          <span className="action-bar-nav-label">Prev</span>
         </button>
         <span className="action-bar-place" aria-live="polite">
           <strong>
             {String(selected.ordinal).padStart(2, "0")} / {screens.length}
-          </strong>{" "}
-          {selected.title}
-          {flatMode ? ` · ${labelOf(version)}` : ""}
+          </strong>
+          <span className="action-bar-place-title">
+            {" "}
+            {selected.title}
+            {flatMode ? ` · ${labelOf(version)}` : ""}
+          </span>
         </span>
         <button
           aria-label="Next screen"
@@ -1127,10 +1173,75 @@ function Workbench({
           title={`Next screen (${SHORTCUTS.next.label})`}
           type="button"
         >
-          Next ›
+          <span className="action-bar-nav-label">Next</span>
+          <span aria-hidden="true">›</span>
         </button>
       </div>
       <div className="action-bar-end">
+        {fullscreen ? null : (
+          <button
+            aria-controls="feedback-panel"
+            aria-expanded={sheetOpen}
+            className="action-bar-sheet"
+            onClick={() => setSheetOpen((open) => !open)}
+            type="button"
+          >
+            Feedback
+            {openCounts.get(selectedId) ? (
+              <span className="action-bar-sheet-count">
+                {openCounts.get(selectedId)}
+              </span>
+            ) : null}
+          </button>
+        )}
+        <div className="action-bar-more-wrap" ref={moreRef}>
+          <button
+            aria-expanded={moreOpen}
+            aria-haspopup="menu"
+            aria-label="More actions"
+            className="icon-button action-bar-more"
+            onClick={() => setMoreOpen((open) => !open)}
+            type="button"
+          >
+            <svg aria-hidden="true" height="18" viewBox="0 0 18 18" width="18">
+              <path
+                d="M3.5 9h.01M9 9h.01M14.5 9h.01"
+                stroke="currentColor"
+                strokeLinecap="round"
+                strokeWidth="3"
+              />
+            </svg>
+          </button>
+          {moreOpen ? (
+            <div
+              aria-label="More actions"
+              className="action-bar-menu"
+              role="menu"
+            >
+              <button
+                disabled={!ready}
+                onClick={() => {
+                  setMoreOpen(false);
+                  setExportOpen(true);
+                }}
+                role="menuitem"
+                type="button"
+              >
+                Export…
+              </button>
+              <button
+                onClick={() => {
+                  setMoreOpen(false);
+                  setFullscreen((value) => !value);
+                }}
+                role="menuitem"
+                type="button"
+              >
+                {fullscreen ? "Exit fullscreen" : "View fullscreen"}
+              </button>
+            </div>
+          ) : null}
+        </div>
         <button
           aria-haspopup="dialog"
           className="action-bar-export"
@@ -1143,13 +1254,15 @@ function Workbench({
         <button
           aria-keyshortcuts={SHORTCUTS.addFeedback.aria}
           aria-pressed={addingFeedback}
+          aria-label="Add feedback"
           className="feedback-add-button"
           disabled={!ready}
           onClick={startPin}
           title={`Add feedback (${SHORTCUTS.addFeedback.label})`}
           type="button"
         >
-          Add feedback <kbd aria-hidden="true">{SHORTCUTS.addFeedback.kbd}</kbd>
+          <span className="feedback-add-label">Add feedback</span>{" "}
+          <kbd aria-hidden="true">{SHORTCUTS.addFeedback.kbd}</kbd>
         </button>
       </div>
       {exportOpen ? (
@@ -1350,12 +1463,23 @@ function Workbench({
       <section
         className="workbench-grid"
         data-rail-mode={railMode}
+        data-sheet-open={sheetOpen}
         aria-label="Review workspace"
         ref={gridRef}
       >
         <div className="rail-column">{navigation}</div>
         {canvas}
         <div className="feedback-column">
+          <div className="feedback-sheet-bar">
+            <button
+              aria-label="Close feedback"
+              className="feedback-sheet-close"
+              onClick={() => setSheetOpen(false)}
+              type="button"
+            >
+              Close
+            </button>
+          </div>
           <div className="feedback-follow" ref={panelRef}>
             {feedback}
           </div>

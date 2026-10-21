@@ -334,6 +334,26 @@ describe("panel layout", () => {
     expect(styles).not.toMatch(/right: 28px;/);
   });
 
+  it("hides phone-only controls on wider screens (ds-25)", () => {
+    expect(rules).toMatch(
+      /\.action-bar-sheet,\s*\.action-bar-more-wrap,\s*\.feedback-sheet-bar \{\s*display: none;/,
+    );
+  });
+
+  it("turns feedback into a dvh bottom sheet on phones (ds-25)", () => {
+    const phone = rules.slice(rules.lastIndexOf("@media (max-width: 480px)"));
+    expect(phone).toMatch(
+      /\.feedback-column \{[^}]*position: fixed;[^}]*max-height: 70dvh;[^}]*visibility: hidden;/,
+    );
+    expect(phone).toMatch(
+      /\.workbench-grid\[data-sheet-open="true"\] \.feedback-column \{\s*visibility: visible;/,
+    );
+    expect(phone).toMatch(
+      /\.action-bar \.action-bar-export \{\s*display: none;/,
+    );
+    expect(phone).not.toMatch(/\.action-bar-place \{\s*display: none;/);
+  });
+
   it("gives the empty panel a blue-soft field with a blue rule (ds-30)", () => {
     const empty = ruleBody(".feedback-empty");
     expect(empty).toMatch(/border-left: 4px solid var\(--bauhaus-blue\);/);
