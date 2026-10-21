@@ -792,6 +792,32 @@ h1 {
   font-size: 28px;
 }
 
+.canvas-title {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-1) var(--space-3);
+  margin-top: var(--space-1);
+}
+
+.canvas-title h2 {
+  margin-top: 0;
+}
+
+/* State may use a pill; the reviewer sees approval where they are looking. */
+.canvas-approved {
+  padding: var(--space-1) var(--space-2);
+  border: 1px solid var(--success);
+  border-radius: var(--radius-pill);
+  background: var(--success-soft);
+  color: var(--success);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
 .canvas-header-actions {
   display: flex;
   align-items: center;

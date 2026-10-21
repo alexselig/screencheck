@@ -238,4 +238,11 @@ describe("panel layout", () => {
     expect(rules).not.toMatch(/\.screen-approval \{[^}]*position: sticky/);
     expect(ruleBody(".screen-approval")).toMatch(/margin: auto/);
   });
+
+  it("marks approval with a success pill on the canvas (ds-29)", () => {
+    const body = ruleBody(".canvas-approved");
+    expect(body).toMatch(/background: var\(--success-soft\);/);
+    expect(body).toMatch(/color: var\(--success\);/);
+    expect(body).toMatch(/border-radius: var\(--radius-pill\);/);
+  });
 });

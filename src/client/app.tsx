@@ -617,6 +617,11 @@ function Workbench({
   const screenApproved = approvals
     ? isApproved(approvals, version, selectedId)
     : false;
+  const approvedAt = screenApproved
+    ? approvals?.find(
+        (item) => item.version === version && item.screenId === selectedId,
+      )?.approvedAt
+    : undefined;
 
   const saveCaption = useCallback(
     async (text: string) => {
@@ -864,7 +869,17 @@ function Workbench({
             {flatMode ? `${labelOf(version)} · ` : ""}
             {selected.group}
           </span>
-          <h2>{selected.title}</h2>
+          <div className="canvas-title">
+            <h2>{selected.title}</h2>
+            {screenApproved ? (
+              <span className="canvas-approved">
+                Approved
+                {approvedAt
+                  ? ` · ${new Date(approvedAt).toLocaleDateString("en-US", { month: "short", day: "numeric" })}`
+                  : ""}
+              </span>
+            ) : null}
+          </div>
         </div>
         <div className="canvas-header-actions">
           {selected.liveUrl ? (
