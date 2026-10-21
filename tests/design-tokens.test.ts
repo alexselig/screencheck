@@ -135,3 +135,27 @@ describe("type and control scale", () => {
     expect(ruleBody(".feedback-collapse")).toMatch(/height: 28px;/);
   });
 });
+
+describe("states", () => {
+  it("draws the pin ring with a shadow so focus can use the outline (ds-13)", () => {
+    expect(ruleBody(".pin-dot")).not.toMatch(/outline:/);
+    expect(ruleBody(".pin-dot")).toMatch(/box-shadow: 0 0 0 1px var\(--ink\);/);
+    expect(ruleBody(".feedback-pin:focus-visible")).toMatch(
+      /outline: 2px solid var\(--bauhaus-blue\);/,
+    );
+  });
+
+  it("uses the blue focus ring on destructive controls (ds-14)", () => {
+    expect(rules).not.toMatch(/outline: 2px solid var\(--destructive\)/);
+  });
+
+  it("darkens with tokens, never a brightness filter (ds-15)", () => {
+    expect(rules).not.toMatch(/filter:\s*brightness/);
+    expect(ruleBody(".feedback-pin:hover")).toMatch(/scale\(1\.1\)/);
+    expect(ruleBody(".feedback-pin")).toMatch(/transition:[^;]*var\(--fast\)/);
+    expect(rules).toMatch(/\.feedback-add-button:hover:not\(:disabled\)/);
+    expect(rules).toMatch(
+      /button:not\(\.feedback-pin\):active:not\(:disabled\)/,
+    );
+  });
+});

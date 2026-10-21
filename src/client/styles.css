@@ -31,6 +31,11 @@ textarea {
   line-height: 1.25;
 }
 
+/* Every button gives under the pointer. Pins keep their centring transform. */
+button:not(.feedback-pin):active:not(:disabled) {
+  transform: translateY(1px);
+}
+
 /* Native arrows sit flush to the edge; draw one with room to breathe. */
 select {
   appearance: none;
@@ -424,8 +429,8 @@ h1 {
 }
 
 .export-dialog-actions .export-download:hover:not(:disabled) {
-  background: var(--bauhaus-blue);
-  filter: brightness(0.92);
+  border-color: color-mix(in srgb, var(--bauhaus-blue) 85%, var(--ink));
+  background: color-mix(in srgb, var(--bauhaus-blue) 85%, var(--ink));
 }
 
 .export-dialog-actions .export-download:disabled {
@@ -1167,6 +1172,16 @@ h1 {
   color: var(--on-blue);
 }
 
+.feedback-add-button:hover:not(:disabled) {
+  border-color: color-mix(in srgb, var(--bauhaus-orange) 90%, var(--ink));
+  background: color-mix(in srgb, var(--bauhaus-orange) 90%, var(--ink));
+}
+
+.feedback-add-button[aria-pressed="true"]:hover:not(:disabled) {
+  border-color: color-mix(in srgb, var(--bauhaus-blue) 85%, var(--ink));
+  background: color-mix(in srgb, var(--bauhaus-blue) 85%, var(--ink));
+}
+
 .feedback-add-button:disabled {
   border-color: var(--line-strong);
   background: var(--surface-alt);
@@ -1294,7 +1309,7 @@ h1 {
 }
 
 .feedback-delete-x:focus-visible {
-  outline: 2px solid var(--destructive);
+  outline: 2px solid var(--bauhaus-blue);
   outline-offset: -2px;
 }
 
@@ -1339,7 +1354,7 @@ h1 {
 }
 
 .feedback-delete-wide:focus-visible {
-  outline: 2px solid var(--destructive);
+  outline: 2px solid var(--bauhaus-blue);
   outline-offset: 2px;
 }
 
@@ -1691,8 +1706,8 @@ button.tag-chip:hover {
 }
 
 .feedback-verify-buttons .feedback-verify-button:hover {
-  background: var(--success);
-  filter: brightness(0.92);
+  border-color: color-mix(in srgb, var(--success) 85%, var(--ink));
+  background: color-mix(in srgb, var(--success) 85%, var(--ink));
 }
 
 .feedback-verify-state {
@@ -1863,7 +1878,6 @@ button.tag-chip:hover {
   border: 2px solid var(--surface);
   border-radius: 50%;
   background: var(--bauhaus-orange);
-  outline: 1px solid var(--ink);
   color: var(--ink);
   font-size: 13px;
   font-weight: 700;
@@ -1871,6 +1885,7 @@ button.tag-chip:hover {
   line-height: 1;
   padding: 0;
   flex: none;
+  box-shadow: 0 0 0 1px var(--ink);
 }
 
 .pin-dot.priority-p0 {
@@ -1880,7 +1895,7 @@ button.tag-chip:hover {
 .pin-dot.is-closed {
   background: var(--surface);
   color: var(--ink-muted);
-  outline: 2px solid var(--ink-muted);
+  box-shadow: 0 0 0 2px var(--ink-muted);
 }
 
 /* Fixed reads apart from every open stage: teal fill plus a check badge. */
@@ -1945,7 +1960,7 @@ button.tag-chip:hover {
 .pin-dot.is-selected {
   background: var(--bauhaus-blue);
   color: var(--on-blue);
-  outline-color: var(--ink);
+  box-shadow: 0 0 0 1px var(--ink);
 }
 
 .feedback-pin {
@@ -1953,6 +1968,19 @@ button.tag-chip:hover {
   transform: translate(-50%, -50%);
   pointer-events: auto;
   cursor: pointer;
+  transition:
+    transform var(--fast),
+    box-shadow var(--fast);
+}
+
+.feedback-pin:hover {
+  box-shadow: 0 0 0 2px var(--ink);
+  transform: translate(-50%, -50%) scale(1.1);
+}
+
+.feedback-pin:focus-visible {
+  outline: 2px solid var(--bauhaus-blue);
+  outline-offset: 2px;
 }
 
 .feedback-pin-draft {
@@ -2233,7 +2261,8 @@ button.tag-chip:hover {
 }
 
 .screen-approval-toggle[aria-pressed="true"]:hover {
-  filter: brightness(0.92);
+  border-color: color-mix(in srgb, var(--success) 85%, var(--ink));
+  background: color-mix(in srgb, var(--success) 85%, var(--ink));
 }
 
 .screen-approval-toggle:disabled {
