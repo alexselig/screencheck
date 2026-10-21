@@ -2254,3 +2254,19 @@ button.tag-chip:hover {
   background: var(--fixed-teal);
   color: var(--on-teal);
 }
+
+/* Hidden until a keyboard user tabs onto them. */
+.skip-links a {
+  position: fixed;
+  top: 8px;
+  left: 8px;
+  z-index: 100;
+  padding: 6px 10px;
+  background: var(--surface);
+  color: inherit;
+  transform: translateY(-200%);
+}
+
+.skip-links a:focus {
+  transform: none;
+}

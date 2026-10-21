@@ -124,6 +124,10 @@ export function ScreenRail({
       ?.focus({ preventScroll: true });
   }, [selectedId]);
 
+  const rovingId = visibleScreens.some((screen) => screen.id === selectedId)
+    ? selectedId
+    : "";
+
   function onListKeyDown(event: KeyboardEvent<HTMLOListElement>) {
     if (event.metaKey || event.ctrlKey || event.altKey || event.shiftKey)
       return;
@@ -218,7 +222,7 @@ export function ScreenRail({
         </button>
       ) : null}
       <ol onKeyDown={onListKeyDown}>
-        {visibleScreens.map((screen) => {
+        {visibleScreens.map((screen, index) => {
           const showGroup = screen.group !== previousGroup;
           if (showGroup) groupIndex += 1;
           previousGroup = screen.group;
@@ -234,6 +238,10 @@ export function ScreenRail({
               <button
                 aria-current={screen.id === selectedId ? "page" : undefined}
                 data-screen-id={screen.id}
+                // One tab stop for the whole list; ↑ / ↓ / Home / End move.
+                tabIndex={
+                  screen.id === rovingId || (!rovingId && index === 0) ? 0 : -1
+                }
                 aria-label={`${String(screen.ordinal).padStart(2, "0")}. ${screen.title}${approved ? " (approved)" : ""}${openCount ? `, ${openCount} open` : ""}`}
                 onClick={() => onSelect(screen.id)}
                 title={[

@@ -153,6 +153,7 @@ through each feature, from dropping a pin to an agent replying over MCP.
 | ⌘F / Ctrl+F       | Add feedback (replaces the browser's find in this app)                                                                                                                                              |
 | ← / → or [ / ]    | Previous / next screen (ignored while typing)                                                                                                                                                       |
 | ↑ / ↓, Home / End | In the screen index: previous / next, first / last screen                                                                                                                                           |
+| Tab               | The screen index is one tab stop; **Skip to capture** and **Skip to feedback** links come first                                                                                                     |
 | ⌘A / Ctrl+A       | Approve / unapprove the screen (ignored while typing)                                                                                                                                               |
 | Esc               | Undo the innermost thing only: close a dialog or confirm, cancel placing a pin, close the fullscreen feedback panel, then leave fullscreen. While typing, Esc never closes the panel or fullscreen. |
 

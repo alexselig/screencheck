@@ -1441,7 +1441,12 @@ export function FeedbackInspector({
   );
 
   return (
-    <aside className="feedback-panel" aria-label="Feedback inspector">
+    <aside
+      aria-label="Feedback inspector"
+      className="feedback-panel"
+      id="feedback-panel"
+      tabIndex={-1}
+    >
       <header
         aria-label="Feedback summary"
         className="feedback-inspector-header"

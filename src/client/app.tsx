@@ -919,6 +919,8 @@ export function App() {
       className="review-canvas"
       data-adding-feedback={addingFeedback}
       data-testid="canvas"
+      id="review-capture"
+      tabIndex={-1}
       style={
         { "--screen-width": `${selected.viewport.width}px` } as CSSProperties
       }
@@ -1148,9 +1150,32 @@ export function App() {
     </footer>
   );
 
+  // Skip past the rail's tab stop to the capture or the feedback. They focus
+  // the target directly; following "#…" would rewrite the place in the URL.
+  const skipLinks = (
+    <div className="skip-links">
+      {[
+        ["review-capture", "Skip to capture"],
+        ["feedback-panel", "Skip to feedback"],
+      ].map(([id, label]) => (
+        <a
+          href={`#${id}`}
+          key={id}
+          onClick={(event) => {
+            event.preventDefault();
+            document.getElementById(id!)?.focus();
+          }}
+        >
+          {label}
+        </a>
+      ))}
+    </div>
+  );
+
   if (fullscreen) {
     return (
       <>
+        {skipLinks}
         <FullscreenReview
           feedback={feedback}
           navigation={navigation}
@@ -1166,6 +1191,7 @@ export function App() {
 
   return (
     <main className="workbench-shell">
+      {skipLinks}
       <header className="workbench-header">
         <div>
           <span className="eyebrow">Design review</span>
