@@ -928,13 +928,15 @@ export function FeedbackInspector({
             <>
               <button
                 className="feedback-reopen-confirm"
+                // The reason is the agent's instruction; reopening without one
+                // tells it nothing.
+                disabled={!reopenDraft.trim()}
                 onClick={() => {
                   const note = reopenDraft.trim();
+                  if (!note) return;
                   void updateCard(item, {
                     status: "OPEN",
-                    ...(note
-                      ? { message: { note, role: "reviewer" as const } }
-                      : {}),
+                    message: { note, role: "reviewer" },
                   });
                 }}
                 type="button"
@@ -953,14 +955,16 @@ export function FeedbackInspector({
             </>
           ) : (
             <>
-              <button
-                aria-label={`Verify pin ${pin}`}
-                className="feedback-verify-button"
-                onClick={() => void updateCard(item, { status: "VERIFIED" })}
-                type="button"
-              >
-                Verify
-              </button>
+              {item.status === "RESOLVED" ? (
+                <button
+                  aria-label={`Verify pin ${pin}`}
+                  className="feedback-verify-button"
+                  onClick={() => void updateCard(item, { status: "VERIFIED" })}
+                  type="button"
+                >
+                  Verify
+                </button>
+              ) : null}
               <button
                 aria-label={`Reopen pin ${pin}`}
                 onClick={() => {
@@ -1186,7 +1190,9 @@ export function FeedbackInspector({
           ) : null}
           {latest ? <MessageNote message={latest} /> : null}
         </button>
-        {item.status === "RESOLVED" ? verifyActions(item) : null}
+        {item.status === "RESOLVED" || item.status === "VERIFIED"
+          ? verifyActions(item)
+          : null}
         {deleteButton(item)}
         {deleteConfirm(item)}
       </li>

@@ -84,9 +84,9 @@ through each feature, from dropping a pin to an agent replying over MCP.
   thread, each message with its author, time and any status change it made,
   plus a **Reply** box for the reviewer. Closing a comment as Fixed or Won't fix
   from the editor needs a reply. Threads appear in exports in order.
-- **Verify step.** A Fixed card shows **Verify** and **Reopen**. Verify moves it
-  to Verified; Reopen moves it back to Backlog and asks why, adding the reason
-  to the thread. Only a person sets Verified: the server refuses it unless the
+- **Verify step.** A Fixed card shows **Verify** and **Reopen**; a Verified
+  card shows **Reopen**. Verify moves it to Verified; Reopen moves it back to
+  Backlog and needs a reason, which is added to the thread. Only a person sets Verified: the server refuses it unless the
   request carries `x-screencheck-actor: reviewer`, which the browser sends and
   agents do not.
 - **Export** in the action bar opens a dialog: Markdown or JSON, all screens or

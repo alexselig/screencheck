@@ -122,6 +122,43 @@ describe("verify step", () => {
     ).toHaveClass("is-verified");
   });
 
+  it("offers Reopen on Verified cards and requires a reason (ux-15)", async () => {
+    render(<App />);
+    const fixedSection = await screen.findByRole("region", { name: "Fixed" });
+    fireEvent.click(
+      within(fixedSection).getByRole("button", { name: "Verify pin 2" }),
+    );
+    const verified = await screen.findByRole("region", { name: "Verified" });
+    await waitFor(async () =>
+      expect((await stored(fixedId)).status).toBe("VERIFIED"),
+    );
+    fireEvent.click(
+      await within(verified).findByRole("button", { name: "Reopen pin 2" }),
+    );
+    const confirm = within(verified).getByRole("button", { name: "Reopen" });
+    expect(confirm).toBeDisabled();
+    fireEvent.change(
+      within(verified).getByRole("textbox", { name: "Why reopen pin 2?" }),
+      { target: { value: "   " } },
+    );
+    expect(confirm).toBeDisabled();
+    fireEvent.change(
+      within(verified).getByRole("textbox", { name: "Why reopen pin 2?" }),
+      { target: { value: "Regressed in build-42." } },
+    );
+    expect(confirm).toBeEnabled();
+    fireEvent.click(confirm);
+    await waitFor(async () =>
+      expect((await stored(fixedId)).status).toBe("OPEN"),
+    );
+    expect((await stored(fixedId)).thread?.at(-1)).toEqual(
+      expect.objectContaining({
+        role: "reviewer",
+        note: "Regressed in build-42.",
+      }),
+    );
+  });
+
   it("reopens with a reason, keeping the thread", async () => {
     render(<App />);
     const fixedSection = await screen.findByRole("region", { name: "Fixed" });
