@@ -27,7 +27,7 @@
   },
   "exports": {
     "./capture": {
-      "types": "./dist/types/full-page.d.ts",
+      "types": "./dist/types/capture/full-page.d.ts",
       "import": "./dist/capture.js"
     },
     "./package.json": "./package.json"
@@ -42,6 +42,7 @@
     "build": "tsc --noEmit && node scripts/build.mjs",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
+    "smoke": "node scripts/smoke-pack.mjs",
     "prepublishOnly": "npm run build && npm test",
     "playground": "node scripts/playground/run.mjs",
     "screencheck": "tsx src/cli/bin.ts"
