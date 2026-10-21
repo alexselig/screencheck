@@ -117,13 +117,15 @@ through each feature, from dropping a pin to an agent replying over MCP.
   thread, each message with its author, time and any status change it made,
   plus a **Reply** box for the reviewer. Closing a comment as Fixed or Won't fix
   from the editor needs a reply. Threads appear in exports in order.
-- **Verify step.** A Fixed card shows **Verify** and **Reopen**. Verify moves it
-  to Verified; Reopen moves it back to Backlog and asks why, adding the reason
-  to the thread. Only a person sets Verified: the server refuses it unless the
+- **Verify step.** A Fixed card shows **Verify** and **Reopen**; a Verified
+  card shows **Reopen**. Verify moves it to Verified; Reopen moves it back to
+  Backlog and needs a reason, which is added to the thread. Only a person sets Verified: the server refuses it unless the
   request carries `x-screencheck-actor: reviewer`, which the browser sends and
   agents do not.
 - **Export** in the action bar opens a dialog: Markdown or JSON, all screens or
-  this screen only, and which statuses to include. Exports are deterministic,
+  this screen only, and which statuses to include. When the rail lists several
+  versions, a Version choice covers all of them (the default, grouped under a
+  heading per version) or just the current one. Exports are deterministic,
   state their scope, and keep on-screen pin numbers.
 - The feedback panel chunks comments by status, then by priority. Empty chunks
   are hidden and untagged comments sit under their status with no heading.
@@ -132,6 +134,10 @@ through each feature, from dropping a pin to an agent replying over MCP.
   A new comment always starts in Backlog and keeps the compact create form
   through its first autosave, so the editor never grows under your cursor;
   the status picker appears once you reopen it.
+  A note edit is saved to the comment it was typed in, even when you switch
+  comment, pin or screen before the autosave fires. If a save or status
+  change fails, the status picker shows the saved status again and a
+  **Retry** button resends the change.
   Each status section has a **Hide pins / Show pins** switch on its right;
   Fixed and Verified pins are hidden by default and the choice is remembered
   per browser.
@@ -147,8 +153,8 @@ through each feature, from dropping a pin to an agent replying over MCP.
   above the count so both fit the collapsed rail.
 - **Hide approved screens**, a text button at the top of the screen index,
   drops approved screens from the list (the current screen always stays) so
-  only what's left to review remains. ↑ / ↓ skip the hidden rows; the choice
-  is remembered.
+  only what's left to review remains. ↑ / ↓, ← / → and Prev / Next all skip
+  the hidden rows; the choice is remembered.
 - A **Showing** strip above each capture says exactly what it shows (for
   example "Step 3 of 5, manual path selected"). Click it to edit; Enter saves,
   Esc cancels. Text is saved per version and screen in `captions.json`; a
@@ -170,20 +176,22 @@ through each feature, from dropping a pin to an agent replying over MCP.
 - A fixed action bar keeps the fullscreen toggle (left), Prev/Next and the
   current screen (centre), and **Export** and **Add feedback** (right) in reach at the bottom
   of the window. The address bar records the project,
-  version, and screen, so a reload or shared link opens the same place.
+  version, and screen, so a reload or shared link opens the same place. A link
+  to an older build opens that build, with a notice offering the newest one.
 
 ### Keyboard
 
-| Keys              | Action                                                          |
-| ----------------- | --------------------------------------------------------------- |
-| ⌘F / Ctrl+F       | Add feedback (replaces the browser's find in this app)          |
-| ← / → or [ / ]    | Previous / next screen (ignored while typing)                   |
-| ↑ / ↓, Home / End | In the screen index: previous / next, first / last screen       |
-| ⌘A / Ctrl+A       | Approve / unapprove the screen (ignored while typing)           |
-| Enter / Esc       | In the Showing caption: save / cancel the edit                  |
-| Enter or ,        | In Add tag: add the tag (Backspace when empty removes the last) |
-| Esc               | Cancel placing a pin; close the Export dialog                   |
-| Esc (fullscreen)  | Close an open edge panel, then leave fullscreen                 |
+| Keys              | Action                                                                                                                                                                                              |
+| ----------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| ⌘F / Ctrl+F       | Add feedback (replaces the browser's find in this app)                                                                                                                                              |
+| Arrows, Enter     | While placing a pin: move the crosshair (Shift moves further) and drop the pin; Comment on whole screen pins the top left                                                                           |
+| ← / → or [ / ]    | Previous / next screen (ignored while typing)                                                                                                                                                       |
+| ↑ / ↓, Home / End | In the screen index: previous / next, first / last screen                                                                                                                                           |
+| Tab               | The screen index is one tab stop; Skip to capture and Skip to feedback links come first                                                                                                             |
+| ⌘A / Ctrl+A       | Approve / unapprove the screen (ignored while typing)                                                                                                                                               |
+| Enter / Esc       | In the Showing caption: save / cancel the edit                                                                                                                                                      |
+| Enter or ,        | In Add tag: add the tag (Backspace when empty removes the last)                                                                                                                                     |
+| Esc               | Undo the innermost thing only: close a dialog or confirm, cancel placing a pin, close the fullscreen feedback panel, then leave fullscreen. While typing, Esc never closes the panel or fullscreen. |
 
 - Atomic file storage with serialized mutations, conflict checks, and restart
   recovery.
@@ -404,8 +412,9 @@ the file up on the next request. Edit the JSON afterwards to group screens
 and describe what each capture shows.
 
 Each project is one JSON file in `~/.screencheck/projects/` (or
-`SCREENCHECK_PROJECTS`). Captures stay wherever they already live; each
-version points at its folder:
+`SCREENCHECK_PROJECTS`). Until one is registered, the app shows that folder,
+a minimal file to copy and any files that failed to parse. Captures stay
+wherever they already live; each version points at its folder:
 
 ```json
 {
@@ -451,31 +460,25 @@ placeholder project is always accepted.
 To register a project from its own manifests, keep a small importer script
 beside the registrations rather than in this repository.
 
-## Versions, revisions and resolutions
+## Versions, revisions and viewports
 
-Each registered version is one set of captures. ScreenCheck reads a revision
-and a resolution from each version id: an id that ends in `-<number>`, or
-`-<word>-<number>`, is `<revision>-<resolution>`. So `abc1234-desktop-1440`
-and `abc1234-mobile-390` are revision `abc1234` at resolutions `desktop-1440`
-and `mobile-390`. An id without that ending is a revision of its own.
+Each version is its own entry in the header's **Revision** picker, newest
+(last) first; `build-41` and `build-42` are two builds. Version ids are never
+split apart. If one build was captured at several viewports, say so with
+optional `revision` and `label` fields; versions that share a `revision`
+appear as one entry, a **Viewport** filter lists their labels, and the screen
+index shows each screen once per viewport (`Checkout · 390`):
 
-- **Revision** (top right, shown once there are two or more revisions) lists
-  the newest first, meaning the last one registered, and opens on it. A
-  `local-` prefix is left off the label. Switching revision keeps your
-  resolution when the new revision has it.
-- **Resolution** (shown when a revision has two or more versions) is **All**
-  or one version. With All, the screen index lists every screen at every
-  resolution of the revision, ordered by the trailing number and numbered
-  straight through: `01 Checkout · 390`, `02 Checkout · 1440`,
-  `03 Payment · 390`. Prev/Next, ← / → and ↑ / ↓ move one row at a time.
-  Picking one resolution narrows the index to it. With a single version the
-  header shows its id instead.
-- Feedback, approvals and captions belong to one version, so every row is
-  reviewed and approved on its own.
+```json
+"versions": [
+  { "id": "b42-desktop", "revision": "build-42", "label": "1440", "captureRoot": "…/b42/desktop" },
+  { "id": "b42-mobile", "revision": "build-42", "label": "390", "captureRoot": "…/b42/mobile" }
+]
+```
 
-Any trailing number counts as a resolution: `build-41` and `build-42` are read
-as resolutions `41` and `42` of revision `build` (the playground shows this).
-To keep builds apart, add a resolution, as in `build-42-desktop-1440`.
+A capture must sit inside its version's `captureRoot`. To register a project
+from its own manifests, keep a small importer script beside the registrations
+rather than in this repository.
 
 ## Capturing long pages
 

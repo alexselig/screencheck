@@ -6,6 +6,56 @@ export type RailMode = "wide" | "compact";
 
 const HIDE_APPROVED_KEY = "screencheck:hide-approved-screens";
 
+export function readHideApproved() {
+  try {
+    return localStorage.getItem(HIDE_APPROVED_KEY) === "1";
+  } catch {
+    return false;
+  }
+}
+
+export function writeHideApproved(hide: boolean) {
+  try {
+    localStorage.setItem(HIDE_APPROVED_KEY, hide ? "1" : "0");
+  } catch {
+    // Storage can be unavailable; the toggle still works for this session.
+  }
+}
+
+// The rows the rail lists. The current screen stays listed even when
+// approved, so you never lose it; Prev/Next walk this same list.
+export function visibleRailScreens<T extends { id: string }>(
+  screens: readonly T[],
+  selectedId: string,
+  approvedIds: ReadonlySet<string> | undefined,
+  hideApproved: boolean,
+) {
+  return hideApproved
+    ? screens.filter(
+        (screen) => screen.id === selectedId || !approvedIds?.has(screen.id),
+      )
+    : [...screens];
+}
+
+// Short labels for the collapsed rail, where only the number column shows.
+// "1440 × 1000" → "1440", "build-42" → "42", "Mobile" → "Mob".
+export function versionTag(label: string) {
+  const digits = label.match(/\d+/g);
+  if (digits)
+    return label.includes("×") ? digits[0] : digits[digits.length - 1];
+  return label.trim().slice(0, 3);
+}
+
+// "Sign in" → "SI", "Onboarding" → "O".
+export function groupAbbreviation(group: string) {
+  return group
+    .split(/[\s/_-]+/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((word) => word[0]!.toUpperCase())
+    .join("");
+}
+
 export function ScreenRail({
   screens,
   selectedId,
@@ -14,8 +64,11 @@ export function ScreenRail({
   mode,
   onModeChange,
   onSelect,
+  hideApproved: hideApprovedProp,
+  onHideApprovedChange,
 }: {
-  screens: ReviewScreen[];
+  // versionLabel is set when the rail lists one row per version.
+  screens: (ReviewScreen & { versionLabel?: string })[];
   selectedId: string;
   openCounts?: ReadonlyMap<string, number>;
   approvedIds?: ReadonlySet<string>;
@@ -23,32 +76,31 @@ export function ScreenRail({
   // Omitted where the container controls collapse (the fullscreen drawer).
   onModeChange?: (mode: RailMode) => void;
   onSelect: (id: string) => void;
+  // Controlled by the app so Prev/Next skip the same rows; standalone, the
+  // rail keeps the choice itself.
+  hideApproved?: boolean;
+  onHideApprovedChange?: (hide: boolean) => void;
 }) {
   const [temporaryExpanded, setTemporaryExpanded] = useState(false);
   const [pinned, setPinned] = useState(false);
-  const [hideApproved, setHideApproved] = useState(() => {
-    try {
-      return localStorage.getItem(HIDE_APPROVED_KEY) === "1";
-    } catch {
-      return false;
-    }
-  });
+  const [hideApprovedState, setHideApproved] = useState(readHideApproved);
+  const hideApproved = hideApprovedProp ?? hideApprovedState;
   const approvedCount = screens.filter((screen) =>
     approvedIds?.has(screen.id),
   ).length;
-  // The current screen stays listed even when approved, so you never lose it.
-  const visibleScreens = hideApproved
-    ? screens.filter(
-        (screen) => screen.id === selectedId || !approvedIds?.has(screen.id),
-      )
-    : screens;
+  const visibleScreens = visibleRailScreens(
+    screens,
+    selectedId,
+    approvedIds,
+    hideApproved,
+  );
   function toggleHideApproved() {
     const next = !hideApproved;
-    setHideApproved(next);
-    try {
-      localStorage.setItem(HIDE_APPROVED_KEY, next ? "1" : "0");
-    } catch {
-      // Storage can be unavailable; the toggle still works for this session.
+    if (onHideApprovedChange) {
+      onHideApprovedChange(next);
+    } else {
+      setHideApproved(next);
+      writeHideApproved(next);
     }
   }
   const expanded = mode === "wide" || temporaryExpanded || pinned;
@@ -91,6 +143,10 @@ export function ScreenRail({
       .querySelector<HTMLElement>('[aria-current="page"]')
       ?.focus({ preventScroll: true });
   }, [selectedId]);
+
+  const rovingId = visibleScreens.some((screen) => screen.id === selectedId)
+    ? selectedId
+    : "";
 
   function onListKeyDown(event: KeyboardEvent<HTMLOListElement>) {
     if (event.metaKey || event.ctrlKey || event.altKey || event.shiftKey)
@@ -186,7 +242,7 @@ export function ScreenRail({
         </button>
       ) : null}
       <ol onKeyDown={onListKeyDown}>
-        {visibleScreens.map((screen) => {
+        {visibleScreens.map((screen, index) => {
           const showGroup = screen.group !== previousGroup;
           if (showGroup) groupIndex += 1;
           previousGroup = screen.group;
@@ -195,13 +251,20 @@ export function ScreenRail({
           return (
             <li key={screen.id}>
               {showGroup ? (
-                <h2 data-tone={groupIndex % 4} title={screen.group}>
+                <h3 data-tone={groupIndex % 4} title={screen.group}>
                   <span className="group-full">{screen.group}</span>
-                </h2>
+                  <span aria-hidden="true" className="group-short">
+                    {groupAbbreviation(screen.group)}
+                  </span>
+                </h3>
               ) : null}
               <button
                 aria-current={screen.id === selectedId ? "page" : undefined}
                 data-screen-id={screen.id}
+                // One tab stop for the whole list; ↑ / ↓ / Home / End move.
+                tabIndex={
+                  screen.id === rovingId || (!rovingId && index === 0) ? 0 : -1
+                }
                 aria-label={`${String(screen.ordinal).padStart(2, "0")}. ${screen.title}${approved ? " (approved)" : ""}${openCount ? `, ${openCount} open` : ""}`}
                 onClick={() => onSelect(screen.id)}
                 title={[
@@ -237,6 +300,11 @@ export function ScreenRail({
                   <span className="screen-ordinal">
                     {String(screen.ordinal).padStart(2, "0")}
                   </span>
+                  {screen.versionLabel ? (
+                    <span aria-hidden="true" className="screen-version-tag">
+                      {versionTag(screen.versionLabel)}
+                    </span>
+                  ) : null}
                 </span>
                 <span className="screen-name">{screen.title}</span>
               </button>

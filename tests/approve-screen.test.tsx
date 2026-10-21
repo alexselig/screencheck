@@ -98,4 +98,32 @@ describe("approve screen toggle", () => {
     );
     expect(await screen.findByText(/Approval was not saved/)).toBeVisible();
   });
+
+  it("clears a failed-save banner on success, on navigation, or when dismissed (ux-13)", async () => {
+    render(<App />);
+    const button = await approveButton();
+    api.failNext(500, "Disk full.", /\/approvals/);
+    fireEvent.click(button);
+    await screen.findByText(/Approval was not saved/);
+
+    fireEvent.click(button);
+    await waitFor(() => expect(button).toHaveAttribute("aria-pressed", "true"));
+    await waitFor(() =>
+      expect(screen.queryByText(/Approval was not saved/)).toBeNull(),
+    );
+
+    api.failNext(500, "Disk full.", /\/approvals/);
+    fireEvent.click(button);
+    await screen.findByText(/Approval was not saved/);
+    fireEvent.click(screen.getByRole("button", { name: "Dismiss message" }));
+    expect(screen.queryByText(/Approval was not saved/)).toBeNull();
+
+    api.failNext(500, "Disk full.", /\/approvals/);
+    fireEvent.click(button);
+    await screen.findByText(/Approval was not saved/);
+    fireEvent.click(screen.getByRole("button", { name: "Next screen" }));
+    await waitFor(() =>
+      expect(screen.queryByText(/Approval was not saved/)).toBeNull(),
+    );
+  });
 });

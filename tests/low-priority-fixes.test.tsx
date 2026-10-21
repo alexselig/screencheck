@@ -116,6 +116,98 @@ describe("export scope", () => {
     expect(markdown).not.toContain("Dashboard one");
   });
 
+  it("exports every version in the rail by default, grouped by version (ux-11)", async () => {
+    const make = (version: string, screenId: string, note: string) =>
+      api.storage.createFeedback("example", {
+        clientMutationId: crypto.randomUUID(),
+        screenId,
+        version,
+        x: 0.5,
+        y: 0.5,
+        note,
+        tags: ["P1"],
+      });
+    await make("build-41", "landing", "Old landing");
+    await make("build-42", "landing", "New landing");
+    await make("build-43", "landing", "Not in the rail");
+    const all = await api.storage.listFeedback("example");
+    const exported: string[] = [];
+    render(
+      <ExportDialog
+        feedback={all}
+        onClose={() => {}}
+        onExport={(_format, contents) => exported.push(contents)}
+        projectId="example"
+        screens={twoScreens}
+        selectedScreenId="landing"
+        version="build-42"
+        versions={[
+          { id: "build-41", label: "Mobile" },
+          { id: "build-42", label: "Desktop" },
+        ]}
+      />,
+    );
+    const dialog = screen.getByRole("dialog", { name: "Export feedback" });
+    const listed = within(dialog).getByRole("radio", {
+      name: "All 2 versions in the list",
+    });
+    expect(listed).toBeChecked();
+    expect(dialog).toHaveTextContent(
+      "All 2 screens · versions Mobile, Desktop · 2 items",
+    );
+    fireEvent.click(within(dialog).getByRole("button", { name: "Download" }));
+    const markdown = exported[0]!;
+    expect(markdown).not.toContain("Not in the rail");
+    expect(markdown.indexOf("## Version Mobile")).toBeGreaterThan(0);
+    expect(markdown.indexOf("## Version Mobile")).toBeLessThan(
+      markdown.indexOf("Old landing"),
+    );
+    expect(markdown.indexOf("## Version Desktop")).toBeGreaterThan(
+      markdown.indexOf("Old landing"),
+    );
+    expect(markdown.indexOf("New landing")).toBeGreaterThan(
+      markdown.indexOf("## Version Desktop"),
+    );
+    expect(markdown).toContain("### 01 · Landing");
+  });
+
+  it("narrows Export to the current version on request (ux-11)", async () => {
+    await api.storage.createFeedback("example", {
+      clientMutationId: crypto.randomUUID(),
+      screenId: "landing",
+      version: "build-41",
+      x: 0.5,
+      y: 0.5,
+      note: "Old landing",
+      tags: [],
+    });
+    const all = await api.storage.listFeedback("example");
+    render(
+      <ExportDialog
+        feedback={all}
+        onClose={() => {}}
+        projectId="example"
+        screens={twoScreens}
+        selectedScreenId="landing"
+        version="build-42"
+        versions={[
+          { id: "build-41", label: "Mobile" },
+          { id: "build-42", label: "Desktop" },
+        ]}
+      />,
+    );
+    const dialog = screen.getByRole("dialog", { name: "Export feedback" });
+    fireEvent.click(
+      within(dialog).getByRole("radio", {
+        name: "This version only (Desktop)",
+      }),
+    );
+    expect(dialog).toHaveTextContent("version Desktop · 0 items");
+    expect(
+      within(dialog).getByRole("button", { name: "Download" }),
+    ).toBeDisabled();
+  });
+
   it("disables Download when nothing matches and closes on Escape", () => {
     const onClose = vi.fn();
     render(

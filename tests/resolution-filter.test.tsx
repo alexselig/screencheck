@@ -12,6 +12,10 @@ beforeEach(async () => {
   api = await installFakeFeedbackApi({
     ...EXAMPLE_PROJECT,
     versions: ["web-1440", "web-390"],
+    versionDetails: [
+      { id: "web-1440", revision: "web", label: "1440" },
+      { id: "web-390", revision: "web", label: "390" },
+    ],
   });
 });
 
@@ -24,7 +28,7 @@ afterEach(async () => {
 describe("resolution filter", () => {
   it("lists every resolution by default and narrows the rail to one", async () => {
     render(<App />);
-    const select = await screen.findByRole("combobox", { name: "Resolution" });
+    const select = await screen.findByRole("combobox", { name: "Viewport" });
     expect(select).toHaveValue("all");
     const screenCount = EXAMPLE_PROJECT.screens.length;
     const nav = screen.getByRole("navigation");

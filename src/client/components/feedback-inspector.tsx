@@ -1,4 +1,5 @@
 import {
+  useCallback,
   useEffect,
   useLayoutEffect,
   useMemo,
@@ -10,6 +11,9 @@ import {
 
 import { createPinNumbers } from "../../shared/export";
 import { ElementLine } from "./element-line";
+import type { ApproveShortcut } from "../shortcuts";
+import { ApprovalBar } from "./approval-bar";
+import { VerifyActions } from "./verify-actions";
 import {
   FEEDBACK_STATUSES,
   STATUS_LABELS,
@@ -54,6 +58,13 @@ type EditorState = {
   status: FeedbackStatus;
 };
 
+type SaveTarget = {
+  record: FeedbackRecord | null;
+  pin: Pin | null;
+  screenId: string;
+  version: string;
+};
+
 const EMPTY_EDITOR: EditorState = {
   note: "",
   tags: ["P1"],
@@ -74,13 +85,15 @@ function sameTags(left: readonly string[], right: readonly string[]) {
   return left.join("\0") === right.join("\0");
 }
 
+function sameTarget(left: SaveTarget, right: SaveTarget) {
+  return left.record
+    ? left.record.id === right.record?.id
+    : !right.record && left.pin === right.pin;
+}
+
 const RECOVERY_PREFIX = "screencheck.feedback-recovery.v1:";
 const COLLAPSED_STATUSES_KEY = "screencheck:collapsed-feedback-statuses";
 const NOTE_SAVE_DELAY_MS = 500;
-const shortcutLabel =
-  typeof navigator !== "undefined" && /Mac|iPhone|iPad/.test(navigator.platform)
-    ? "⌘A"
-    : "Ctrl+A";
 
 function recoveryStorageKey(projectId: string) {
   return `${RECOVERY_PREFIX}${projectId}`;
@@ -234,6 +247,7 @@ export function FeedbackInspector({
   hiddenPinStatuses = [],
   onTogglePinStatus,
   approval,
+  approveShortcut,
   ready = true,
   adding = false,
 }: {
@@ -254,6 +268,8 @@ export function FeedbackInspector({
   hiddenPinStatuses?: readonly FeedbackStatus[];
   onTogglePinStatus?: (status: FeedbackStatus) => void;
   approval?: { approved: boolean; ready: boolean; onToggle: () => void };
+  // Filled with the ⌘A handler for App's shortcut router.
+  approveShortcut?: ApproveShortcut;
   ready?: boolean;
   adding?: boolean;
 }) {
@@ -298,7 +314,67 @@ export function FeedbackInspector({
     text: string;
   } | null>(null);
   const [confirmingApproval, setConfirmingApproval] = useState(false);
+  const asideRef = useRef<HTMLElement>(null);
+  // Where focus should land once the DOM catches up after an action removes,
+  // moves or disables the focused control. It only applies while focus is
+  // lost (on <body>) or still on the control that asked, so it never steals
+  // focus the reviewer has moved on purpose.
+  const focusRequestRef = useRef<{
+    find: () => HTMLElement | null | undefined;
+    from: Element | null;
+  } | null>(null);
+  const applyFocusRequest = useCallback(() => {
+    const request = focusRequestRef.current;
+    if (!request) return;
+    const active = document.activeElement;
+    const lost =
+      !active ||
+      active === document.body ||
+      active === request.from ||
+      !active.isConnected;
+    if (!lost) {
+      focusRequestRef.current = null;
+      return;
+    }
+    const target = request.find();
+    if (target?.isConnected) {
+      focusRequestRef.current = null;
+      target.focus();
+    }
+  }, []);
+  const requestFocus = useCallback(
+    (find: () => HTMLElement | null | undefined) => {
+      focusRequestRef.current = { find, from: document.activeElement };
+      // Layout effects apply it after the next render; this catches the case
+      // where that render has already happened.
+      if (typeof requestAnimationFrame === "function") {
+        requestAnimationFrame(applyFocusRequest);
+      }
+    },
+    [applyFocusRequest],
+  );
+  useLayoutEffect(applyFocusRequest);
+  const approvalToggleRef = useRef<HTMLButtonElement>(null);
+  const refocusApprovalRef = useRef(false);
+  // Closing the confirm unmounts the focused button; hand focus back to the
+  // toggle that replaces it instead of dropping it on <body>.
+  const closeApprovalConfirm = useCallback(() => {
+    refocusApprovalRef.current = true;
+    setConfirmingApproval(false);
+  }, []);
+  useLayoutEffect(() => {
+    if (confirmingApproval || !refocusApprovalRef.current) return;
+    refocusApprovalRef.current = false;
+    approvalToggleRef.current?.focus();
+  }, [confirmingApproval]);
   const [saveMessage, setSaveMessage] = useState("");
+  // Resends the last failed save from the editor, shown as a Retry button.
+  const [retrySave, setRetrySave] = useState<{
+    kind: "note" | "status" | "reply";
+    run: () => void;
+  } | null>(null);
+  const clearRetry = (kind: "note" | "status" | "reply") =>
+    setRetrySave((current) => (current?.kind === kind ? null : current));
   const [confirmingDeleteId, setConfirmingDeleteId] = useState<string | null>(
     null,
   );
@@ -321,42 +397,28 @@ export function FeedbackInspector({
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const revisionRef = useRef(0);
   const latestRecordRef = useRef<FeedbackRecord | null>(null);
-  const creatingRef = useRef<Promise<FeedbackRecord> | null>(null);
+  // Creation in flight and the record it made, per draft pin, so a later save
+  // for the same pin updates that record instead of creating a second one.
+  const creatingRef = useRef(new WeakMap<Pin, Promise<FeedbackRecord>>());
+  const createdRef = useRef(new WeakMap<Pin, FeedbackRecord>());
   const adoptedIdRef = useRef<string | null>(null);
+  const draftPinRef = useRef<Pin | null>(null);
+  // The scheduled autosave and the comment (or draft pin) it belongs to,
+  // captured when the edit was made rather than when the timer fires.
+  const pendingSaveRef = useRef<{
+    revision: number;
+    editor: EditorState;
+    target: SaveTarget;
+  } | null>(null);
   // A comment created in this editing session keeps the create layout (no
   // status picker, no change summary) so the editor does not grow under the
   // reviewer's cursor when the first autosave lands. New comments are Backlog.
   const [freshId, setFreshId] = useState<string | null>(null);
   const editorRef = useRef(editor);
-  // ⌘A / Ctrl+A toggles approval; the handler is refreshed every render.
-  const approveShortcutRef = useRef<(() => void) | null>(null);
-  useEffect(() => {
-    const onKeyDown = (event: globalThis.KeyboardEvent) => {
-      if (
-        event.key.toLowerCase() !== "a" ||
-        !(event.metaKey || event.ctrlKey) ||
-        event.shiftKey ||
-        event.altKey ||
-        event.defaultPrevented
-      ) {
-        return;
-      }
-      const target = event.target;
-      if (
-        target instanceof HTMLElement &&
-        (target.isContentEditable ||
-          ["INPUT", "TEXTAREA", "SELECT"].includes(target.tagName) ||
-          target.closest("[role=dialog]"))
-      ) {
-        return;
-      }
-      if (!approveShortcutRef.current) return;
-      event.preventDefault();
-      approveShortcutRef.current();
-    };
-    window.addEventListener("keydown", onKeyDown);
-    return () => window.removeEventListener("keydown", onKeyDown);
-  }, []);
+  // ⌘A / Ctrl+A toggles approval. App's shortcut router calls this ref; the
+  // handler is refreshed every render.
+  const ownApproveShortcutRef = useRef<(() => void) | null>(null);
+  const approveShortcutRef = approveShortcut ?? ownApproveShortcutRef;
   const effectiveDraftPin = draftPin ?? recoveredPin;
 
   const screenFeedback = useMemo(
@@ -381,6 +443,7 @@ export function FeedbackInspector({
     visibleFeedback.find((item) => item.id === selectedFeedbackId) ?? null;
 
   latestRecordRef.current = effectiveDraftPin ? null : selectedRecord;
+  draftPinRef.current = effectiveDraftPin;
   editorRef.current = editor;
 
   useEffect(() => {
@@ -388,6 +451,7 @@ export function FeedbackInspector({
     setConfirmingDeleteId(null);
     setDeleteMessage("");
     setReplyDraft("");
+    setRetrySave(null);
   }, [selectedFeedbackId]);
 
   useEffect(() => {
@@ -423,6 +487,31 @@ export function FeedbackInspector({
     if (selectedRecord) openStatus(selectedRecord.status);
   }, [selectedRecord?.id, selectedRecord?.status]);
 
+  // Selecting a comment (its pin or its card) opens the editor in place of
+  // the card, so move focus into it rather than leaving it on <body>.
+  const editingId = effectiveDraftPin
+    ? null
+    : (visibleSelectedRecord?.id ?? null);
+  const previousEditingIdRef = useRef<string | null>(null);
+  useLayoutEffect(() => {
+    const previous = previousEditingIdRef.current;
+    previousEditingIdRef.current = editingId;
+    if (!editingId || previous === editingId) return;
+    if (adoptedIdRef.current === editingId) return;
+    const active = document.activeElement;
+    const fromPinOrCard =
+      !active ||
+      active === document.body ||
+      !active.isConnected ||
+      (active instanceof HTMLElement &&
+        (active.classList.contains("feedback-pin") ||
+          active.classList.contains("feedback-comment")));
+    if (fromPinOrCard) {
+      editorSectionRef.current?.scrollIntoView?.({ block: "nearest" });
+      textareaRef.current?.focus({ preventScroll: true });
+    }
+  }, [editingId]);
+
   useLayoutEffect(() => {
     const previousDraftPin = previousDraftPinRef.current;
     previousDraftPinRef.current = draftPin;
@@ -450,10 +539,18 @@ export function FeedbackInspector({
     textareaRef.current?.focus();
   }, [collapsedStatuses, effectiveDraftPin]);
 
+  // A pending note edit is saved as soon as the reviewer moves to another
+  // comment, pin, screen or version, and when the panel goes away.
+  const flushPendingSaveRef = useRef<() => void>(() => {});
+  useLayoutEffect(() => {
+    const pending = pendingSaveRef.current;
+    if (pending && !isCurrentTarget(pending.target)) {
+      flushPendingSaveRef.current();
+    }
+  }, [selectedFeedbackId, selectedScreenId, version, effectiveDraftPin]);
+
   useEffect(() => {
-    return () => {
-      if (timerRef.current) clearTimeout(timerRef.current);
-    };
+    return () => flushPendingSaveRef.current();
   }, []);
 
   useEffect(() => {
@@ -483,12 +580,6 @@ export function FeedbackInspector({
     }
   }, [effectiveDraftPin, projectId, selectedRecord, selectedScreenId, version]);
 
-  function currentRecoveryKey() {
-    return selectedRecord && !effectiveDraftPin
-      ? updateRecoveryKey(selectedRecord.id)
-      : createRecoveryKey(version, selectedScreenId);
-  }
-
   function setStatusCollapsed(status: FeedbackStatus, collapsed: boolean) {
     setCollapsedStatuses((current) => {
       const next = collapsed
@@ -505,53 +596,110 @@ export function FeedbackInspector({
     setStatusCollapsed(status, false);
   }
 
-  function persistLocal(nextEditor: EditorState) {
+  function currentTarget(): SaveTarget | null {
     const record = latestRecordRef.current;
     const pin = effectiveDraftPin;
-    if (!record && !pin) return;
-    writeRecovery(projectId, currentRecoveryKey(), {
-      kind: record ? "update" : "create",
-      screenId: selectedScreenId,
-      version,
-      feedbackId: record?.id,
-      x: pin?.x,
-      y: pin?.y,
+    if (!record && !pin) return null;
+    return { record, pin, screenId: selectedScreenId, version };
+  }
+
+  // Whether the reviewer is still looking at the comment a save belongs to.
+  function isCurrentTarget(target: SaveTarget) {
+    const current = latestRecordRef.current;
+    if (target.record) return current?.id === target.record.id;
+    if (!target.pin) return false;
+    if (draftPinRef.current === target.pin) return true;
+    const created = createdRef.current.get(target.pin);
+    return Boolean(created && current?.id === created.id);
+  }
+
+  function targetRecoveryKey(target: SaveTarget) {
+    return target.record
+      ? updateRecoveryKey(target.record.id)
+      : createRecoveryKey(target.version, target.screenId);
+  }
+
+  function persistLocal(target: SaveTarget, nextEditor: EditorState) {
+    writeRecovery(projectId, targetRecoveryKey(target), {
+      kind: target.record ? "update" : "create",
+      screenId: target.screenId,
+      version: target.version,
+      feedbackId: target.record?.id,
+      x: target.pin?.x,
+      y: target.pin?.y,
       note: nextEditor.note,
       tags: nextEditor.tags,
     });
     setSaveMessage("Unsaved locally");
   }
 
-  async function saveEditor(revision: number, nextEditor: EditorState) {
-    let record = latestRecordRef.current;
-    const pin = effectiveDraftPin;
-    if (!nextEditor.note.trim() || (!record && !pin)) return;
-    setSaveMessage("Saving…");
-    // A save that fires while the pin is still being created updates that
-    // record instead of creating a second one.
-    if (!record && creatingRef.current) {
-      record = await creatingRef.current.catch(() => null);
+  function failureMessage(target: SaveTarget, error: unknown) {
+    const reason =
+      error instanceof Error
+        ? `Retry required: ${error.message}`
+        : "Retry required";
+    if (isCurrentTarget(target)) return reason;
+    const pin = target.record ? pinNumbers.get(target.record.id) : undefined;
+    return `${pin ? `Pin ${pin}` : "A comment"} was not saved (kept in this browser). ${reason}`;
+  }
+
+  async function saveEditor(
+    target: SaveTarget,
+    revision: number,
+    nextEditor: EditorState,
+  ) {
+    const { pin } = target;
+    const showing = () => isCurrentTarget(target);
+    if (!nextEditor.note.trim()) {
+      // Nothing can be sent; say so instead of leaving "Unsaved locally".
+      if (showing()) {
+        setSaveMessage(
+          target.record ? "A note can't be empty; not saved." : "",
+        );
+      }
+      return;
+    }
+    if (showing()) setSaveMessage("Saving…");
+    clearRetry("note");
+    let record = target.record;
+    // A save for a pin that is (or was) being created updates that record
+    // instead of creating a second one.
+    if (!record && pin) {
+      record =
+        createdRef.current.get(pin) ??
+        (await creatingRef.current.get(pin)?.catch(() => null)) ??
+        null;
     }
     try {
       if (record) {
+        const base =
+          latestRecordRef.current?.id === record.id
+            ? latestRecordRef.current
+            : record;
         const patch: UpdateFeedbackInput["patch"] = {};
         const note = nextEditor.note.trim();
-        if (note !== record.note) patch.note = note;
-        if (!sameTags(nextEditor.tags, record.tags)) {
+        if (note !== base.note) patch.note = note;
+        if (!sameTags(nextEditor.tags, base.tags)) {
           patch.tags = nextEditor.tags;
         }
         if (Object.keys(patch).length === 0) {
           writeRecovery(projectId, updateRecoveryKey(record.id), null);
-          setSaveMessage("Saved");
+          if (showing()) setSaveMessage("Saved");
           return;
         }
         const updated = await onUpdate(record.id, {
-          expectedUpdatedAt: record.updatedAt,
+          expectedUpdatedAt: base.updatedAt,
           patch,
         });
-        latestRecordRef.current = updated;
-        if (revision === revisionRef.current) {
+        if (latestRecordRef.current?.id === updated.id) {
+          latestRecordRef.current = updated;
+        }
+        // A save for a comment the reviewer has left is final: its edit was
+        // flushed with the last text typed there.
+        if (!showing() || revision === revisionRef.current) {
           writeRecovery(projectId, updateRecoveryKey(record.id), null);
+        }
+        if (showing() && revision === revisionRef.current) {
           setSaveMessage("Saved");
           if (textareaRef.current !== document.activeElement) {
             setEditor({
@@ -564,31 +712,33 @@ export function FeedbackInspector({
       } else if (pin) {
         const creating = onCreate({
           clientMutationId: crypto.randomUUID(),
-          screenId: selectedScreenId,
-          version,
+          screenId: target.screenId,
+          version: target.version,
           x: pin.x,
           y: pin.y,
           note: nextEditor.note.trim(),
           tags: nextEditor.tags,
           status: "OPEN",
         });
-        creatingRef.current = creating;
+        creatingRef.current.set(pin, creating);
         let created: FeedbackRecord;
         try {
           created = await creating;
         } finally {
-          if (creatingRef.current === creating) creatingRef.current = null;
+          creatingRef.current.delete(pin);
         }
+        createdRef.current.set(pin, created);
+        writeRecovery(
+          projectId,
+          createRecoveryKey(target.version, target.screenId),
+          null,
+        );
+        // Adopt the new record only while the reviewer is still on its
+        // draft; otherwise leave their new selection alone.
+        if (draftPinRef.current !== pin) return;
         latestRecordRef.current = created;
         adoptedIdRef.current = created.id;
         setFreshId(created.id);
-        // Always adopt the new record, even if the reviewer kept typing, so
-        // later saves update it rather than creating a duplicate pin.
-        writeRecovery(
-          projectId,
-          createRecoveryKey(version, selectedScreenId),
-          null,
-        );
         setRecoveredPin(null);
         onSelectFeedback(created.id);
         onCancelDraft();
@@ -597,8 +747,8 @@ export function FeedbackInspector({
         } else {
           writeRecovery(projectId, updateRecoveryKey(created.id), {
             kind: "update",
-            screenId: selectedScreenId,
-            version,
+            screenId: target.screenId,
+            version: target.version,
             feedbackId: created.id,
             note: editorRef.current.note,
             tags: editorRef.current.tags,
@@ -606,21 +756,58 @@ export function FeedbackInspector({
         }
       }
     } catch (error) {
-      setSaveMessage(
-        error instanceof Error
-          ? `Retry required: ${error.message}`
-          : "Retry required",
-      );
+      setSaveMessage(failureMessage(target, error));
+      setRetrySave({
+        kind: "note",
+        run: () =>
+          void saveEditor(
+            target,
+            revisionRef.current,
+            editorForRetry(target, nextEditor),
+          ),
+      });
     }
   }
 
+  // A retry for the comment on screen sends what is in the editor now.
+  function editorForRetry(target: SaveTarget, saved: EditorState) {
+    return isCurrentTarget(target) ? editorRef.current : saved;
+  }
+
+  // Sends the scheduled save now, for the comment it was scheduled for.
+  function flushPendingSave() {
+    const pending = pendingSaveRef.current;
+    if (timerRef.current) {
+      clearTimeout(timerRef.current);
+      timerRef.current = null;
+    }
+    pendingSaveRef.current = null;
+    if (!pending) return Promise.resolve();
+    return saveEditor(pending.target, pending.revision, pending.editor);
+  }
+  flushPendingSaveRef.current = () => void flushPendingSave();
+
+  function cancelPendingSave() {
+    if (timerRef.current) {
+      clearTimeout(timerRef.current);
+      timerRef.current = null;
+    }
+    pendingSaveRef.current = null;
+  }
+
   function scheduleSave(nextEditor: EditorState) {
-    persistLocal(nextEditor);
+    const target = currentTarget();
+    if (!target) return;
+    const pending = pendingSaveRef.current;
+    // An edit to another comment sends the earlier one first.
+    if (pending && !sameTarget(pending.target, target)) void flushPendingSave();
+    persistLocal(target, nextEditor);
     const revision = ++revisionRef.current;
+    pendingSaveRef.current = { revision, editor: nextEditor, target };
     if (timerRef.current) clearTimeout(timerRef.current);
     timerRef.current = setTimeout(() => {
       timerRef.current = null;
-      void saveEditor(revision, nextEditor);
+      void flushPendingSave();
     }, NOTE_SAVE_DELAY_MS);
   }
 
@@ -640,10 +827,30 @@ export function FeedbackInspector({
       setSaveMessage("Add a reply before closing this feedback.");
       return;
     }
-    if (timerRef.current) {
-      clearTimeout(timerRef.current);
-      timerRef.current = null;
-    }
+    // The status goes first; a pending note edit is sent again after it.
+    const pending =
+      pendingSaveRef.current?.target.record?.id === record.id
+        ? pendingSaveRef.current
+        : null;
+    cancelPendingSave();
+    // After the status lands (or fails), the note edit is sent for this
+    // comment even if the reviewer has moved on.
+    const resendNote = (status?: FeedbackStatus) => {
+      const latest = editorRef.current;
+      if (latestRecordRef.current?.id === record.id) {
+        if (
+          pending ||
+          latest.note !== latestRecordRef.current.note ||
+          !sameTags(latest.tags, latestRecordRef.current.tags)
+        ) {
+          scheduleSave(status ? { ...latest, status } : latest);
+        }
+      } else if (pending) {
+        void saveEditor(pending.target, pending.revision, pending.editor);
+      }
+    };
+    setEditor((current) => ({ ...current, status }));
+    clearRetry("status");
     setSaveMessage("Saving…");
     try {
       const updated = await onUpdate(record.id, {
@@ -655,21 +862,27 @@ export function FeedbackInspector({
             : {}),
         },
       });
-      latestRecordRef.current = updated;
+      if (latestRecordRef.current?.id === updated.id) {
+        latestRecordRef.current = updated;
+      }
       if (replyNote) setReplyDraft("");
       setSaveMessage("Saved");
-      if (
-        editor.note !== updated.note ||
-        !sameTags(editor.tags, updated.tags)
-      ) {
-        scheduleSave({ ...editor, status });
-      }
+      resendNote(status);
     } catch (error) {
-      setSaveMessage(
-        error instanceof Error
-          ? `Retry required: ${error.message}`
-          : "Retry required",
-      );
+      resendNote();
+      // The server still has the old status, so the picker shows it again.
+      const current = latestRecordRef.current;
+      if (current?.id === record.id) {
+        setEditor((editorNow) => ({ ...editorNow, status: current.status }));
+        setSaveMessage(
+          `Status not changed. ${
+            error instanceof Error
+              ? `Retry required: ${error.message}`
+              : "Retry required"
+          }`,
+        );
+        setRetrySave({ kind: "status", run: () => void flushStatus(status) });
+      }
     }
   }
 
@@ -682,7 +895,6 @@ export function FeedbackInspector({
       setSaveMessage("Add a reply before closing this feedback.");
       return;
     }
-    setEditor((current) => ({ ...current, status }));
     void flushStatus(status);
   }
 
@@ -691,6 +903,7 @@ export function FeedbackInspector({
     const record = latestRecordRef.current;
     const note = replyDraft.trim();
     if (!record || !note) return;
+    clearRetry("reply");
     setSaveMessage("Saving…");
     try {
       const updated = await onUpdate(record.id, {
@@ -700,13 +913,37 @@ export function FeedbackInspector({
       latestRecordRef.current = updated;
       setReplyDraft("");
       setSaveMessage("Saved");
+      // The Reply button disables itself once the box is empty.
+      requestFocus(() =>
+        asideRef.current?.querySelector<HTMLElement>(
+          'textarea[aria-label="Reply"]',
+        ),
+      );
     } catch (error) {
       setSaveMessage(
         error instanceof Error
           ? `Retry required: ${error.message}`
           : "Retry required",
       );
+      setRetrySave({ kind: "reply", run: () => void sendReply() });
     }
+  }
+
+  function sectionToggle(status: FeedbackStatus) {
+    return asideRef.current?.querySelector<HTMLElement>(
+      `.feedback-section.status-${status.toLowerCase()} .feedback-section-toggle`,
+    );
+  }
+
+  // The card for a comment, or its section heading when the section is
+  // collapsed, so focus follows a comment that moved.
+  function focusCard(id: string, status: FeedbackStatus) {
+    requestFocus(
+      () =>
+        document.getElementById(feedbackCommentId(id)) ??
+        sectionToggle(status) ??
+        asideRef.current,
+    );
   }
 
   async function updateCard(
@@ -715,10 +952,14 @@ export function FeedbackInspector({
   ) {
     setCardMessage({ id: item.id, text: "Saving…" });
     try {
-      await onUpdate(item.id, { expectedUpdatedAt: item.updatedAt, patch });
+      const updated = await onUpdate(item.id, {
+        expectedUpdatedAt: item.updatedAt,
+        patch,
+      });
       setCardMessage(null);
       setReopeningId(null);
       setReopenDraft("");
+      focusCard(updated.id, updated.status);
     } catch (error) {
       setCardMessage({
         id: item.id,
@@ -732,83 +973,36 @@ export function FeedbackInspector({
 
   function verifyActions(item: FeedbackRecord) {
     const pin = pinNumbers.get(item.id) ?? 0;
-    const reopening = reopeningId === item.id;
     return (
-      <div
-        aria-label={`Check the fix for pin ${pin}`}
-        className="feedback-verify"
-        role="group"
-      >
-        {reopening ? (
-          <label>
-            Why reopen?
-            <textarea
-              aria-label={`Why reopen pin ${pin}?`}
-              autoFocus
-              onChange={(event) => setReopenDraft(event.target.value)}
-              placeholder="What still needs to change?"
-              value={reopenDraft}
-            />
-          </label>
-        ) : null}
-        <div className="feedback-verify-buttons">
-          {reopening ? (
-            <>
-              <button
-                className="feedback-reopen-confirm"
-                onClick={() => {
-                  const note = reopenDraft.trim();
-                  void updateCard(item, {
-                    status: "OPEN",
-                    ...(note
-                      ? { message: { note, role: "reviewer" as const } }
-                      : {}),
-                  });
-                }}
-                type="button"
-              >
-                Reopen
-              </button>
-              <button
-                onClick={() => {
-                  setReopeningId(null);
-                  setCardMessage(null);
-                }}
-                type="button"
-              >
-                Cancel
-              </button>
-            </>
-          ) : (
-            <>
-              <button
-                aria-label={`Verify pin ${pin}`}
-                className="feedback-verify-button"
-                onClick={() => void updateCard(item, { status: "VERIFIED" })}
-                type="button"
-              >
-                Verify
-              </button>
-              <button
-                aria-label={`Reopen pin ${pin}`}
-                onClick={() => {
-                  setReopenDraft("");
-                  setCardMessage(null);
-                  setReopeningId(item.id);
-                }}
-                type="button"
-              >
-                Reopen
-              </button>
-            </>
-          )}
-        </div>
-        {cardMessage?.id === item.id ? (
-          <span aria-live="polite" className="feedback-verify-state">
-            {cardMessage.text}
-          </span>
-        ) : null}
-      </div>
+      <VerifyActions
+        message={cardMessage?.id === item.id ? cardMessage.text : undefined}
+        onCancelReopen={() => {
+          setReopeningId(null);
+          setCardMessage(null);
+          requestFocus(() =>
+            asideRef.current?.querySelector<HTMLElement>(
+              `[aria-label="Reopen pin ${pin}"]`,
+            ),
+          );
+        }}
+        onConfirmReopen={(note) =>
+          void updateCard(item, {
+            status: "OPEN",
+            message: { note, role: "reviewer" },
+          })
+        }
+        onReopenDraftChange={setReopenDraft}
+        onStartReopen={() => {
+          setReopenDraft("");
+          setCardMessage(null);
+          setReopeningId(item.id);
+        }}
+        onVerify={() => void updateCard(item, { status: "VERIFIED" })}
+        pin={pin}
+        reopenDraft={reopenDraft}
+        reopening={reopeningId === item.id}
+        status={item.status}
+      />
     );
   }
 
@@ -852,17 +1046,32 @@ export function FeedbackInspector({
       ? latestRecordRef.current
       : (feedback.find((item) => item.id === id) ?? null);
     if (!record || !onDelete) return;
-    if (isSelected && timerRef.current) {
-      clearTimeout(timerRef.current);
-      timerRef.current = null;
+    if (pendingSaveRef.current?.target.record?.id === record.id) {
+      cancelPendingSave();
     }
     setDeleteMessage("Deleting…");
+    // Focus moves to the next card (or the previous one) once this one goes.
+    const rows = [
+      ...(asideRef.current?.querySelectorAll<HTMLElement>(
+        ".feedback-list > li",
+      ) ?? []),
+    ];
+    const index = rows.findIndex((row) => row.contains(document.activeElement));
+    const neighbourId = [rows[index + 1], rows[index - 1]]
+      .map((row) => row?.querySelector<HTMLElement>(".feedback-comment")?.id)
+      .find(Boolean);
     try {
       await onDelete(record.id, record.updatedAt);
       writeRecovery(projectId, updateRecoveryKey(record.id), null);
       setConfirmingDeleteId(null);
       setDeleteMessage("");
       setSaveMessage("Deleted");
+      requestFocus(
+        () =>
+          (neighbourId ? document.getElementById(neighbourId) : null) ??
+          sectionToggle(record.status) ??
+          asideRef.current,
+      );
     } catch (error) {
       setDeleteMessage(
         error instanceof Error
@@ -900,14 +1109,11 @@ export function FeedbackInspector({
 
   function collapseEditor(item: FeedbackRecord) {
     // Save any pending note edit before the card collapses.
-    if (timerRef.current) {
-      clearTimeout(timerRef.current);
-      timerRef.current = null;
-      void saveEditor(revisionRef.current, editor);
-    }
+    void flushPendingSave();
     setConfirmingDeleteId(null);
     onSelectFeedback(null);
-    document.getElementById(feedbackPinId(item.id))?.focus();
+    // The pin may be hidden (Fixed and Verified are by default); the card is not.
+    focusCard(item.id, item.status);
   }
 
   function collapseButton(item: FeedbackRecord) {
@@ -964,7 +1170,19 @@ export function FeedbackInspector({
         >
           Confirm delete
         </button>
-        <button onClick={() => setConfirmingDeleteId(null)} type="button">
+        <button
+          // The safe choice takes focus, as in the approval confirm.
+          autoFocus
+          onClick={() => {
+            setConfirmingDeleteId(null);
+            requestFocus(() =>
+              asideRef.current?.querySelector<HTMLElement>(
+                `[aria-label="Delete comment ${pinNumbers.get(item.id) ?? 0}"]`,
+              ),
+            );
+          }}
+          type="button"
+        >
           Keep
         </button>
         {deleteMessage ? (
@@ -994,10 +1212,7 @@ export function FeedbackInspector({
           aria-pressed={item.id === selectedFeedbackId}
           className={`feedback-comment status-${item.status.toLowerCase()}`}
           id={feedbackCommentId(item.id)}
-          onClick={() => {
-            onSelectFeedback(item.id);
-            document.getElementById(feedbackPinId(item.id))?.focus();
-          }}
+          onClick={() => onSelectFeedback(item.id)}
           type="button"
         >
           <span
@@ -1019,7 +1234,9 @@ export function FeedbackInspector({
           ) : null}
           {latest ? <MessageNote message={latest} /> : null}
         </button>
-        {item.status === "RESOLVED" ? verifyActions(item) : null}
+        {item.status === "RESOLVED" || item.status === "VERIFIED"
+          ? verifyActions(item)
+          : null}
         {deleteButton(item)}
         {deleteConfirm(item)}
       </li>
@@ -1043,7 +1260,7 @@ export function FeedbackInspector({
             unverifiedFixes === 0 ||
             confirmingApproval
           ) {
-            setConfirmingApproval(false);
+            if (confirmingApproval) closeApprovalConfirm();
             approval.onToggle();
           } else {
             setConfirmingApproval(true);
@@ -1078,6 +1295,19 @@ export function FeedbackInspector({
     item.id === editingRecord?.id && editorSlot
       ? editorSlot
       : { status: item.status, priority: priorityTag(item.tags) };
+  // The open comment keeps its slot, but once its saved status or priority
+  // differs from the slot, say where it goes and leave it out of the counts.
+  const movingTo =
+    editingRecord &&
+    editorSlot &&
+    (editingRecord.status !== editorSlot.status ||
+      priorityTag(editingRecord.tags) !== editorSlot.priority)
+      ? [STATUS_LABELS[editingRecord.status], priorityTag(editingRecord.tags)]
+          .filter(Boolean)
+          .join(" · ")
+      : null;
+  const counted = (items: FeedbackRecord[]) =>
+    movingTo ? items.filter((item) => item.id !== editingRecord?.id) : items;
   const editorSection = (
     <section
       className="feedback-editor"
@@ -1103,6 +1333,11 @@ export function FeedbackInspector({
             : "New pin"}
         </span>
         {editingRecord ? collapseButton(editingRecord) : null}
+        {movingTo ? (
+          <span className="feedback-editor-moves">
+            Moves to {movingTo} when closed
+          </span>
+        ) : null}
       </header>
       <label>
         Feedback note
@@ -1218,6 +1453,15 @@ export function FeedbackInspector({
       <span aria-live="polite" className="feedback-save-state" role="status">
         {saveMessage}
       </span>
+      {retrySave ? (
+        <button
+          className="feedback-retry-button"
+          onClick={() => retrySave.run()}
+          type="button"
+        >
+          Retry
+        </button>
+      ) : null}
       {effectiveDraftPin ? (
         <button
           className="feedback-cancel-button"
@@ -1241,18 +1485,20 @@ export function FeedbackInspector({
   );
 
   return (
-    <aside className="feedback-panel" aria-label="Feedback inspector">
-      <header
-        aria-label="Feedback summary"
-        className="feedback-inspector-header"
-        role="banner"
-      >
+    <aside
+      aria-label="Feedback inspector"
+      className="feedback-panel"
+      id="feedback-panel"
+      ref={asideRef}
+      tabIndex={-1}
+    >
+      <div className="feedback-inspector-header">
         <strong>Feedback</strong>
         <span className="feedback-inspector-count">
           {visibleFeedback.length} comment
           {visibleFeedback.length === 1 ? "" : "s"}
         </span>
-      </header>
+      </div>
 
       {visibleFeedback.length === 0 ? (
         <p className="feedback-empty">
@@ -1296,17 +1542,19 @@ export function FeedbackInspector({
                 type="button"
               >
                 <span>{section.label}</span>
-                <span className="feedback-count">{items.length}</span>
+                <span className="feedback-count">{counted(items).length}</span>
               </button>
               {onTogglePinStatus ? (
                 <button
-                  aria-label={`${pinsHidden ? "Show" : "Hide"} ${section.label} pins`}
-                  aria-pressed={pinsHidden}
+                  // A fixed name with a pressed state: "Show Fixed pins,
+                  // pressed" means they are shown.
+                  aria-label={`Show ${section.label} pins`}
+                  aria-pressed={!pinsHidden}
                   className="feedback-section-pins"
                   onClick={() => onTogglePinStatus(section.status)}
                   type="button"
                 >
-                  {pinsHidden ? "Show pins" : "Hide pins"}
+                  Show pins
                 </button>
               ) : null}
             </div>
@@ -1325,12 +1573,14 @@ export function FeedbackInspector({
                       key={priority}
                       role="group"
                     >
-                      <h4
+                      <h3
                         className={`feedback-group-title tag-${priority.toLowerCase()}`}
                       >
                         {priority}
-                        <span className="feedback-count">{group.length}</span>
-                      </h4>
+                        <span className="feedback-count">
+                          {counted(group).length}
+                        </span>
+                      </h3>
                       <ol className="feedback-list">
                         {[
                           ...group.map(renderItem),
@@ -1355,60 +1605,17 @@ export function FeedbackInspector({
       })}
 
       {approval ? (
-        <div className="screen-approval">
-          {confirmingApproval && !approval.approved && unverifiedFixes > 0 ? (
-            <div
-              aria-label="Confirm approval"
-              className="screen-approval-confirm"
-              role="group"
-            >
-              <span>
-                {unverifiedFixes} fix{unverifiedFixes === 1 ? "" : "es"} not
-                verified. Approve anyway?
-              </span>
-              <button
-                className="screen-approval-anyway"
-                onClick={() => {
-                  setConfirmingApproval(false);
-                  approval.onToggle();
-                }}
-                type="button"
-              >
-                Approve
-              </button>
-              <button
-                autoFocus
-                onClick={() => setConfirmingApproval(false)}
-                type="button"
-              >
-                Cancel
-              </button>
-            </div>
-          ) : (
-            <button
-              aria-pressed={approval.approved}
-              className="screen-approval-toggle"
-              // Wait for feedback too, so unverified fixes are counted.
-              disabled={!approval.ready || !ready}
-              onClick={() => {
-                if (!approval.approved && unverifiedFixes > 0) {
-                  setConfirmingApproval(true);
-                } else {
-                  approval.onToggle();
-                }
-              }}
-              aria-keyshortcuts="Meta+A Control+A"
-              title={`${approval.approved ? "Click to unapprove" : "Approve screen"} (${shortcutLabel})`}
-              type="button"
-            >
-              <span aria-hidden="true" className="screen-approval-box">
-                {approval.approved ? "✓" : ""}
-              </span>
-              {approval.approved ? "Screen approved" : "Approve screen"}
-              <kbd aria-hidden="true">{shortcutLabel}</kbd>
-            </button>
-          )}
-        </div>
+        <ApprovalBar
+          approved={approval.approved}
+          confirming={confirmingApproval}
+          // Wait for feedback too, so unverified fixes are counted.
+          disabled={!approval.ready || !ready}
+          onAskConfirm={() => setConfirmingApproval(true)}
+          onCloseConfirm={closeApprovalConfirm}
+          onToggle={approval.onToggle}
+          toggleRef={approvalToggleRef}
+          unverifiedFixes={unverifiedFixes}
+        />
       ) : null}
     </aside>
   );

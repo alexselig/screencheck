@@ -10,6 +10,8 @@ import { parseScreens, type ReviewScreen } from "../shared/manifest";
 import { formatZodError } from "../shared/zod-format";
 import type { PublicProject, ProjectList } from "../shared/projects";
 
+// Kept only so feedback written to it before any project was registered
+// stays reachable; it is no longer listed on a fresh install.
 export const EXAMPLE_PROJECT: PublicProject = {
   id: "example",
   name: "Example project",
@@ -19,7 +21,7 @@ export const EXAMPLE_PROJECT: PublicProject = {
       id: "landing",
       ordinal: 1,
       title: "Public landing",
-      description: "Public sign-in landing page before authentication.",
+      description: "First screen a visitor sees.",
       group: "Access",
       viewport: { width: 1440, height: 1000 },
       hasCapture: false,
@@ -28,8 +30,7 @@ export const EXAMPLE_PROJECT: PublicProject = {
       id: "bootstrap",
       ordinal: 2,
       title: "Session bootstrap",
-      description:
-        "Secure-session handoff while Microsoft identity is verified.",
+      description: "Loading state shown while a session starts.",
       group: "Access",
       viewport: { width: 1440, height: 1000 },
       hasCapture: false,
@@ -38,8 +39,7 @@ export const EXAMPLE_PROJECT: PublicProject = {
       id: "dashboard",
       ordinal: 3,
       title: "Populated dashboard",
-      description:
-        "Portfolio dashboard populated with skills and workflow states.",
+      description: "Main view with sample data.",
       group: "Portfolio",
       viewport: { width: 1440, height: 1000 },
       hasCapture: false,
@@ -51,7 +51,14 @@ const registrationSchema = z.object({
   id: z.string().regex(/^[a-z0-9][a-z0-9-]{0,63}$/),
   name: z.string().min(1),
   versions: z
-    .array(z.object({ id: z.string().min(1), captureRoot: z.string().min(1) }))
+    .array(
+      z.object({
+        id: z.string().min(1),
+        captureRoot: z.string().min(1),
+        revision: z.string().min(1).optional(),
+        label: z.string().min(1).optional(),
+      }),
+    )
     .min(1),
   screens: z.unknown(),
 });
@@ -59,7 +66,12 @@ const registrationSchema = z.object({
 type Registration = {
   id: string;
   name: string;
-  versions: { id: string; captureRoot: string }[];
+  versions: {
+    id: string;
+    captureRoot: string;
+    revision?: string;
+    label?: string;
+  }[];
   screens: ReviewScreen[];
 };
 
@@ -221,6 +233,17 @@ export function createProjectCatalog({
           id: registration.id,
           name: registration.name,
           versions: registration.versions.map((version) => version.id),
+          ...(registration.versions.some((item) => item.revision || item.label)
+            ? {
+                versionDetails: registration.versions.map(
+                  ({ id, revision, label }) => ({
+                    id,
+                    ...(revision ? { revision } : {}),
+                    ...(label ? { label } : {}),
+                  }),
+                ),
+              }
+            : {}),
           screens: await Promise.all(
             registration.screens.map(async (screen, index) => {
               const located = locateCapture(latest, screen);
@@ -257,10 +280,12 @@ export function createProjectCatalog({
       }
       // The placeholder project stays available while it holds feedback, so
       // notes written before any project was registered are never hidden.
-      if (projects.length === 0 || (await hasFeedback(EXAMPLE_PROJECT.id))) {
-        projects.push(EXAMPLE_PROJECT);
-      }
-      return { projects, problems };
+      if (await hasFeedback(EXAMPLE_PROJECT.id)) projects.push(EXAMPLE_PROJECT);
+      // With nothing to show, tell the browser where registrations go so the
+      // empty state can say so. The server only binds to loopback.
+      return projects.length === 0
+        ? { projects, problems, projectsRoot: path.resolve(projectsRoot) }
+        : { projects, problems };
     },
     // Checks that a project (and optionally a version and screen) is
     // registered. Returns null when it is, or a message listing valid ids.

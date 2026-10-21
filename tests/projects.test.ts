@@ -5,6 +5,7 @@ import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
 import { startServer } from "../src/server/index";
+import { createProjectCatalog } from "../src/server/projects";
 
 let root: string;
 let server: Awaited<ReturnType<typeof startServer>>;
@@ -40,10 +41,49 @@ const screenBase = {
 };
 
 describe("project catalog", () => {
-  it("falls back to the example project when nothing is registered", async () => {
+  it("lists nothing and names the projects folder when nothing is registered", async () => {
     const body = await (await fetch(`${server.origin}/api/projects`)).json();
-    expect(body.projects.map((item: { id: string }) => item.id)).toEqual([
-      "example",
+    expect(body).toEqual({
+      projects: [],
+      problems: [],
+      projectsRoot: join(root, "projects"),
+    });
+  });
+
+  it("keeps the example project listed while it holds feedback", async () => {
+    const catalog = createProjectCatalog({
+      projectsRoot: join(root, "projects"),
+      hasFeedback: async (id) => id === "example",
+    });
+    const list = await catalog.list();
+    expect(list.projects.map((item) => item.id)).toEqual(["example"]);
+    expect(list.projectsRoot).toBeUndefined();
+    expect(JSON.stringify(list)).not.toMatch(/Microsoft|skills and workflow/);
+  });
+
+  it("passes a version's explicit revision and label to the browser", async () => {
+    await register("demo.json", {
+      id: "demo",
+      name: "Demo",
+      versions: [
+        {
+          id: "r1-wide",
+          revision: "r1",
+          label: "1440",
+          captureRoot: join(root, "captures", "v1"),
+        },
+        { id: "r1-narrow", revision: "r1", label: "390", captureRoot: root },
+      ],
+      screens: [{ ...screenBase, id: "home" }],
+    });
+    const body = await (await fetch(`${server.origin}/api/projects`)).json();
+    const demo = body.projects.find(
+      (item: { id: string }) => item.id === "demo",
+    );
+    expect(demo.versions).toEqual(["r1-wide", "r1-narrow"]);
+    expect(demo.versionDetails).toEqual([
+      { id: "r1-wide", revision: "r1", label: "1440" },
+      { id: "r1-narrow", revision: "r1", label: "390" },
     ]);
   });
 
@@ -97,8 +137,6 @@ describe("project catalog", () => {
     await writeFile(join(root, "projects", "broken.json"), "{not json");
     const body = await (await fetch(`${server.origin}/api/projects`)).json();
     expect(body.problems[0]).toMatch(/^broken\.json:/);
-    expect(body.projects.map((item: { id: string }) => item.id)).toEqual([
-      "example",
-    ]);
+    expect(body.projects).toEqual([]);
   });
 });

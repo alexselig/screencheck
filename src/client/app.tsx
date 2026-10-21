@@ -14,9 +14,18 @@ import {
   pinDotClassName,
 } from "./components/feedback-inspector";
 import { ExportDialog } from "./components/export-dialog";
-import { FullscreenReview } from "./components/fullscreen-review";
+import {
+  FullscreenReview,
+  type FullscreenDrawer,
+} from "./components/fullscreen-review";
 import { ScreenCaption } from "./components/screen-caption";
-import { ScreenRail, type RailMode } from "./components/screen-rail";
+import {
+  ScreenRail,
+  readHideApproved,
+  visibleRailScreens,
+  writeHideApproved,
+  type RailMode,
+} from "./components/screen-rail";
 import { isApproved, type ScreenApproval } from "../shared/approvals";
 import { captionFor, type ScreenCaption as Caption } from "../shared/captions";
 import { createPinNumbers } from "../shared/export";
@@ -24,76 +33,29 @@ import {
   FEEDBACK_STATUSES,
   isOpenFeedback,
   normalizePinCoordinates,
-  type CreateFeedbackInput,
   type FeedbackRecord,
   type FeedbackStatus,
-  type UpdateFeedbackInput,
 } from "../shared/feedback";
 import {
   captureUrl,
+  type ProjectList,
   type PublicProject,
   type PublicScreen,
 } from "../shared/projects";
 import {
-  FeedbackApiError,
   fetchApprovals,
   fetchCaptions,
   fetchFeedback,
   fetchProjects,
   migrateLegacyFeedback,
-  patchFeedback,
-  postFeedback,
   putApproval,
   putCaption,
-  removeFeedback,
 } from "./feedback-api";
-
-// Shown only when the server cannot list projects, so feedback still works.
-const FALLBACK_PROJECT: PublicProject = {
-  id: "example",
-  name: "Example project",
-  versions: ["live"],
-  screens: [
-    {
-      id: "landing",
-      ordinal: 1,
-      title: "Public landing",
-      group: "Access",
-      viewport: { width: 1440, height: 1000 },
-      hasCapture: false,
-    },
-    {
-      id: "bootstrap",
-      ordinal: 2,
-      title: "Session bootstrap",
-      group: "Access",
-      viewport: { width: 1440, height: 1000 },
-      hasCapture: false,
-    },
-    {
-      id: "dashboard",
-      ordinal: 3,
-      title: "Populated dashboard",
-      group: "Portfolio",
-      viewport: { width: 1440, height: 1000 },
-      hasCapture: false,
-    },
-  ],
-};
+import { SHORTCUTS, useShortcuts } from "./shortcuts";
+import { useFeedbackStore } from "./use-feedback-store";
+import { versionModel } from "./versions";
 
 type Place = { project?: string; version?: string; screen?: string };
-
-// A version id is "<revision>-<resolution>", e.g. "local-abc1234-r4-desktop-1440".
-// Versions without a recognisable resolution suffix are their own revision.
-const RESOLUTION_SUFFIX = /(-[a-z]+)?-\d+$/;
-
-function revisionOf(version: string) {
-  return version.replace(RESOLUTION_SUFFIX, "");
-}
-
-function resolutionOf(version: string) {
-  return RESOLUTION_SUFFIX.exec(version)?.[0].slice(1) ?? version;
-}
 
 function readPlace(): Place {
   const params = new URLSearchParams(window.location.hash.slice(1));
@@ -104,17 +66,27 @@ function readPlace(): Place {
   };
 }
 
-function isTyping(target: EventTarget | null) {
-  return (
-    target instanceof HTMLElement &&
-    (target.isContentEditable ||
-      ["INPUT", "TEXTAREA", "SELECT"].includes(target.tagName))
-  );
+type NoticeKind =
+  | "migration"
+  | "approvals-load"
+  | "captions-load"
+  | "caption-save"
+  | "approval-save";
+type Notice = { kind: NoticeKind; text: string };
+const SAVE_NOTICES = new Set<NoticeKind>(["caption-save", "approval-save"]);
+
+// A comment about the whole screen sits at its top left.
+const WHOLE_SCREEN_PIN = { x: 0.02, y: 0.02 };
+
+function clampUnit(value: number) {
+  return Math.min(1, Math.max(0, Math.round(value * 1000) / 1000));
 }
 
-const isMac =
-  typeof navigator !== "undefined" &&
-  /Mac|iPhone|iPad/.test(navigator.platform);
+const CLOSED_DRAWER: FullscreenDrawer = { open: false, pinned: false };
+
+function revisionName(revision: string) {
+  return revision.replace(/^local-/, "");
+}
 
 // Keeps a side column in view while the page scrolls. A column shorter than
 // the window sticks to the top; a taller one scrolls with the page until its
@@ -140,9 +112,7 @@ function useFollowPage(ref: RefObject<HTMLElement | null>, gap = 0) {
 }
 
 type LoadState =
-  | { kind: "loading" }
-  | { kind: "ready" }
-  | { kind: "error"; message: string };
+  { kind: "loading" } | { kind: "ready" } | { kind: "error"; message: string };
 
 const HIDDEN_PINS_KEY = "screencheck:hidden-pin-statuses";
 
@@ -198,33 +168,150 @@ function writeHiddenPinStatuses(hidden: FeedbackStatus[]) {
 }
 
 export function App() {
+  const [list, setList] = useState<ProjectList | null>(null);
+  useEffect(() => {
+    let cancelled = false;
+    fetchProjects()
+      .then((loaded) => {
+        if (!cancelled) setList(loaded);
+      })
+      .catch((error: unknown) => {
+        if (cancelled) return;
+        setList({
+          projects: [],
+          problems: [
+            `Projects could not load (${error instanceof Error ? error.message : "unknown error"}).`,
+          ],
+        });
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+  if (!list) {
+    return (
+      <main className="workbench-shell">
+        <p className="workbench-banner" role="status">
+          Loading projects…
+        </p>
+      </main>
+    );
+  }
+  if (list.projects.length === 0) return <NoProjects list={list} />;
+  return <Workbench projects={list.projects} projectProblems={list.problems} />;
+}
+
+const MINIMAL_REGISTRATION = `{
+  "id": "my-app",
+  "name": "My app",
+  "versions": [{ "id": "build-1", "captureRoot": "/path/to/captures" }],
+  "screens": [
+    {
+      "id": "home",
+      "ordinal": 1,
+      "title": "Home",
+      "group": "Main",
+      "capturePath": "home.png",
+      "viewport": { "width": 1440, "height": 1000 }
+    }
+  ]
+}`;
+
+// A fresh install: say where projects go and how to add one, rather than
+// showing a placeholder that looks like a broken demo.
+function NoProjects({ list }: { list: ProjectList }) {
+  const [copied, setCopied] = useState(false);
+  const folder = list.projectsRoot ?? "~/.screencheck/projects";
+  return (
+    <main className="workbench-shell">
+      <header className="workbench-header">
+        <div>
+          <span className="eyebrow">Design review</span>
+          <h1>ScreenCheck</h1>
+        </div>
+      </header>
+      {list.problems.map((problem) => (
+        <p
+          className="workbench-banner workbench-banner-error"
+          key={problem}
+          role="alert"
+        >
+          {problem}
+        </p>
+      ))}
+      <section aria-labelledby="no-projects-title" className="no-projects">
+        <h2 id="no-projects-title">No projects yet</h2>
+        <p>
+          Add one JSON file per project to <code>{folder}</code>, then reload.
+          Each version points at the folder its captures already live in.
+        </p>
+        <pre aria-label="Minimal project file">{MINIMAL_REGISTRATION}</pre>
+        <button
+          onClick={() => {
+            void navigator.clipboard
+              ?.writeText(MINIMAL_REGISTRATION)
+              .then(() => setCopied(true))
+              .catch(() => undefined);
+          }}
+          type="button"
+        >
+          {copied ? "Copied" : "Copy example"}
+        </button>
+        <p>
+          To look around first, run <code>npm run playground</code> for a seeded
+          demo.
+        </p>
+      </section>
+    </main>
+  );
+}
+
+function Workbench({
+  projects,
+  projectProblems,
+}: {
+  projects: PublicProject[];
+  projectProblems: string[];
+}) {
   const [railMode, setRailMode] = useState<RailMode>("wide");
   const initialPlace = useMemo(readPlace, []);
-  const [projects, setProjects] = useState<PublicProject[] | null>(null);
-  const [projectProblems, setProjectProblems] = useState<string[]>([]);
   const [projectId, setProjectId] = useState(initialPlace.project ?? "");
-  // A reload opens the newest capture; the version in the URL only follows
-  // in-page navigation (hashchange), not a fresh page load.
-  const [versionChoice, setVersionChoice] = useState("");
+  // A shared link or reload opens the version in the URL; when a newer
+  // build exists the header offers to switch rather than switching silently.
+  const [versionChoice, setVersionChoice] = useState(
+    initialPlace.version ?? "",
+  );
+  const [newerDismissed, setNewerDismissed] = useState(false);
   const [selectedChoice, setSelectedId] = useState(initialPlace.screen ?? "");
   // "all" lists every resolution in the rail; a version narrows it to one.
   const [resolutionChoice, setResolutionChoice] = useState("all");
   const project =
-    projects?.find((item) => item.id === projectId) ??
-    projects?.[0] ??
-    FALLBACK_PROJECT;
+    projects.find((item) => item.id === projectId) ?? projects[0]!;
   const screens: PublicScreen[] = project.screens;
   const [revisionChoice, setRevisionChoice] = useState("");
-  const revisions = useMemo(
-    () => [...new Set(project.versions.map(revisionOf))],
-    [project.versions],
+  const versions = useMemo(
+    () => versionModel(project),
+    [project.versions, project.versionDetails],
   );
+  const { revisionOf, labelOf, revisions } = versions;
+  const versionsRef = useRef(versions);
+  versionsRef.current = versions;
+  const newestRevision = revisions.at(-1)!;
   const revision = revisions.includes(revisionChoice)
     ? revisionChoice
-    : revisions.at(-1)!;
+    : !revisionChoice && project.versions.includes(versionChoice)
+      ? revisionOf(versionChoice)
+      : newestRevision;
+  const newerBuild =
+    !newerDismissed &&
+    (!initialPlace.project || project.id === initialPlace.project) &&
+    initialPlace.version !== undefined &&
+    project.versions.includes(initialPlace.version) &&
+    revision === revisionOf(initialPlace.version) &&
+    revision !== newestRevision;
   const revisionVersions = useMemo(
-    () => project.versions.filter((item) => revisionOf(item) === revision),
-    [project.versions, revision],
+    () => versions.versionsOf(revision),
+    [versions, revision],
   );
   const resolution = revisionVersions.includes(resolutionChoice)
     ? resolutionChoice
@@ -239,9 +326,13 @@ export function App() {
     ? selectedChoice
     : screens[0]!.id;
   const [fullscreen, setFullscreen] = useState(false);
+  const [drawer, setDrawer] = useState<FullscreenDrawer>(CLOSED_DRAWER);
   const [feedbackRecords, setFeedbackRecords] = useState<FeedbackRecord[]>([]);
   const [loadState, setLoadState] = useState<LoadState>({ kind: "loading" });
-  const [notice, setNotice] = useState<string | null>(null);
+  const [notice, setNotice] = useState<Notice | null>(null);
+  const clearNotice = useCallback((kind: NoticeKind) => {
+    setNotice((current) => (current?.kind === kind ? null : current));
+  }, []);
   const [loadAttempt, setLoadAttempt] = useState(0);
   const [visibleFeedback, setVisibleFeedback] =
     useState<FeedbackRecord[]>(feedbackRecords);
@@ -255,6 +346,9 @@ export function App() {
   const [hiddenPinStatuses, setHiddenPinStatuses] = useState<FeedbackStatus[]>(
     readHiddenPinStatuses,
   );
+  // Keyboard pin placement: a crosshair the arrow keys move over the frame.
+  const [crosshair, setCrosshair] = useState({ x: 0.5, y: 0.5 });
+  const frameRef = useRef<HTMLDivElement>(null);
   const [draftPin, setDraftPin] = useState<{ x: number; y: number } | null>(
     null,
   );
@@ -262,7 +356,6 @@ export function App() {
     null,
   );
   const selected = screens.find((item) => item.id === selectedId)!;
-  const selectedIndex = screens.indexOf(selected);
   const [captureFailed, setCaptureFailed] = useState(false);
   // A full-page capture can be taller than the registered viewport, so the
   // frame takes the loaded image's own proportions rather than stretching it.
@@ -276,29 +369,6 @@ export function App() {
   useFollowPage(panelRef, 64);
 
   useEffect(() => {
-    let cancelled = false;
-    fetchProjects()
-      .then((list) => {
-        if (cancelled) return;
-        setProjects(
-          list.projects.length > 0 ? list.projects : [FALLBACK_PROJECT],
-        );
-        setProjectProblems(list.problems);
-      })
-      .catch((error: unknown) => {
-        if (cancelled) return;
-        setProjects([FALLBACK_PROJECT]);
-        setProjectProblems([
-          `Projects could not load (${error instanceof Error ? error.message : "unknown error"}); showing the example project.`,
-        ]);
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, []);
-
-  useEffect(() => {
-    if (!projects) return;
     const params = new URLSearchParams({
       project: project.id,
       version,
@@ -316,7 +386,7 @@ export function App() {
       if (place.project) setProjectId(place.project);
       if (place.version) {
         setVersionChoice(place.version);
-        setRevisionChoice(revisionOf(place.version));
+        setRevisionChoice(versionsRef.current.revisionOf(place.version));
       }
       if (place.screen) setSelectedId(place.screen);
     };
@@ -339,7 +409,6 @@ export function App() {
   }, [feedbackRecords, version]);
 
   useEffect(() => {
-    if (!projects) return;
     let cancelled = false;
     setLoadState({ kind: "loading" });
     (async () => {
@@ -348,7 +417,7 @@ export function App() {
         const records = await fetchFeedback(project.id);
         if (cancelled) return;
         setFeedbackRecords(records);
-        setNotice(warning);
+        setNotice(warning ? { kind: "migration", text: warning } : null);
         setLoadState({ kind: "ready" });
       } catch (error) {
         if (cancelled) return;
@@ -366,7 +435,6 @@ export function App() {
   }, [loadAttempt, projects, project.id]);
 
   useEffect(() => {
-    if (!projects) return;
     let cancelled = false;
     setApprovals(null);
     fetchApprovals(project.id).then(
@@ -375,11 +443,12 @@ export function App() {
       },
       (error: unknown) => {
         if (cancelled) return;
-        setNotice(
-          `Screen approvals could not load: ${
+        setNotice({
+          kind: "approvals-load",
+          text: `Screen approvals could not load: ${
             error instanceof Error ? error.message : "unknown error"
           }`,
-        );
+        });
       },
     );
     return () => {
@@ -388,7 +457,6 @@ export function App() {
   }, [loadAttempt, projects, project.id]);
 
   useEffect(() => {
-    if (!projects) return;
     let cancelled = false;
     setCaptions(null);
     fetchCaptions(project.id).then(
@@ -397,11 +465,12 @@ export function App() {
       },
       (error: unknown) => {
         if (cancelled) return;
-        setNotice(
-          `Screen descriptions could not load: ${
+        setNotice({
+          kind: "captions-load",
+          text: `Screen descriptions could not load: ${
             error instanceof Error ? error.message : "unknown error"
           }`,
-        );
+        });
       },
     );
     return () => {
@@ -410,106 +479,29 @@ export function App() {
   }, [loadAttempt, projects, project.id]);
 
   useEffect(() => {
-    if (!addingFeedback || draftPin) return;
-    const cancel = (event: KeyboardEvent) => {
-      if (event.key === "Escape") setAddingFeedback(false);
-    };
-    window.addEventListener("keydown", cancel);
-    return () => window.removeEventListener("keydown", cancel);
-  }, [addingFeedback, draftPin]);
+    if (!fullscreen) setDrawer(CLOSED_DRAWER);
+  }, [fullscreen]);
 
-  const upsertRecord = useCallback((record: FeedbackRecord) => {
-    setFeedbackRecords((current) =>
-      current.some((item) => item.id === record.id)
-        ? current.map((item) => (item.id === record.id ? record : item))
-        : [...current, record],
-    );
+  const placingPin = addingFeedback && !draftPin;
+  useEffect(() => {
+    if (!placingPin) return;
+    setCrosshair({ x: 0.5, y: 0.5 });
+    frameRef.current?.focus({ preventScroll: true });
+  }, [placingPin]);
+
+  const placePin = useCallback((pin: { x: number; y: number }) => {
+    setDraftPin(pin);
+    setSelectedFeedbackId(null);
   }, []);
 
-  // Writes run one at a time. Each records the revision it replaced, so a
-  // write queued behind this tab's own save is rebased onto that save instead
-  // of failing; a change made elsewhere still surfaces as a 409 conflict.
-  const mutationChainRef = useRef<Promise<unknown>>(Promise.resolve());
-  const ownRevisionsRef = useRef(new Map<string, string>());
-
-  const enqueue = useCallback(<T,>(operation: () => Promise<T>) => {
-    const run = mutationChainRef.current.catch(() => undefined).then(operation);
-    mutationChainRef.current = run;
-    return run;
+  const clearSelectionOnDelete = useCallback((id: string) => {
+    setSelectedFeedbackId((current) => (current === id ? null : current));
   }, []);
-
-  const latestOwnRevision = useCallback((id: string, expected: string) => {
-    let revision = expected;
-    while (ownRevisionsRef.current.has(`${id}@${revision}`)) {
-      revision = ownRevisionsRef.current.get(`${id}@${revision}`)!;
-    }
-    return revision;
-  }, []);
-
-  const withConflictRefresh = useCallback(
-    async <T,>(operation: () => Promise<T>) => {
-      try {
-        return await operation();
-      } catch (error) {
-        if (error instanceof FeedbackApiError && error.current) {
-          upsertRecord(error.current);
-        }
-        throw error;
-      }
-    },
-    [upsertRecord],
-  );
-
-  const createFeedback = useCallback(
-    (input: CreateFeedbackInput) =>
-      enqueue(async () => {
-        const created = await postFeedback(project.id, input);
-        upsertRecord(created);
-        return created;
-      }),
-    [enqueue, project.id, upsertRecord],
-  );
-
-  const updateFeedback = useCallback(
-    (id: string, input: UpdateFeedbackInput) =>
-      enqueue(() =>
-        withConflictRefresh(async () => {
-          const expectedUpdatedAt = latestOwnRevision(
-            id,
-            input.expectedUpdatedAt,
-          );
-          const updated = await patchFeedback(project.id, id, {
-            ...input,
-            expectedUpdatedAt,
-          });
-          ownRevisionsRef.current.set(
-            `${id}@${expectedUpdatedAt}`,
-            updated.updatedAt,
-          );
-          upsertRecord(updated);
-          return updated;
-        }),
-      ),
-    [enqueue, latestOwnRevision, project.id, upsertRecord, withConflictRefresh],
-  );
-
-  const deleteFeedback = useCallback(
-    (id: string, expectedUpdatedAt: string) =>
-      enqueue(() =>
-        withConflictRefresh(async () => {
-          await removeFeedback(
-            project.id,
-            id,
-            latestOwnRevision(id, expectedUpdatedAt),
-          );
-          setFeedbackRecords((current) =>
-            current.filter((item) => item.id !== id),
-          );
-          setSelectedFeedbackId((current) => (current === id ? null : current));
-        }),
-      ),
-    [enqueue, latestOwnRevision, project.id, withConflictRefresh],
-  );
+  const { createFeedback, updateFeedback, deleteFeedback } = useFeedbackStore({
+    projectId: project.id,
+    setRecords: setFeedbackRecords,
+    onDeleted: clearSelectionOnDelete,
+  });
 
   const togglePinStatus = useCallback((status: FeedbackStatus) => {
     setHiddenPinStatuses((current) => {
@@ -534,29 +526,37 @@ export function App() {
       ),
     [approvals, version],
   );
-  // With several versions (viewport widths), the rail lists every screen at
-  // every version so review is one scroll rather than a dropdown per screen.
+  // When a revision has several versions (one per viewport), the rail lists
+  // every screen at each of them so review is one scroll rather than a
+  // dropdown per screen.
   const flatItems = useMemo(() => {
-    const label = (name: string) => /-(\d+)$/.exec(name)?.[1] ?? name;
-    const width = (name: string) => Number(/-(\d+)$/.exec(name)?.[1] ?? NaN);
-    const versions = [...revisionVersions]
-      .filter((item) => resolution === "all" || item === resolution)
-      .sort((a, b) => (width(a) || 0) - (width(b) || 0));
+    const shown = revisionVersions.filter(
+      (item) => resolution === "all" || item === resolution,
+    );
     let ordinal = 0;
     return screens.flatMap((screen) =>
-      versions.map((item) => ({
+      shown.map((item) => ({
         ...screen,
         id: `${screen.id}@@${item}`,
         screenId: screen.id,
         version: item,
+        versionLabel: labelOf(item),
         ordinal: ++ordinal,
-        title: `${screen.title} · ${label(item)}`,
+        title: `${screen.title} · ${labelOf(item)}`,
       })),
     );
-  }, [revisionVersions, resolution, screens]);
+  }, [revisionVersions, resolution, screens, labelOf]);
   const flatMode = revisionVersions.length > 1;
-  const flatIndex = flatItems.findIndex(
-    (item) => item.screenId === selectedId && item.version === version,
+  // The versions the rail lists, which Export offers to include.
+  const exportVersions = useMemo(
+    () =>
+      (flatMode
+        ? revisionVersions.filter(
+            (item) => resolution === "all" || item === resolution,
+          )
+        : [version]
+      ).map((id) => ({ id, label: labelOf(id) })),
+    [flatMode, revisionVersions, resolution, version, labelOf],
   );
   const flatOpenCounts = useMemo(() => {
     const counts = new Map<string, number>();
@@ -577,6 +577,34 @@ export function App() {
       ),
     [approvals],
   );
+  const [hideApproved, setHideApproved] = useState(readHideApproved);
+  const changeHideApproved = useCallback((hide: boolean) => {
+    setHideApproved(hide);
+    writeHideApproved(hide);
+  }, []);
+  const railSelectedId = flatMode ? `${selectedId}@@${version}` : selectedId;
+  const railApprovedIds = flatMode ? flatApprovedIds : approvedIds;
+  // The rows the rail shows; Prev/Next and ← / → walk the same list.
+  const railItems = useMemo(
+    () =>
+      visibleRailScreens<{ id: string; screenId: string; version?: string }>(
+        flatMode
+          ? flatItems
+          : screens.map((item) => ({ id: item.id, screenId: item.id })),
+        railSelectedId,
+        railApprovedIds,
+        hideApproved,
+      ),
+    [
+      flatMode,
+      flatItems,
+      screens,
+      railSelectedId,
+      railApprovedIds,
+      hideApproved,
+    ],
+  );
+  const railIndex = railItems.findIndex((item) => item.id === railSelectedId);
   const screenApproved = approvals
     ? isApproved(approvals, version, selectedId)
     : false;
@@ -608,18 +636,22 @@ export function App() {
           screenId: selectedId,
           text,
         });
-        if (request === captionRequest.current) setCaptions(saved);
+        if (request === captionRequest.current) {
+          setCaptions(saved);
+          clearNotice("caption-save");
+        }
       } catch (error) {
         if (request !== captionRequest.current) return;
         setCaptions(previous);
-        setNotice(
-          `Description was not saved: ${
+        setNotice({
+          kind: "caption-save",
+          text: `Description was not saved: ${
             error instanceof Error ? error.message : "unknown error"
           }`,
-        );
+        });
       }
     },
-    [captions, project.id, selectedId, version],
+    [captions, clearNotice, project.id, selectedId, version],
   );
 
   const toggleApproval = useCallback(async () => {
@@ -648,17 +680,28 @@ export function App() {
         approved,
       });
       // A quick re-toggle supersedes this response.
-      if (request === approvalRequest.current) setApprovals(saved);
+      if (request === approvalRequest.current) {
+        setApprovals(saved);
+        clearNotice("approval-save");
+      }
     } catch (error) {
       if (request !== approvalRequest.current) return;
       setApprovals(previous);
-      setNotice(
-        `Approval was not saved: ${
+      setNotice({
+        kind: "approval-save",
+        text: `Approval was not saved: ${
           error instanceof Error ? error.message : "unknown error"
         }`,
-      );
+      });
     }
-  }, [approvals, project.id, selectedId, version]);
+  }, [approvals, clearNotice, project.id, selectedId, version]);
+
+  // A failed save is about the screen it happened on; moving on retires it.
+  useEffect(() => {
+    setNotice((current) =>
+      current && SAVE_NOTICES.has(current.kind) ? null : current,
+    );
+  }, [project.id, selectedId, version]);
 
   const selectScreen = useCallback((id: string) => {
     setSelectedId(id);
@@ -674,20 +717,20 @@ export function App() {
     }
   }, []);
 
+  const selectRailItem = useCallback(
+    (item: { screenId: string; version?: string }) => {
+      if (item.version) setVersionChoice(item.version);
+      selectScreen(item.screenId);
+    },
+    [selectScreen],
+  );
+
   const stepScreen = useCallback(
     (delta: number) => {
-      if (flatMode) {
-        const next = flatItems[flatIndex + delta];
-        if (next) {
-          setVersionChoice(next.version);
-          selectScreen(next.screenId);
-        }
-        return;
-      }
-      const next = screens[selectedIndex + delta];
-      if (next) selectScreen(next.id);
+      const next = railIndex < 0 ? undefined : railItems[railIndex + delta];
+      if (next) selectRailItem(next);
     },
-    [flatMode, flatItems, flatIndex, screens, selectedIndex, selectScreen],
+    [railIndex, railItems, selectRailItem],
   );
 
   const startPin = useCallback(() => {
@@ -710,63 +753,55 @@ export function App() {
   }, []);
 
   // ⌘F / Ctrl+F adds feedback instead of opening the browser's find bar;
-  // ← and → (or [ and ]) step through screens when not typing.
-  useEffect(() => {
-    const onKey = (event: KeyboardEvent) => {
-      if ((event.target as Element | null)?.closest?.('[role="dialog"]'))
-        return;
-      if (
-        event.key.toLowerCase() === "f" &&
-        (event.metaKey || event.ctrlKey) &&
-        !event.shiftKey &&
-        !event.altKey
-      ) {
-        event.preventDefault();
-        startPin();
-        return;
-      }
-      if (
-        event.metaKey ||
-        event.ctrlKey ||
-        event.altKey ||
-        isTyping(event.target)
-      )
-        return;
-      if (event.key === "ArrowRight" || event.key === "]") {
-        event.preventDefault();
-        stepScreen(1);
-      } else if (event.key === "ArrowLeft" || event.key === "[") {
-        event.preventDefault();
-        stepScreen(-1);
-      }
-    };
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, [startPin, stepScreen]);
+  // ← and → (or [ and ]) step through screens; ⌘A approves (the inspector
+  // fills approveShortcutRef). Escape undoes only the innermost thing: the
+  // export dialog owns it, then pin placement, then the fullscreen drawer,
+  // then fullscreen itself.
+  const approveShortcutRef = useRef<(() => void) | null>(null);
+  useShortcuts({
+    escape: [
+      { active: exportOpen, run: () => {}, block: true, whileTyping: true },
+      {
+        active: addingFeedback && !draftPin,
+        run: () => setAddingFeedback(false),
+        whileTyping: true,
+      },
+      {
+        active: fullscreen && drawer.open,
+        run: () => setDrawer(CLOSED_DRAWER),
+      },
+      { active: fullscreen, run: () => setFullscreen(false) },
+    ],
+    addFeedback: startPin,
+    approve: () => {
+      const approve = approveShortcutRef.current;
+      approve?.();
+      return Boolean(approve);
+    },
+    step: stepScreen,
+  });
 
   const navigation = (
     <ScreenRail
       mode={fullscreen ? "compact" : railMode}
       onModeChange={fullscreen ? undefined : setRailMode}
-      approvedIds={flatMode ? flatApprovedIds : approvedIds}
+      approvedIds={railApprovedIds}
+      hideApproved={hideApproved}
+      onHideApprovedChange={changeHideApproved}
       onSelect={(id) => {
         const item = flatMode
           ? flatItems.find((entry) => entry.id === id)
           : undefined;
-        if (item) {
-          setVersionChoice(item.version);
-          selectScreen(item.screenId);
-        } else {
-          selectScreen(id);
-        }
+        selectRailItem(item ?? { screenId: id });
       }}
       openCounts={flatMode ? flatOpenCounts : openCounts}
       screens={flatMode ? flatItems : screens}
-      selectedId={flatMode ? `${selectedId}@@${version}` : selectedId}
+      selectedId={railSelectedId}
     />
   );
   const feedback = (
     <FeedbackInspector
+      approveShortcut={approveShortcutRef}
       draftPin={draftPin}
       feedback={feedbackRecords}
       onCancelDraft={() => {
@@ -807,6 +842,8 @@ export function App() {
       className="review-canvas"
       data-adding-feedback={addingFeedback}
       data-testid="canvas"
+      id="review-capture"
+      tabIndex={-1}
       style={
         { "--screen-width": `${selected.viewport.width}px` } as CSSProperties
       }
@@ -849,11 +886,36 @@ export function App() {
           // Pins are stored relative to the screen frame, which keeps the
           // screen's aspect ratio, so they land on the same spot at any size.
           const rect = event.currentTarget.getBoundingClientRect();
-          setDraftPin(
-            normalizePinCoordinates(event.clientX, event.clientY, rect),
-          );
-          setSelectedFeedbackId(null);
+          placePin(normalizePinCoordinates(event.clientX, event.clientY, rect));
         }}
+        onKeyDown={(event) => {
+          if (!placingPin || !ready) return;
+          const step = event.shiftKey ? 0.1 : 0.01;
+          const move = {
+            ArrowLeft: [-step, 0],
+            ArrowRight: [step, 0],
+            ArrowUp: [0, -step],
+            ArrowDown: [0, step],
+          }[event.key];
+          if (move) {
+            event.preventDefault();
+            setCrosshair((current) => ({
+              x: clampUnit(current.x + move[0]!),
+              y: clampUnit(current.y + move[1]!),
+            }));
+          } else if (event.key === "Enter" || event.key === " ") {
+            event.preventDefault();
+            placePin(crosshair);
+          }
+        }}
+        ref={frameRef}
+        {...(placingPin
+          ? {
+              "aria-label": `Place a pin at ${Math.round(crosshair.x * 100)}% across, ${Math.round(crosshair.y * 100)}% down. Arrow keys move, Shift moves further, Enter drops the pin.`,
+              role: "application",
+              tabIndex: 0,
+            }
+          : {})}
         style={
           {
             "--screen-ratio": `${frameSize.width} / ${frameSize.height}`,
@@ -914,18 +976,24 @@ export function App() {
                 data-testid="feedback-pin"
                 id={feedbackPinId(item.id)}
                 key={item.id}
-                onClick={() => {
-                  setSelectedFeedbackId(item.id);
-                  document
-                    .getElementById(`feedback-comment-${item.id}`)
-                    ?.focus();
-                }}
+                // The feedback panel moves focus into the opened editor.
+                onClick={() => setSelectedFeedbackId(item.id)}
                 style={{ left: `${item.x * 100}%`, top: `${item.y * 100}%` }}
                 type="button"
               >
                 {pinNumbers.get(item.id) ?? 0}
               </button>
             ))}
+          {placingPin ? (
+            <span
+              aria-hidden="true"
+              className="pin-crosshair"
+              style={{
+                left: `${crosshair.x * 100}%`,
+                top: `${crosshair.y * 100}%`,
+              }}
+            />
+          ) : null}
           {draftPin ? (
             <span
               className="feedback-pin pin-dot feedback-pin-draft"
@@ -947,12 +1015,16 @@ export function App() {
     <footer className="action-bar" aria-label="Review actions">
       <div className="action-bar-start">
         <button
-          aria-keyshortcuts={fullscreen ? "Escape" : undefined}
+          aria-keyshortcuts={fullscreen ? SHORTCUTS.escape.aria : undefined}
           aria-label={fullscreen ? "Exit fullscreen" : "View fullscreen"}
           aria-pressed={fullscreen}
           className="icon-button action-bar-fullscreen"
           onClick={() => setFullscreen((value) => !value)}
-          title={fullscreen ? "Exit fullscreen (Esc)" : "View fullscreen"}
+          title={
+            fullscreen
+              ? `Exit fullscreen (${SHORTCUTS.escape.label})`
+              : "View fullscreen"
+          }
           type="button"
         >
           <svg aria-hidden="true" height="18" viewBox="0 0 18 18" width="18">
@@ -968,18 +1040,29 @@ export function App() {
             />
           </svg>
         </button>
-        {addingFeedback && !draftPin ? (
-          <p className="action-bar-hint" role="status">
-            Click the screen to place a pin · Esc to cancel
-          </p>
+        {placingPin ? (
+          <>
+            <p className="action-bar-hint" role="status">
+              Click the screen to place a pin, or use the arrow keys and Enter ·
+              Esc to cancel
+            </p>
+            <button
+              className="action-bar-whole-screen"
+              onClick={() => placePin(WHOLE_SCREEN_PIN)}
+              type="button"
+            >
+              Comment on whole screen
+            </button>
+          </>
         ) : null}
       </div>
       <div className="action-bar-nav">
         <button
           aria-label="Previous screen"
-          disabled={(flatMode ? flatIndex : selectedIndex) <= 0}
+          disabled={railIndex <= 0}
           onClick={() => stepScreen(-1)}
-          title="Previous screen (←)"
+          aria-keyshortcuts={SHORTCUTS.previous.aria}
+          title={`Previous screen (${SHORTCUTS.previous.label})`}
           type="button"
         >
           ‹ Prev
@@ -992,12 +1075,10 @@ export function App() {
         </span>
         <button
           aria-label="Next screen"
-          disabled={
-            (flatMode ? flatIndex : selectedIndex) >=
-            (flatMode ? flatItems.length : screens.length) - 1
-          }
+          disabled={railIndex < 0 || railIndex >= railItems.length - 1}
           onClick={() => stepScreen(1)}
-          title="Next screen (→)"
+          aria-keyshortcuts={SHORTCUTS.next.aria}
+          title={`Next screen (${SHORTCUTS.next.label})`}
           type="button"
         >
           Next ›
@@ -1014,15 +1095,15 @@ export function App() {
           Export
         </button>
         <button
-          aria-keyshortcuts={isMac ? "Meta+F" : "Control+F"}
+          aria-keyshortcuts={SHORTCUTS.addFeedback.aria}
           aria-pressed={addingFeedback}
           className="feedback-add-button"
           disabled={!ready}
           onClick={startPin}
-          title={`Add feedback (${isMac ? "⌘F" : "Ctrl+F"})`}
+          title={`Add feedback (${SHORTCUTS.addFeedback.label})`}
           type="button"
         >
-          Add feedback <kbd aria-hidden="true">{isMac ? "⌘F" : "Ctrl F"}</kbd>
+          Add feedback <kbd aria-hidden="true">{SHORTCUTS.addFeedback.kbd}</kbd>
         </button>
       </div>
       {exportOpen ? (
@@ -1033,18 +1114,43 @@ export function App() {
           screens={screens}
           selectedScreenId={selectedId}
           version={version}
+          versions={exportVersions}
         />
       ) : null}
     </footer>
   );
 
+  // Skip past the rail's tab stop to the capture or the feedback. They focus
+  // the target directly; following "#…" would rewrite the place in the URL.
+  const skipLinks = (
+    <div className="skip-links">
+      {[
+        ["review-capture", "Skip to capture"],
+        ["feedback-panel", "Skip to feedback"],
+      ].map(([id, label]) => (
+        <a
+          href={`#${id}`}
+          key={id}
+          onClick={(event) => {
+            event.preventDefault();
+            document.getElementById(id!)?.focus();
+          }}
+        >
+          {label}
+        </a>
+      ))}
+    </div>
+  );
+
   if (fullscreen) {
     return (
       <>
+        {skipLinks}
         <FullscreenReview
           feedback={feedback}
           navigation={navigation}
-          onExit={() => setFullscreen(false)}
+          drawer={drawer}
+          onDrawerChange={setDrawer}
         >
           {canvas}
         </FullscreenReview>
@@ -1055,13 +1161,14 @@ export function App() {
 
   return (
     <main className="workbench-shell">
+      {skipLinks}
       <header className="workbench-header">
         <div>
           <span className="eyebrow">Design review</span>
           <h1>ScreenCheck</h1>
         </div>
         <div className="header-controls">
-          {projects && projects.length > 1 ? (
+          {projects.length > 1 ? (
             <label>
               Project
               <select
@@ -1087,8 +1194,9 @@ export function App() {
                   const sameResolution = project.versions.find(
                     (item) =>
                       revisionOf(item) === next &&
-                      resolutionOf(item) === resolutionOf(version),
+                      labelOf(item) === labelOf(version),
                   );
+                  setNewerDismissed(true);
                   setRevisionChoice(next);
                   setVersionChoice(sameResolution ?? "");
                   setResolutionChoice(
@@ -1101,7 +1209,7 @@ export function App() {
               >
                 {[...revisions].reverse().map((item) => (
                   <option key={item} value={item}>
-                    {item.replace(/^local-/, "")}
+                    {revisionName(item)}
                   </option>
                 ))}
               </select>
@@ -1109,7 +1217,7 @@ export function App() {
           ) : null}
           {revisionVersions.length > 1 ? (
             <label>
-              Resolution
+              Viewport
               <select
                 onChange={(event) => {
                   const next = event.target.value;
@@ -1121,7 +1229,7 @@ export function App() {
                 <option value="all">All</option>
                 {revisionVersions.map((item) => (
                   <option key={item} value={item}>
-                    {resolutionOf(item)}
+                    {labelOf(item)}
                   </option>
                 ))}
               </select>
@@ -1131,6 +1239,28 @@ export function App() {
           )}
         </div>
       </header>
+      {newerBuild ? (
+        <div className="workbench-banner" role="status">
+          <span>
+            Showing {revisionName(revision)} from the link. A newer build,{" "}
+            {revisionName(newestRevision)}, is available.
+          </span>
+          <button
+            onClick={() => {
+              setNewerDismissed(true);
+              setRevisionChoice(newestRevision);
+              setVersionChoice("");
+              setResolutionChoice("all");
+            }}
+            type="button"
+          >
+            Switch to {revisionName(newestRevision)}
+          </button>
+          <button onClick={() => setNewerDismissed(true)} type="button">
+            Stay
+          </button>
+        </div>
+      ) : null}
       {projectProblems.map((problem) => (
         <p
           className="workbench-banner workbench-banner-error"
@@ -1154,9 +1284,16 @@ export function App() {
         </div>
       ) : null}
       {notice ? (
-        <p className="workbench-banner workbench-banner-error" role="alert">
-          {notice}
-        </p>
+        <div className="workbench-banner workbench-banner-error" role="alert">
+          <span>{notice.text}</span>
+          <button
+            aria-label="Dismiss message"
+            onClick={() => setNotice(null)}
+            type="button"
+          >
+            Dismiss
+          </button>
+        </div>
       ) : null}
       <section
         className="workbench-grid"

@@ -1,6 +1,7 @@
 import {
   createServer,
   type IncomingMessage,
+  type Server,
   type ServerResponse,
 } from "node:http";
 import type { AddressInfo } from "node:net";
@@ -37,7 +38,8 @@ type Fallback = (
 ) => void | Promise<void>;
 
 async function createFallback(
-  clientRoot?: string,
+  clientRoot: string | undefined,
+  httpServer: Server,
 ): Promise<{ handle: Fallback; close?: () => Promise<void> }> {
   if (clientRoot) {
     return { handle: await createStaticHandler(clientRoot) };
@@ -45,7 +47,11 @@ async function createFallback(
   // Imported lazily so the published package never needs Vite at runtime.
   const { createServer: createViteServer } = await import("vite");
   const vite = await createViteServer({
-    server: { middlewareMode: true },
+    // HMR shares this server's port. Vite's default fixed port (24678) is
+    // taken by whichever dev server started first, so a second one (the
+    // playground beside `npm run dev`) logged a failed websocket on every
+    // page load.
+    server: { middlewareMode: true, hmr: { server: httpServer } },
     appType: "spa",
   });
   const handle: Fallback = (request, response) => {
@@ -91,7 +97,8 @@ export async function startServer({
         (await storage.listFeedback(projectId)).length > 0,
     });
     let boundPort = port;
-    const fallback = await createFallback(clientRoot);
+    // Assigned before listen(), so every request sees it.
+    let fallback!: Awaited<ReturnType<typeof createFallback>>;
     const server = createServer(
       async (request: IncomingMessage, response: ServerResponse) => {
         if (request.url === "/healthz") {
@@ -109,6 +116,7 @@ export async function startServer({
         await fallback.handle(request, response, boundPort);
       },
     );
+    fallback = await createFallback(clientRoot, server);
     try {
       await new Promise<void>((resolve, reject) => {
         server.once("error", reject);

@@ -38,13 +38,13 @@ afterEach(async () => {
   await api.dispose();
 });
 
-// docs/PLAYGROUND.md names rail rows ("18 Settings · 42") and header
+// docs/PLAYGROUND.md names rail rows ("09 Settings") and header
 // pickers; this fails when the app or the seed changes under it.
 describe("docs/PLAYGROUND.md", () => {
   it("names rail rows that exist in the playground's screen index", async () => {
     render(<App />);
     const nav = await screen.findByRole("navigation");
-    await within(nav).findAllByRole("button", { name: /·/ });
+    await within(nav).findAllByRole("button", { name: /^01/ });
     const rows = within(nav)
       .getAllByRole("button")
       .map((button) => button.textContent?.replace(/\s+/g, " ").trim() ?? "");
@@ -61,7 +61,7 @@ describe("docs/PLAYGROUND.md", () => {
 
   it("names header pickers that the playground shows", async () => {
     render(<App />);
-    for (const label of ["Resolution"]) {
+    for (const label of ["Revision"]) {
       expect(WALKTHROUGH).toContain(`**${label}**`);
       expect(
         await screen.findByRole("combobox", { name: label }),

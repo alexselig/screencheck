@@ -112,7 +112,7 @@ describe("static client mode", () => {
     });
     const projects = await fetch(`${server.origin}/api/projects`);
     expect(projects.status).toBe(200);
-    expect((await projects.json()).projects[0].id).toBe("example");
+    expect((await projects.json()).projects).toEqual([]);
     const unknown = await fetch(`${server.origin}/api/nope`);
     expect(unknown.status).toBe(404);
     expect(unknown.headers.get("content-type")).toContain("application/json");
