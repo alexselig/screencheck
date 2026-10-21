@@ -14,7 +14,7 @@ let root: string;
 let projects: string;
 
 beforeEach(async () => {
-  root = await mkdtemp(join(process.cwd(), "tests/.init-"));
+  root = await mkdtemp(join(process.cwd(), "tests/.feedback-data-init-"));
   projects = join(root, "projects");
 });
 

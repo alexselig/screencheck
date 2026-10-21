@@ -1,6 +1,11 @@
 import { spawn } from "node:child_process";
-import { existsSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
-import { tmpdir } from "node:os";
+import {
+  existsSync,
+  mkdtempSync,
+  readFileSync,
+  rmSync,
+  writeFileSync,
+} from "node:fs";
 import { join } from "node:path";
 
 import { afterEach, describe, expect, it } from "vitest";
@@ -12,14 +17,19 @@ import {
   LOCK_FILE,
 } from "../src/server/lock";
 
+const bases: string[] = [];
 const roots = () => {
-  const base = mkdtempSync(join(tmpdir(), "sc-lock-"));
+  const base = mkdtempSync(join(process.cwd(), "tests/.feedback-data-lock-"));
+  bases.push(base);
   return { dataRoot: join(base, "data"), projectsRoot: join(base, "p") };
 };
 
 const children: ReturnType<typeof spawn>[] = [];
 afterEach(() => {
   for (const child of children.splice(0)) child.kill();
+  for (const base of bases.splice(0)) {
+    rmSync(base, { recursive: true, force: true });
+  }
 });
 
 // Starts a real server in another process and resolves once it is listening.

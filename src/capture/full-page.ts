@@ -19,7 +19,7 @@
 import { mkdir, writeFile } from "node:fs/promises";
 import path from "node:path";
 
-import { elementMapPathFor, type ElementMap } from "../shared/elements";
+import type { ElementMap } from "../shared/elements";
 
 export type PinnedChromeReport = {
   // Bars moved for the capture, described as "tag.class" for logs.
@@ -647,9 +647,13 @@ export type CaptureResult = PinnedChromeReport & {
   elements: ElementMap | null;
 };
 
-// `shots/checkout.png` -> `shots/checkout.elements.json`. The same rule the
-// server uses to find a capture's map, so the two can't drift.
-export const elementMapPath = elementMapPathFor;
+// `shots/checkout.png` -> `shots/checkout.elements.json`. The same rule as
+// elementMapPathFor in shared/elements (a test keeps them equal); it is
+// repeated so plain `node` scripts can import this file, which only allows
+// type imports of extensionless paths.
+export function elementMapPath(capturePath: string) {
+  return `${capturePath.replace(/\.[^./\\]*$/, "")}.elements.json`;
+}
 
 export async function captureFullPage(
   page: CapturePage,

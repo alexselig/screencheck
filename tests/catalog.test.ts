@@ -7,7 +7,6 @@ import {
   utimes,
   writeFile,
 } from "node:fs/promises";
-import { tmpdir } from "node:os";
 import { join } from "node:path";
 
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
@@ -20,7 +19,7 @@ import type { FeedbackRecord } from "../src/shared/feedback";
 let root: string;
 
 beforeEach(async () => {
-  root = await mkdtemp(join(tmpdir(), "sc-catalog-"));
+  root = await mkdtemp(join(process.cwd(), "tests/.feedback-data-catalog-"));
   await mkdir(join(root, "projects"));
 });
 afterEach(async () => {

@@ -1,6 +1,5 @@
 // @vitest-environment node
 import { mkdtemp, readdir, readFile, rm, writeFile } from "node:fs/promises";
-import { tmpdir } from "node:os";
 import { join } from "node:path";
 
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
@@ -11,7 +10,7 @@ import { elementMapPathFor } from "../src/shared/elements";
 
 let dir: string;
 beforeEach(async () => {
-  dir = await mkdtemp(join(tmpdir(), "sc-capture-"));
+  dir = await mkdtemp(join(process.cwd(), "tests/.feedback-data-capture-"));
 });
 afterEach(async () => {
   await rm(dir, { recursive: true, force: true });
@@ -80,7 +79,7 @@ describe("screencheck capture (be-1, be-11)", () => {
     ]);
   });
 
-  it("keeps the public elementMapPath name on the shared rule", () => {
+  it("keeps the public elementMapPath in step with the shared rule", () => {
     expect(elementMapPath("shots/a.b/checkout.png")).toBe(
       elementMapPathFor("shots/a.b/checkout.png"),
     );
