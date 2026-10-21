@@ -99,6 +99,10 @@ through each feature, from dropping a pin to an agent replying over MCP.
   A new comment always starts in Backlog and keeps the compact create form
   through its first autosave, so the editor never grows under your cursor;
   the status picker appears once you reopen it.
+  A note edit is saved to the comment it was typed in, even when you switch
+  comment, pin or screen before the autosave fires. If a save or status
+  change fails, the status picker shows the saved status again and a
+  **Retry** button resends the change.
   Each status section has a **Hide pins / Show pins** switch on its right;
   Fixed and Verified pins are hidden by default and the choice is remembered
   per browser.
@@ -322,6 +326,20 @@ version points at its folder:
     }
   ]
 }
+```
+
+Each version is its own entry in the header's **Revision** picker, newest
+(last) first; `build-41` and `build-42` are two builds. Version ids are never
+split apart. If one build was captured at several viewports, say so with
+optional `revision` and `label` fields; versions that share a `revision`
+appear as one entry, a **Viewport** filter lists their labels, and the screen
+index shows each screen once per viewport (`Checkout · 390`):
+
+```json
+"versions": [
+  { "id": "b42-desktop", "revision": "build-42", "label": "1440", "captureRoot": "…/b42/desktop" },
+  { "id": "b42-mobile", "revision": "build-42", "label": "390", "captureRoot": "…/b42/mobile" }
+]
 ```
 
 A capture must sit inside its version's `captureRoot`. To register a project

@@ -54,6 +54,13 @@ type EditorState = {
   status: FeedbackStatus;
 };
 
+type SaveTarget = {
+  record: FeedbackRecord | null;
+  pin: Pin | null;
+  screenId: string;
+  version: string;
+};
+
 const EMPTY_EDITOR: EditorState = {
   note: "",
   tags: ["P1"],
@@ -72,6 +79,12 @@ function isPriority(tag: string) {
 
 function sameTags(left: readonly string[], right: readonly string[]) {
   return left.join("\0") === right.join("\0");
+}
+
+function sameTarget(left: SaveTarget, right: SaveTarget) {
+  return left.record
+    ? left.record.id === right.record?.id
+    : !right.record && left.pin === right.pin;
 }
 
 const RECOVERY_PREFIX = "screencheck.feedback-recovery.v1:";
@@ -299,6 +312,13 @@ export function FeedbackInspector({
   } | null>(null);
   const [confirmingApproval, setConfirmingApproval] = useState(false);
   const [saveMessage, setSaveMessage] = useState("");
+  // Resends the last failed save from the editor, shown as a Retry button.
+  const [retrySave, setRetrySave] = useState<{
+    kind: "note" | "status" | "reply";
+    run: () => void;
+  } | null>(null);
+  const clearRetry = (kind: "note" | "status" | "reply") =>
+    setRetrySave((current) => (current?.kind === kind ? null : current));
   const [confirmingDeleteId, setConfirmingDeleteId] = useState<string | null>(
     null,
   );
@@ -321,8 +341,19 @@ export function FeedbackInspector({
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const revisionRef = useRef(0);
   const latestRecordRef = useRef<FeedbackRecord | null>(null);
-  const creatingRef = useRef<Promise<FeedbackRecord> | null>(null);
+  // Creation in flight and the record it made, per draft pin, so a later save
+  // for the same pin updates that record instead of creating a second one.
+  const creatingRef = useRef(new WeakMap<Pin, Promise<FeedbackRecord>>());
+  const createdRef = useRef(new WeakMap<Pin, FeedbackRecord>());
   const adoptedIdRef = useRef<string | null>(null);
+  const draftPinRef = useRef<Pin | null>(null);
+  // The scheduled autosave and the comment (or draft pin) it belongs to,
+  // captured when the edit was made rather than when the timer fires.
+  const pendingSaveRef = useRef<{
+    revision: number;
+    editor: EditorState;
+    target: SaveTarget;
+  } | null>(null);
   // A comment created in this editing session keeps the create layout (no
   // status picker, no change summary) so the editor does not grow under the
   // reviewer's cursor when the first autosave lands. New comments are Backlog.
@@ -381,6 +412,7 @@ export function FeedbackInspector({
     visibleFeedback.find((item) => item.id === selectedFeedbackId) ?? null;
 
   latestRecordRef.current = effectiveDraftPin ? null : selectedRecord;
+  draftPinRef.current = effectiveDraftPin;
   editorRef.current = editor;
 
   useEffect(() => {
@@ -388,6 +420,7 @@ export function FeedbackInspector({
     setConfirmingDeleteId(null);
     setDeleteMessage("");
     setReplyDraft("");
+    setRetrySave(null);
   }, [selectedFeedbackId]);
 
   useEffect(() => {
@@ -450,10 +483,18 @@ export function FeedbackInspector({
     textareaRef.current?.focus();
   }, [collapsedStatuses, effectiveDraftPin]);
 
+  // A pending note edit is saved as soon as the reviewer moves to another
+  // comment, pin, screen or version, and when the panel goes away.
+  const flushPendingSaveRef = useRef<() => void>(() => {});
+  useLayoutEffect(() => {
+    const pending = pendingSaveRef.current;
+    if (pending && !isCurrentTarget(pending.target)) {
+      flushPendingSaveRef.current();
+    }
+  }, [selectedFeedbackId, selectedScreenId, version, effectiveDraftPin]);
+
   useEffect(() => {
-    return () => {
-      if (timerRef.current) clearTimeout(timerRef.current);
-    };
+    return () => flushPendingSaveRef.current();
   }, []);
 
   useEffect(() => {
@@ -483,12 +524,6 @@ export function FeedbackInspector({
     }
   }, [effectiveDraftPin, projectId, selectedRecord, selectedScreenId, version]);
 
-  function currentRecoveryKey() {
-    return selectedRecord && !effectiveDraftPin
-      ? updateRecoveryKey(selectedRecord.id)
-      : createRecoveryKey(version, selectedScreenId);
-  }
-
   function setStatusCollapsed(status: FeedbackStatus, collapsed: boolean) {
     setCollapsedStatuses((current) => {
       const next = collapsed
@@ -505,53 +540,110 @@ export function FeedbackInspector({
     setStatusCollapsed(status, false);
   }
 
-  function persistLocal(nextEditor: EditorState) {
+  function currentTarget(): SaveTarget | null {
     const record = latestRecordRef.current;
     const pin = effectiveDraftPin;
-    if (!record && !pin) return;
-    writeRecovery(projectId, currentRecoveryKey(), {
-      kind: record ? "update" : "create",
-      screenId: selectedScreenId,
-      version,
-      feedbackId: record?.id,
-      x: pin?.x,
-      y: pin?.y,
+    if (!record && !pin) return null;
+    return { record, pin, screenId: selectedScreenId, version };
+  }
+
+  // Whether the reviewer is still looking at the comment a save belongs to.
+  function isCurrentTarget(target: SaveTarget) {
+    const current = latestRecordRef.current;
+    if (target.record) return current?.id === target.record.id;
+    if (!target.pin) return false;
+    if (draftPinRef.current === target.pin) return true;
+    const created = createdRef.current.get(target.pin);
+    return Boolean(created && current?.id === created.id);
+  }
+
+  function targetRecoveryKey(target: SaveTarget) {
+    return target.record
+      ? updateRecoveryKey(target.record.id)
+      : createRecoveryKey(target.version, target.screenId);
+  }
+
+  function persistLocal(target: SaveTarget, nextEditor: EditorState) {
+    writeRecovery(projectId, targetRecoveryKey(target), {
+      kind: target.record ? "update" : "create",
+      screenId: target.screenId,
+      version: target.version,
+      feedbackId: target.record?.id,
+      x: target.pin?.x,
+      y: target.pin?.y,
       note: nextEditor.note,
       tags: nextEditor.tags,
     });
     setSaveMessage("Unsaved locally");
   }
 
-  async function saveEditor(revision: number, nextEditor: EditorState) {
-    let record = latestRecordRef.current;
-    const pin = effectiveDraftPin;
-    if (!nextEditor.note.trim() || (!record && !pin)) return;
-    setSaveMessage("Saving…");
-    // A save that fires while the pin is still being created updates that
-    // record instead of creating a second one.
-    if (!record && creatingRef.current) {
-      record = await creatingRef.current.catch(() => null);
+  function failureMessage(target: SaveTarget, error: unknown) {
+    const reason =
+      error instanceof Error
+        ? `Retry required: ${error.message}`
+        : "Retry required";
+    if (isCurrentTarget(target)) return reason;
+    const pin = target.record ? pinNumbers.get(target.record.id) : undefined;
+    return `${pin ? `Pin ${pin}` : "A comment"} was not saved (kept in this browser). ${reason}`;
+  }
+
+  async function saveEditor(
+    target: SaveTarget,
+    revision: number,
+    nextEditor: EditorState,
+  ) {
+    const { pin } = target;
+    const showing = () => isCurrentTarget(target);
+    if (!nextEditor.note.trim()) {
+      // Nothing can be sent; say so instead of leaving "Unsaved locally".
+      if (showing()) {
+        setSaveMessage(
+          target.record ? "A note can't be empty; not saved." : "",
+        );
+      }
+      return;
+    }
+    if (showing()) setSaveMessage("Saving…");
+    clearRetry("note");
+    let record = target.record;
+    // A save for a pin that is (or was) being created updates that record
+    // instead of creating a second one.
+    if (!record && pin) {
+      record =
+        createdRef.current.get(pin) ??
+        (await creatingRef.current.get(pin)?.catch(() => null)) ??
+        null;
     }
     try {
       if (record) {
+        const base =
+          latestRecordRef.current?.id === record.id
+            ? latestRecordRef.current
+            : record;
         const patch: UpdateFeedbackInput["patch"] = {};
         const note = nextEditor.note.trim();
-        if (note !== record.note) patch.note = note;
-        if (!sameTags(nextEditor.tags, record.tags)) {
+        if (note !== base.note) patch.note = note;
+        if (!sameTags(nextEditor.tags, base.tags)) {
           patch.tags = nextEditor.tags;
         }
         if (Object.keys(patch).length === 0) {
           writeRecovery(projectId, updateRecoveryKey(record.id), null);
-          setSaveMessage("Saved");
+          if (showing()) setSaveMessage("Saved");
           return;
         }
         const updated = await onUpdate(record.id, {
-          expectedUpdatedAt: record.updatedAt,
+          expectedUpdatedAt: base.updatedAt,
           patch,
         });
-        latestRecordRef.current = updated;
-        if (revision === revisionRef.current) {
+        if (latestRecordRef.current?.id === updated.id) {
+          latestRecordRef.current = updated;
+        }
+        // A save for a comment the reviewer has left is final: its edit was
+        // flushed with the last text typed there.
+        if (!showing() || revision === revisionRef.current) {
           writeRecovery(projectId, updateRecoveryKey(record.id), null);
+        }
+        if (showing() && revision === revisionRef.current) {
           setSaveMessage("Saved");
           if (textareaRef.current !== document.activeElement) {
             setEditor({
@@ -564,31 +656,33 @@ export function FeedbackInspector({
       } else if (pin) {
         const creating = onCreate({
           clientMutationId: crypto.randomUUID(),
-          screenId: selectedScreenId,
-          version,
+          screenId: target.screenId,
+          version: target.version,
           x: pin.x,
           y: pin.y,
           note: nextEditor.note.trim(),
           tags: nextEditor.tags,
           status: "OPEN",
         });
-        creatingRef.current = creating;
+        creatingRef.current.set(pin, creating);
         let created: FeedbackRecord;
         try {
           created = await creating;
         } finally {
-          if (creatingRef.current === creating) creatingRef.current = null;
+          creatingRef.current.delete(pin);
         }
+        createdRef.current.set(pin, created);
+        writeRecovery(
+          projectId,
+          createRecoveryKey(target.version, target.screenId),
+          null,
+        );
+        // Adopt the new record only while the reviewer is still on its
+        // draft; otherwise leave their new selection alone.
+        if (draftPinRef.current !== pin) return;
         latestRecordRef.current = created;
         adoptedIdRef.current = created.id;
         setFreshId(created.id);
-        // Always adopt the new record, even if the reviewer kept typing, so
-        // later saves update it rather than creating a duplicate pin.
-        writeRecovery(
-          projectId,
-          createRecoveryKey(version, selectedScreenId),
-          null,
-        );
         setRecoveredPin(null);
         onSelectFeedback(created.id);
         onCancelDraft();
@@ -597,8 +691,8 @@ export function FeedbackInspector({
         } else {
           writeRecovery(projectId, updateRecoveryKey(created.id), {
             kind: "update",
-            screenId: selectedScreenId,
-            version,
+            screenId: target.screenId,
+            version: target.version,
             feedbackId: created.id,
             note: editorRef.current.note,
             tags: editorRef.current.tags,
@@ -606,21 +700,58 @@ export function FeedbackInspector({
         }
       }
     } catch (error) {
-      setSaveMessage(
-        error instanceof Error
-          ? `Retry required: ${error.message}`
-          : "Retry required",
-      );
+      setSaveMessage(failureMessage(target, error));
+      setRetrySave({
+        kind: "note",
+        run: () =>
+          void saveEditor(
+            target,
+            revisionRef.current,
+            editorForRetry(target, nextEditor),
+          ),
+      });
     }
   }
 
+  // A retry for the comment on screen sends what is in the editor now.
+  function editorForRetry(target: SaveTarget, saved: EditorState) {
+    return isCurrentTarget(target) ? editorRef.current : saved;
+  }
+
+  // Sends the scheduled save now, for the comment it was scheduled for.
+  function flushPendingSave() {
+    const pending = pendingSaveRef.current;
+    if (timerRef.current) {
+      clearTimeout(timerRef.current);
+      timerRef.current = null;
+    }
+    pendingSaveRef.current = null;
+    if (!pending) return Promise.resolve();
+    return saveEditor(pending.target, pending.revision, pending.editor);
+  }
+  flushPendingSaveRef.current = () => void flushPendingSave();
+
+  function cancelPendingSave() {
+    if (timerRef.current) {
+      clearTimeout(timerRef.current);
+      timerRef.current = null;
+    }
+    pendingSaveRef.current = null;
+  }
+
   function scheduleSave(nextEditor: EditorState) {
-    persistLocal(nextEditor);
+    const target = currentTarget();
+    if (!target) return;
+    const pending = pendingSaveRef.current;
+    // An edit to another comment sends the earlier one first.
+    if (pending && !sameTarget(pending.target, target)) void flushPendingSave();
+    persistLocal(target, nextEditor);
     const revision = ++revisionRef.current;
+    pendingSaveRef.current = { revision, editor: nextEditor, target };
     if (timerRef.current) clearTimeout(timerRef.current);
     timerRef.current = setTimeout(() => {
       timerRef.current = null;
-      void saveEditor(revision, nextEditor);
+      void flushPendingSave();
     }, NOTE_SAVE_DELAY_MS);
   }
 
@@ -640,10 +771,30 @@ export function FeedbackInspector({
       setSaveMessage("Add a reply before closing this feedback.");
       return;
     }
-    if (timerRef.current) {
-      clearTimeout(timerRef.current);
-      timerRef.current = null;
-    }
+    // The status goes first; a pending note edit is sent again after it.
+    const pending =
+      pendingSaveRef.current?.target.record?.id === record.id
+        ? pendingSaveRef.current
+        : null;
+    cancelPendingSave();
+    // After the status lands (or fails), the note edit is sent for this
+    // comment even if the reviewer has moved on.
+    const resendNote = (status?: FeedbackStatus) => {
+      const latest = editorRef.current;
+      if (latestRecordRef.current?.id === record.id) {
+        if (
+          pending ||
+          latest.note !== latestRecordRef.current.note ||
+          !sameTags(latest.tags, latestRecordRef.current.tags)
+        ) {
+          scheduleSave(status ? { ...latest, status } : latest);
+        }
+      } else if (pending) {
+        void saveEditor(pending.target, pending.revision, pending.editor);
+      }
+    };
+    setEditor((current) => ({ ...current, status }));
+    clearRetry("status");
     setSaveMessage("Saving…");
     try {
       const updated = await onUpdate(record.id, {
@@ -655,21 +806,27 @@ export function FeedbackInspector({
             : {}),
         },
       });
-      latestRecordRef.current = updated;
+      if (latestRecordRef.current?.id === updated.id) {
+        latestRecordRef.current = updated;
+      }
       if (replyNote) setReplyDraft("");
       setSaveMessage("Saved");
-      if (
-        editor.note !== updated.note ||
-        !sameTags(editor.tags, updated.tags)
-      ) {
-        scheduleSave({ ...editor, status });
-      }
+      resendNote(status);
     } catch (error) {
-      setSaveMessage(
-        error instanceof Error
-          ? `Retry required: ${error.message}`
-          : "Retry required",
-      );
+      resendNote();
+      // The server still has the old status, so the picker shows it again.
+      const current = latestRecordRef.current;
+      if (current?.id === record.id) {
+        setEditor((editorNow) => ({ ...editorNow, status: current.status }));
+        setSaveMessage(
+          `Status not changed. ${
+            error instanceof Error
+              ? `Retry required: ${error.message}`
+              : "Retry required"
+          }`,
+        );
+        setRetrySave({ kind: "status", run: () => void flushStatus(status) });
+      }
     }
   }
 
@@ -682,7 +839,6 @@ export function FeedbackInspector({
       setSaveMessage("Add a reply before closing this feedback.");
       return;
     }
-    setEditor((current) => ({ ...current, status }));
     void flushStatus(status);
   }
 
@@ -691,6 +847,7 @@ export function FeedbackInspector({
     const record = latestRecordRef.current;
     const note = replyDraft.trim();
     if (!record || !note) return;
+    clearRetry("reply");
     setSaveMessage("Saving…");
     try {
       const updated = await onUpdate(record.id, {
@@ -706,6 +863,7 @@ export function FeedbackInspector({
           ? `Retry required: ${error.message}`
           : "Retry required",
       );
+      setRetrySave({ kind: "reply", run: () => void sendReply() });
     }
   }
 
@@ -852,9 +1010,8 @@ export function FeedbackInspector({
       ? latestRecordRef.current
       : (feedback.find((item) => item.id === id) ?? null);
     if (!record || !onDelete) return;
-    if (isSelected && timerRef.current) {
-      clearTimeout(timerRef.current);
-      timerRef.current = null;
+    if (pendingSaveRef.current?.target.record?.id === record.id) {
+      cancelPendingSave();
     }
     setDeleteMessage("Deleting…");
     try {
@@ -900,11 +1057,7 @@ export function FeedbackInspector({
 
   function collapseEditor(item: FeedbackRecord) {
     // Save any pending note edit before the card collapses.
-    if (timerRef.current) {
-      clearTimeout(timerRef.current);
-      timerRef.current = null;
-      void saveEditor(revisionRef.current, editor);
-    }
+    void flushPendingSave();
     setConfirmingDeleteId(null);
     onSelectFeedback(null);
     document.getElementById(feedbackPinId(item.id))?.focus();
@@ -1218,6 +1371,15 @@ export function FeedbackInspector({
       <span aria-live="polite" className="feedback-save-state" role="status">
         {saveMessage}
       </span>
+      {retrySave ? (
+        <button
+          className="feedback-retry-button"
+          onClick={() => retrySave.run()}
+          type="button"
+        >
+          Retry
+        </button>
+      ) : null}
       {effectiveDraftPin ? (
         <button
           className="feedback-cancel-button"
