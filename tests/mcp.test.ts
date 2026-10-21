@@ -8,9 +8,13 @@ import { InMemoryTransport } from "@modelcontextprotocol/sdk/inMemory.js";
 import sharp from "sharp";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
-import { assertLoopbackOrigin, NOT_RUNNING_MESSAGE } from "../src/mcp/client";
+import {
+  assertLoopbackOrigin,
+  NOT_RUNNING_MESSAGE,
+} from "../src/agent-api/client";
 import { createMcpServer, type McpServerOptions } from "../src/mcp/server";
-import { statusLabel, toApiStatus } from "../src/mcp/status";
+import { statusLabel, toApiStatus } from "../src/agent-api/status";
+import { runReply } from "../src/cli/reply";
 import { startServer } from "../src/server/index";
 
 type ToolResult = {
@@ -497,6 +501,91 @@ describe("MCP server", () => {
       status: "RESOLVED",
       reply: { note: "Fixed it." },
     });
+  });
+
+  it("keeps a reviewer's status change made while the agent was working", async () => {
+    let patches = 0;
+    const fetchImpl: typeof fetch = async (input, init) => {
+      if (init?.method === "PATCH" && patches++ === 0) {
+        // The reviewer verifies a3 just before the agent's write lands.
+        const current = (await feedback()).find((item) => item.id === "a3")!;
+        await api(
+          "PATCH",
+          "/api/projects/demo/feedback/a3",
+          {
+            expectedUpdatedAt: current.updatedAt,
+            patch: { status: "VERIFIED" },
+          },
+          { "x-screencheck-actor": "reviewer" },
+        );
+      }
+      return fetch(input, init);
+    };
+    const client = await connect({ fetchImpl });
+    const result = await call(client, "reply", {
+      id: "a3",
+      note: "Also fixed the hover state.",
+      status: "in-progress",
+    });
+    expect(result.isError).toBe(true);
+    expect(text(result)).toMatch(
+      /changed comment a3 from Fixed to Verified .*Your note was added without a status change/,
+    );
+    const saved = (await feedback()).find((item) => item.id === "a3")!;
+    expect(saved.status).toBe("VERIFIED");
+    expect(JSON.stringify(saved)).toContain("Also fixed the hover state.");
+  });
+
+  it("labels who spoke last and flags comments awaiting the agent", async () => {
+    const [a3] = (await feedback()).filter((item) => item.id === "a3");
+    await api(
+      "PATCH",
+      "/api/projects/demo/feedback/a3",
+      {
+        expectedUpdatedAt: a3!.updatedAt,
+        patch: {
+          status: "OPEN",
+          message: { note: "Still clipped on mobile.", author: "Alex" },
+        },
+      },
+      { "x-screencheck-actor": "reviewer" },
+    );
+    const client = await connect();
+    const result = await call(client, "list_feedback", {});
+    expect(text(result)).toContain("Reviewer (Alex): Still clipped on mobile.");
+    expect(text(result)).not.toContain("Reply (");
+    const comments = result.structuredContent!.feedback as {
+      id: string;
+      awaitingAgent: boolean;
+      latestReply: { role: string } | null;
+    }[];
+    const reopened = comments.find((item) => item.id === "a3")!;
+    expect(reopened.awaitingAgent).toBe(true);
+    expect(reopened.latestReply?.role).toBe("reviewer");
+    expect(comments.find((item) => item.id === "a1")!.awaitingAgent).toBe(
+      false,
+    );
+  });
+
+  it("gives the reply CLI the same catalog: screen numbers, captions, unknown projects", async () => {
+    const lines: string[] = [];
+    const reply = (...args: string[]) =>
+      runReply(["--url", server.origin, ...args], {
+        log: (line) => lines.push(line),
+      });
+    expect(await reply("--project", "demo", "--list", "--screen", "2")).toBe(0);
+    expect(lines.join("\n")).toMatch(/^b1\tv1\/checkout pin 1\t/);
+    lines.length = 0;
+    await reply("--project", "demo", "--show", "--id", "a1");
+    expect(lines.join("\n")).toContain(
+      "Screen shows: Home with three saved trips.",
+    );
+    await expect(
+      reply("--project", "demo", "--list", "--version", "v9"),
+    ).rejects.toThrow('Project demo has no version "v9"');
+    await expect(reply("--project", "nope", "--list")).rejects.toThrow(
+      'Unknown project "nope". Projects: demo.',
+    );
   });
 
   it("names the element under the pin and shows the whole thread", async () => {

@@ -1,65 +1,75 @@
-// Lets an agent close the loop on review comments: list what is open, then
-// reply to each comment (what was done, or why not) and set its status.
+// Lets an agent close the loop on review comments: list what is open, read one
+// in full, then reply (what was done, or why not) and set its status. It talks
+// to the server through the same client as the MCP server, so both see the same
+// pin numbers, statuses and conflict handling.
 //
-//   screencheck reply --project shop --list
+//   screencheck reply --project shop --list [--status fixed] [--screen 3]
+//   screencheck reply --project shop --show --id <id>
 //   screencheck reply --project shop --id <id> --status fixed \
 //     --note "Moved the footer below the fold." [--author Copilot]
+import {
+  ApiError,
+  createApiClient,
+  type ApiClient,
+  type ApiFeedback,
+} from "../agent-api/client";
+import {
+  asFeedbackRecords,
+  compareComments,
+  latestLine,
+  matchesFilter,
+  oneLine,
+  parseStatuses,
+  pickScreen,
+  pickVersion,
+  summarize,
+  threadLine,
+  type ThreadMessage,
+} from "../agent-api/comments";
+import { patchWithRetry } from "../agent-api/patch";
+import {
+  isReviewerOnlyStatus,
+  statusLabel,
+  toApiStatus,
+} from "../agent-api/status";
 import { resolveOrigin, type RuntimeInfo } from "../server/runtime";
-import { STATUS_LABELS, type FeedbackStatus } from "../shared/feedback";
-
-type Status = "OPEN" | "IN_PROGRESS" | "RESOLVED" | "WONT_FIX";
-
-type FeedbackItem = {
-  id: string;
-  version: string;
-  screenId: string;
-  status: FeedbackStatus;
-  tags: string[];
-  note: string;
-  createdAt: string;
-  updatedAt: string;
-};
+import { captionFor } from "../shared/captions";
+import { describeElement, resolvePinElement } from "../shared/elements";
+import { createPinNumbers } from "../shared/export";
+import type { PublicProject } from "../shared/projects";
 
 export type ReplyOptions = {
   project?: string;
   list?: boolean;
+  show?: boolean;
+  json?: boolean;
   all?: boolean;
   clear?: boolean;
   help?: boolean;
   id?: string;
   note?: string;
   status?: string;
+  version?: string;
+  screen?: string;
+  tag?: string;
   author?: string;
   url?: string;
   port?: string;
 };
 
-const STATUS_ALIASES: Record<string, Status> = {
-  backlog: "OPEN",
-  open: "OPEN",
-  "in-progress": "IN_PROGRESS",
-  in_progress: "IN_PROGRESS",
-  fixed: "RESOLVED",
-  resolved: "RESOLVED",
-  "wont-fix": "WONT_FIX",
-  wont_fix: "WONT_FIX",
-  "won't-fix": "WONT_FIX",
-};
+const AGENT_STATUSES = ["OPEN", "IN_PROGRESS", "RESOLVED", "WONT_FIX"];
 
-const AGENT_STATUSES: readonly Status[] = [
-  "OPEN",
-  "IN_PROGRESS",
-  "RESOLVED",
-  "WONT_FIX",
-];
-const LABELS = STATUS_LABELS;
-
-const FLAGS = new Set(["list", "all", "clear", "help"]);
+const FLAGS = new Set(["list", "show", "json", "all", "clear", "help"]);
 
 export const REPLY_USAGE = `Usage:
-  screencheck reply --project <id> --list [--all]
+  screencheck reply --project <id> --list [--all] [--status <s,...>] [--version <v>] [--screen <id|number|title>] [--tag <tag>] [--json]
+  screencheck reply --project <id> --show --id <feedbackId> [--json]
   screencheck reply --project <id> --id <feedbackId> --note <text> [--status fixed|wont-fix|in-progress|backlog] [--author <name>]
   screencheck reply --project <id> --id <feedbackId> --clear
+--list shows open comments (Backlog, In progress); --all adds closed ones and
+--status picks exact statuses (comma-separated, e.g. fixed,verified).
+--show prints the note, what the screen shows, the element under the pin and
+the whole thread.
 Options: --url <origin> or --port <n> (default $SCREENCHECK_URL, else the
 running server in ~/.screencheck/server.json, else http://127.0.0.1:$PORT,
 port 4173 if unset)`;
@@ -84,63 +94,20 @@ export function parseReplyArgs(argv: string[]): ReplyOptions {
   return options as ReplyOptions;
 }
 
+// An agent may set Backlog, In progress, Fixed or Won't fix, by API value or
+// any of the friendly names the MCP server accepts.
 export function normalizeStatus(value: string | undefined) {
   if (value === undefined) return undefined;
-  if ((AGENT_STATUSES as readonly string[]).includes(value))
-    return value as Status;
-  if (value.toLowerCase() === "verified")
-    throw new Error("Only a reviewer can mark a comment Verified.");
-  const status = STATUS_ALIASES[value.toLowerCase()];
-  if (!status) throw new Error(`Unknown status: ${value}`);
+  const status = toApiStatus(value);
+  if (isReviewerOnlyStatus(status)) {
+    throw new Error(
+      `Only a reviewer can mark a comment ${statusLabel(status)}.`,
+    );
+  }
+  if (!AGENT_STATUSES.includes(status)) {
+    throw new Error(`Unknown status: ${value}`);
+  }
   return status;
-}
-
-function createClient(
-  origin: string,
-  project: string,
-  fetchImpl: typeof fetch,
-) {
-  const base = `${origin}/api/projects/${encodeURIComponent(project)}/feedback`;
-  async function request(url: string, init?: RequestInit) {
-    const response = await fetchImpl(url, init);
-    const body = (await response.json().catch(() => ({}))) as {
-      error?: string;
-      feedback?: unknown;
-    };
-    return { status: response.status, body };
-  }
-  return {
-    async list() {
-      const { status, body } = await request(base);
-      if (status !== 200) throw new Error(body.error ?? `HTTP ${status}`);
-      return body.feedback as FeedbackItem[];
-    },
-    patch(id: string, expectedUpdatedAt: string, patch: unknown) {
-      return request(`${base}/${encodeURIComponent(id)}`, {
-        method: "PATCH",
-        headers: { "content-type": "application/json", origin },
-        body: JSON.stringify({ expectedUpdatedAt, patch }),
-      });
-    },
-  };
-}
-
-function pinNumbers(feedback: FeedbackItem[]) {
-  const groups = new Map<string, FeedbackItem[]>();
-  for (const item of feedback) {
-    const key = `${item.version}\0${item.screenId}`;
-    groups.set(key, [...(groups.get(key) ?? []), item]);
-  }
-  const numbers = new Map<string, number>();
-  for (const items of groups.values()) {
-    items
-      .sort(
-        (a, b) =>
-          a.createdAt.localeCompare(b.createdAt) || a.id.localeCompare(b.id),
-      )
-      .forEach((item, index) => numbers.set(item.id, index + 1));
-  }
-  return numbers;
 }
 
 export type ReplyIo = {
@@ -161,6 +128,134 @@ export function replyOrigin(
   return resolveOrigin(undefined, env, readRuntime);
 }
 
+// The project's catalog entry, for screen titles, numbers and versions. Null
+// when the server has no catalog (a bare feedback API); ids are used as given.
+async function findProject(api: ApiClient, id: string) {
+  try {
+    const { projects } = await api.listProjects();
+    return projects.find((item) => item.id === id) ?? null;
+  } catch (error) {
+    if (error instanceof ApiError && error.status === 404) return null;
+    throw error;
+  }
+}
+
+function screenFilter(project: PublicProject | null, value?: string) {
+  if (!value) return undefined;
+  return project ? pickScreen(project, value)!.id : value;
+}
+
+function versionFilter(project: PublicProject | null, value?: string) {
+  if (!value) return undefined;
+  return project ? pickVersion(project, value) : value;
+}
+
+async function listComments(
+  api: ApiClient,
+  options: ReplyOptions,
+  projectId: string,
+  log: (line: string) => void,
+) {
+  const feedback = await api.listFeedback(projectId);
+  const filtered = Boolean(
+    options.version || options.screen || options.tag || options.status,
+  );
+  const project =
+    filtered || options.json ? await findProject(api, projectId) : null;
+  const numbers = createPinNumbers(asFeedbackRecords(feedback));
+  const shown = feedback.filter((item) =>
+    matchesFilter(item, {
+      version: versionFilter(project, options.version),
+      screenId: screenFilter(project, options.screen),
+      statuses: parseStatuses(options.status),
+      tag: options.tag,
+      includeClosed: options.all,
+    }),
+  );
+  if (options.json) {
+    const comments = shown
+      .map((item) => summarize(item, project, numbers))
+      .sort(compareComments(project));
+    log(
+      JSON.stringify(
+        { project: projectId, count: comments.length, feedback: comments },
+        null,
+        2,
+      ),
+    );
+    return 0;
+  }
+  for (const item of shown) {
+    log(
+      [
+        item.id,
+        `${item.version}/${item.screenId} pin ${numbers.get(item.id)}`,
+        statusLabel(item.status),
+        item.tags.join(",") || "-",
+        oneLine(item.note),
+      ].join("\t"),
+    );
+  }
+  if (!shown.length)
+    log(filtered ? "No matching feedback." : "No open feedback.");
+  return 0;
+}
+
+async function showComment(
+  api: ApiClient,
+  projectId: string,
+  feedback: ApiFeedback[],
+  record: ApiFeedback,
+  json: boolean | undefined,
+  log: (line: string) => void,
+) {
+  const project = await findProject(api, projectId);
+  const comment = summarize(
+    record,
+    project,
+    createPinNumbers(asFeedbackRecords(feedback)),
+  );
+  const screen = project?.screens.find((item) => item.id === record.screenId);
+  const caption =
+    captionFor(
+      await api.listCaptions(projectId).catch(() => []),
+      record.version,
+      record.screenId,
+    ) ??
+    screen?.description ??
+    null;
+  const mapped = resolvePinElement(
+    await api
+      .elementMap(projectId, record.version, record.screenId)
+      .catch(() => null),
+    record,
+  );
+  const element = mapped
+    ? { ...mapped, description: describeElement(mapped) }
+    : null;
+  const thread: ThreadMessage[] = Array.isArray(record.thread)
+    ? (record.thread as ThreadMessage[])
+    : [];
+  if (json) {
+    log(JSON.stringify({ comment, caption, element, thread }, null, 2));
+    return 0;
+  }
+  const lines = [
+    `${record.id}  ${record.version}/${record.screenId} pin ${comment.pin} · ${comment.statusLabel}${record.tags.length ? ` · ${record.tags.join(", ")}` : ""}`,
+    `Note: ${record.note}`,
+  ];
+  if (caption) lines.push(`Screen shows: ${caption}`);
+  if (element) lines.push(`Element under the pin: ${element.description}`);
+  if (thread.length) {
+    lines.push("Thread:");
+    for (const message of thread) lines.push(`  ${threadLine(message)}`);
+  } else if (comment.latestReply) {
+    lines.push(latestLine(comment.latestReply, true));
+  }
+  log(lines.join("\n"));
+  return 0;
+}
+
 export async function runReply(
   argv: string[],
   {
@@ -175,35 +270,24 @@ export async function runReply(
     log(REPLY_USAGE);
     return options.help ? 0 : 1;
   }
-  const origin = replyOrigin(options, env, readRuntime);
-  const client = createClient(origin, options.project, fetchImpl);
+  const api = createApiClient({
+    origin: replyOrigin(options, env, readRuntime),
+    fetchImpl,
+  });
+  const projectId = options.project;
 
-  if (options.list) {
-    const feedback = await client.list();
-    const numbers = pinNumbers(feedback);
-    const shown = feedback.filter(
-      (item) =>
-        options.all || item.status === "OPEN" || item.status === "IN_PROGRESS",
+  if (options.list) return listComments(api, options, projectId, log);
+
+  if (!options.id) {
+    throw new Error(
+      `--id is required to ${options.show ? "show a comment" : "reply"}.`,
     );
-    for (const item of shown) {
-      log(
-        [
-          item.id,
-          `${item.version}/${item.screenId} pin ${numbers.get(item.id)}`,
-          LABELS[item.status],
-          item.tags.join(",") || "-",
-          item.note.replace(/\s+/g, " "),
-        ].join("\t"),
-      );
-    }
-    if (!shown.length) log("No open feedback.");
-    return 0;
   }
-
-  if (!options.id) throw new Error("--id is required to reply.");
-  const status = normalizeStatus(options.status);
-  let patch: { reply: unknown; status?: Status };
-  if (options.clear) {
+  const status = options.show ? undefined : normalizeStatus(options.status);
+  let patch: Record<string, unknown> | undefined;
+  if (options.show) {
+    patch = undefined;
+  } else if (options.clear) {
     patch = { reply: null };
   } else {
     if (!options.note?.trim()) throw new Error("--note is required to reply.");
@@ -211,27 +295,18 @@ export async function runReply(
       reply: { note: options.note, author: options.author ?? "Agent" },
     };
   }
-  if (status) patch.status = status;
+  if (patch && status) patch.status = status;
 
-  // Re-read and retry once if the reviewer edited the comment meanwhile.
-  for (let attempt = 0; attempt < 2; attempt += 1) {
-    const current = (await client.list()).find(
-      (item) => item.id === options.id,
-    );
-    if (!current) throw new Error(`No feedback with id ${options.id}.`);
-    const { status: code, body } = await client.patch(
-      current.id,
-      current.updatedAt,
-      patch,
-    );
-    if (code === 200) {
-      const updated = body.feedback as FeedbackItem;
-      log(
-        `${options.clear ? "Cleared reply on" : "Replied to"} ${current.id} (${LABELS[updated.status]}).`,
-      );
-      return 0;
-    }
-    if (code !== 409) throw new Error(body.error ?? `HTTP ${code}`);
+  const feedback = await api.listFeedback(projectId);
+  const current = feedback.find((item) => item.id === options.id);
+  if (!current) throw new Error(`No feedback with id ${options.id}.`);
+  if (!patch) {
+    return showComment(api, projectId, feedback, current, options.json, log);
   }
-  throw new Error("Feedback kept changing; try again.");
+
+  const updated = await patchWithRetry(api, projectId, current, patch);
+  log(
+    `${options.clear ? "Cleared reply on" : "Replied to"} ${current.id} (${statusLabel(updated.status)}).`,
+  );
+  return 0;
 }

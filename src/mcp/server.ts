@@ -18,25 +18,38 @@ import {
   PRIORITY_TAGS,
   priorityTag,
   REPLY_MAX_LENGTH,
-  type FeedbackRecord,
 } from "../shared/feedback";
 import { createPinNumbers, serializeMarkdown } from "../shared/export";
 import type { PublicProject, PublicScreen } from "../shared/projects";
 import {
-  ApiError,
   createApiClient,
   ToolError,
   type ApiClient,
   type ApiFeedback,
-} from "./client";
-import { renderPinImage } from "./crop";
+} from "../agent-api/client";
+import {
+  asFeedbackRecords,
+  compareComments,
+  formatComment,
+  latestLine,
+  pickProject,
+  pickScreen,
+  pickVersion,
+  screenLabel,
+  summarize,
+  threadLine,
+  type Comment,
+  type ThreadMessage,
+} from "../agent-api/comments";
+import { patchWithRetry } from "../agent-api/patch";
 import {
   isClosingStatus,
   isOpenStatus,
   isReviewerOnlyStatus,
   statusLabel,
   toApiStatus,
-} from "./status";
+} from "../agent-api/status";
+import { renderPinImage } from "./crop";
 
 export type McpServerOptions = {
   origin?: string;
@@ -48,91 +61,11 @@ const VERSION = "0.1.0";
 
 const INSTRUCTIONS = `ScreenCheck holds design-review feedback: numbered pins on screen captures, each with a note, tags (P0/P1/P2 priority plus free text) and a status.
 Typical loop: list_feedback to see open comments, get_comment for the note and a crop of the capture around the pin, fix the code, then reply with what you did and status "fixed" (or "wont-fix" with the reason).
+Each comment's latest message is labelled Reviewer or Agent; awaitingAgent means the reviewer spoke last (for example, reopened a fix with a reason).
 Only a reviewer can verify a fix or approve a screen.`;
 
 const STATUS_HELP =
   "backlog, in-progress, fixed or wont-fix (API values like RESOLVED also work)";
-
-type Comment = ReturnType<typeof summarize>;
-
-function percent(value: number) {
-  return `${Math.round(value * 100)}%`;
-}
-
-function oneLine(value: string) {
-  return value.replace(/\s+/g, " ").trim();
-}
-
-function asFeedbackRecords(feedback: ApiFeedback[]) {
-  return feedback as unknown as FeedbackRecord[];
-}
-
-// The newest answer on a comment: the last thread message once threads
-// exist, otherwise the single reply.
-function latestReply(record: ApiFeedback) {
-  if (Array.isArray(record.thread) && record.thread.length > 0) {
-    const last = record.thread.at(-1) as Record<string, unknown>;
-    const note = last.note ?? last.text ?? last.body;
-    if (typeof note === "string") {
-      return {
-        note,
-        author: typeof last.author === "string" ? last.author : "",
-        at: typeof last.at === "string" ? last.at : "",
-      };
-    }
-  }
-  return record.reply ?? null;
-}
-
-function summarize(
-  record: ApiFeedback,
-  project: PublicProject,
-  pinNumbers: Map<string, number>,
-) {
-  const screen = project.screens.find((item) => item.id === record.screenId);
-  return {
-    id: record.id,
-    project: project.id,
-    version: record.version,
-    screen: {
-      id: record.screenId,
-      title: screen?.title ?? record.screenId,
-      ordinal: screen?.ordinal ?? null,
-    },
-    pin: pinNumbers.get(record.id) ?? 0,
-    status: record.status,
-    statusLabel: statusLabel(record.status),
-    tags: record.tags,
-    priority: priorityTag(record.tags),
-    note: record.note,
-    position: { x: record.x, y: record.y },
-    latestReply: latestReply(record),
-    createdAt: record.createdAt,
-    updatedAt: record.updatedAt,
-  };
-}
-
-function screenLabel(comment: Comment) {
-  const ordinal =
-    comment.screen.ordinal === null
-      ? ""
-      : `${String(comment.screen.ordinal).padStart(2, "0")} `;
-  return `${comment.version} / ${ordinal}${comment.screen.title}`;
-}
-
-function formatComment(comment: Comment) {
-  const tags = comment.tags.length ? ` · ${comment.tags.join(", ")}` : "";
-  const lines = [
-    `Pin ${comment.pin} on ${screenLabel(comment)}${tags} · ${comment.statusLabel} · at (${percent(comment.position.x)}, ${percent(comment.position.y)}) · id ${comment.id}`,
-    `  ${oneLine(comment.note)}`,
-  ];
-  if (comment.latestReply) {
-    lines.push(
-      `  Reply (${comment.latestReply.author || "unknown"}): ${oneLine(comment.latestReply.note)}`,
-    );
-  }
-  return lines.join("\n");
-}
 
 function textResult(
   text: string,
@@ -157,65 +90,6 @@ function guarded<A>(handler: (args: A) => Promise<CallToolResult>) {
       );
     }
   };
-}
-
-function pickProject(projects: PublicProject[], id?: string) {
-  const ids = projects.map((item) => item.id).join(", ");
-  if (id) {
-    const project = projects.find((item) => item.id === id);
-    if (!project)
-      throw new ToolError(`Unknown project "${id}". Projects: ${ids}.`);
-    return project;
-  }
-  if (projects.length === 1) return projects[0]!;
-  throw new ToolError(
-    projects.length === 0
-      ? "No projects are registered."
-      : `Several projects are registered; pass project (one of ${ids}).`,
-  );
-}
-
-function pickVersion(project: PublicProject, version?: string) {
-  if (!version) return undefined;
-  if (!project.versions.includes(version)) {
-    throw new ToolError(
-      `Project ${project.id} has no version "${version}". Versions: ${project.versions.join(", ")}.`,
-    );
-  }
-  return version;
-}
-
-// Matches a screen by id, then by its number in the index, then by title.
-function pickScreen(project: PublicProject, value?: string) {
-  if (!value) return undefined;
-  const wanted = value.trim();
-  const screen =
-    project.screens.find((item) => item.id === wanted) ??
-    (/^\d+$/.test(wanted)
-      ? project.screens.find((item) => item.ordinal === Number(wanted))
-      : undefined) ??
-    project.screens.find(
-      (item) => item.title.toLowerCase() === wanted.toLowerCase(),
-    );
-  if (!screen) {
-    throw new ToolError(
-      `Project ${project.id} has no screen "${value}". Screens: ${project.screens.map((item) => item.id).join(", ")}.`,
-    );
-  }
-  return screen;
-}
-
-function compareComments(project: PublicProject) {
-  const versionIndex = (version: string) => {
-    const index = project.versions.indexOf(version);
-    return index === -1 ? Number.MAX_SAFE_INTEGER : index;
-  };
-  return (left: Comment, right: Comment) =>
-    versionIndex(left.version) - versionIndex(right.version) ||
-    (left.screen.ordinal ?? Number.MAX_SAFE_INTEGER) -
-      (right.screen.ordinal ?? Number.MAX_SAFE_INTEGER) ||
-    left.screen.id.localeCompare(right.screen.id) ||
-    left.pin - right.pin;
 }
 
 function openByPriority(records: ApiFeedback[]) {
@@ -283,31 +157,14 @@ export function createMcpServer(options: McpServerOptions = {}): McpServer {
     );
   }
 
-  // Re-reads and retries once if the reviewer edited the comment meanwhile.
-  async function patchComment(
+  // Re-reads and retries once if the reviewer edited the comment meanwhile,
+  // without overriding a status the reviewer just set.
+  function patchComment(
     projectId: string,
     current: ApiFeedback,
     patch: Record<string, unknown>,
   ) {
-    let record = current;
-    for (let attempt = 0; attempt < 2; attempt += 1) {
-      try {
-        return await api.patchFeedback(
-          projectId,
-          record.id,
-          record.updatedAt,
-          patch,
-        );
-      } catch (error) {
-        if (!(error instanceof ApiError) || error.status !== 409) throw error;
-        const fresh = (await api.listFeedback(projectId)).find(
-          (item) => item.id === record.id,
-        );
-        if (!fresh) throw new ToolError(`Comment ${record.id} was deleted.`);
-        record = fresh;
-      }
-    }
-    throw new ToolError("The comment kept changing; try again.");
+    return patchWithRetry(api, projectId, current, patch);
   }
 
   function agentStatus(value: string | undefined) {
@@ -549,9 +406,7 @@ export function createMcpServer(options: McpServerOptions = {}): McpServer {
         lines.push("Thread:");
         for (const message of thread) lines.push(`  ${threadLine(message)}`);
       } else if (comment.latestReply) {
-        lines.push(
-          `Reply (${comment.latestReply.author || "unknown"}, ${comment.latestReply.at}): ${comment.latestReply.note}`,
-        );
+        lines.push(latestLine(comment.latestReply, true));
       }
       if (image) {
         lines.push(
@@ -838,20 +693,6 @@ Do not try to verify or approve anything; the reviewer does that.`,
   );
 
   return server;
-}
-
-type ThreadMessage = {
-  author?: string;
-  role?: string;
-  note?: string;
-  at?: string;
-  status?: string;
-};
-
-function threadLine(message: ThreadMessage) {
-  const who = message.role === "reviewer" ? "Reviewer" : "Agent";
-  const status = message.status ? ` -> ${statusLabel(message.status)}` : "";
-  return `${who} (${message.author || "unknown"}, ${message.at ?? ""})${status}: ${message.note ?? ""}`;
 }
 
 export async function runMcpServer(

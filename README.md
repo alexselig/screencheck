@@ -240,6 +240,14 @@ through `~/.screencheck/server.json`, or pass `--url` / `--port`):
 # Open comments, tab-separated: id, version/screen pin N, status, tags, note
 npx screencheck reply --project shop --list
 
+# Narrow it down; --status takes a comma-separated list
+npx screencheck reply --project shop --list --screen 3 --tag P0
+npx screencheck reply --project shop --list --status fixed,wont-fix --json
+
+# One comment in full: note, what the screen shows, the element under the pin
+# and the whole thread
+npx screencheck reply --project shop --show --id <feedbackId>
+
 # Say what was done and mark it Fixed (or --status wont-fix with the reason)
 npx screencheck reply --project shop \
   --id <feedbackId> --status fixed --author Copilot \
@@ -248,13 +256,21 @@ npx screencheck reply --project shop \
 
 From a clone, `node scripts/reply.mjs` still works with the same flags.
 
-`--status` accepts `fixed`, `wont-fix`, `in-progress` or `backlog` and may be
-left out to reply without moving the comment. Each reply is added to the
-comment's thread; `--clear` removes the latest agent reply. Agents cannot mark
-a comment Verified: they set Fixed and the reviewer verifies it in ScreenCheck.
-Markdown exports list each comment's `id` so the agent can address it; if the
-reviewer edits a comment at the same moment, the script re-reads and retries
-once.
+`--status` accepts the same names as the MCP server (`fixed`, `wont-fix`,
+`in-progress`, `backlog`, or API values like `RESOLVED`) and may be left out to
+reply without moving the comment. Each reply is added to the comment's thread;
+`--clear` removes the latest agent reply. Agents cannot mark a comment
+Verified: they set Fixed and the reviewer verifies it in ScreenCheck.
+`--screen` takes a screen id, its number in the index or its title. `--json`
+prints the same comment objects as the MCP `list_feedback` tool. Markdown
+exports list each comment's `id` so the agent can address it.
+
+The CLI and the MCP server share one API client, so they number pins, name
+statuses and handle conflicts the same way. If the reviewer edits a comment at
+the same moment, the reply re-reads it and retries once. If the reviewer
+changed its status meanwhile (verified it, reopened it), the agent's note is
+still added but its status change is dropped, and the command fails with a
+message naming the reviewer's change, so the agent rereads before acting.
 
 ## MCP server
 
@@ -268,14 +284,14 @@ It finds the running server on its own: `--url`, then `SCREENCHECK_URL`, then
 looks this up on every call, so it can start before ScreenCheck does; until
 then each tool says ScreenCheck isn't running.
 
-| Tool              | What it does                                                                                                                                                   |
-| ----------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `list_projects`   | Projects, versions and screens, with open-comment counts                                                                                                       |
-| `list_feedback`   | Comments with pin number, screen, status, tags, note, latest reply and pin position. Filters: `project`, `version`, `screen`, `status`, `tag`, `includeClosed` |
-| `get_comment`     | One comment in full, the screen's caption, and a crop of the capture around the pin with the pin circled (`fullCapture: true` for the whole screen)            |
-| `reply`           | Answer a comment (`note`) and optionally set `status`; retries once if the reviewer edited it meanwhile                                                        |
-| `set_status`      | Change status without a note (closing as fixed or won't fix still needs `reply`)                                                                               |
-| `approval_status` | Per-screen approval and open comments by priority for a version, e.g. `7/9 approved, 3 open (1 P0)`                                                            |
+| Tool              | What it does                                                                                                                                                                                  |
+| ----------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `list_projects`   | Projects, versions and screens, with open-comment counts                                                                                                                                      |
+| `list_feedback`   | Comments with pin number, screen, status, tags, note, latest message (labelled Reviewer or Agent) and pin position. Filters: `project`, `version`, `screen`, `status`, `tag`, `includeClosed` |
+| `get_comment`     | One comment in full, the screen's caption, and a crop of the capture around the pin with the pin circled (`fullCapture: true` for the whole screen)                                           |
+| `reply`           | Answer a comment (`note`) and optionally set `status`; retries once if the reviewer edited it meanwhile, but never overrides a status the reviewer just set                                   |
+| `set_status`      | Change status without a note (closing as fixed or won't fix still needs `reply`)                                                                                                              |
+| `approval_status` | Per-screen approval and open comments by priority for a version, e.g. `7/9 approved, 3 open (1 P0)`                                                                                           |
 
 Statuses take the friendly names `backlog`, `in-progress`, `fixed` and
 `wont-fix`. Agents can't set `verified`; only a reviewer can. Each project's
@@ -283,6 +299,9 @@ Markdown export is also a resource (`screencheck://project/<id>/feedback.md`),
 and the `fix_open_feedback` prompt walks an agent through the open P0 and P1
 comments. Replies are signed `Agent` unless the tool call passes `author` or
 the server is started with `--author <name>` (or `SCREENCHECK_AUTHOR`).
+Each comment's latest message says who wrote it (`Reviewer (Alex): …` or
+`Agent (Copilot): …`), and `awaitingAgent: true` marks comments where the
+reviewer spoke last, such as a fix reopened with a reason.
 
 The command is `npx -y screencheck mcp` (or `screencheck mcp` if it's
 installed globally). From a clone, use
