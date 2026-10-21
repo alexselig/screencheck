@@ -1271,7 +1271,7 @@ h1 {
   row-gap: var(--space-1);
   align-items: start;
   padding: var(--space-3);
-  border: 1px solid var(--line);
+  border: 1px solid var(--line-strong);
   background: var(--surface);
   color: var(--ink);
   text-align: left;
@@ -1364,6 +1364,18 @@ h1 {
 
 .feedback-comment > .pin-dot {
   grid-row: 1 / span 3;
+}
+
+/* Notes read as body text; only the selected card's note is bold. */
+.feedback-comment-note {
+  color: var(--ink);
+  font-size: 15px;
+  font-weight: 500;
+  line-height: 1.45;
+}
+
+.feedback-comment[aria-pressed="true"] .feedback-comment-note {
+  font-weight: 700;
 }
 
 .feedback-comment[aria-pressed="true"] {
@@ -1648,8 +1660,8 @@ button.tag-chip:hover {
   gap: var(--space-2);
   /* Lines up with the note: card padding, the 30px dot, the column gap. */
   padding: var(--space-2) var(--space-3) var(--space-2)
-    calc(var(--space-3) + 30px + var(--space-2));
-  border: 1px solid var(--line);
+    calc(var(--space-3) + 30px + var(--space-3));
+  border: 1px solid var(--line-strong);
   border-top: 0;
   background: var(--surface);
 }
@@ -1826,9 +1838,9 @@ button.tag-chip:hover {
   letter-spacing: 0;
 }
 
-.feedback-section.status-resolved .feedback-comment strong,
-.feedback-section.status-verified .feedback-comment strong,
-.feedback-section.status-wont_fix .feedback-comment strong {
+.feedback-section.status-resolved .feedback-comment-note,
+.feedback-section.status-verified .feedback-comment-note,
+.feedback-section.status-wont_fix .feedback-comment-note {
   color: var(--ink-muted);
 }
 

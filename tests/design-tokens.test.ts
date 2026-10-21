@@ -159,3 +159,18 @@ describe("states", () => {
     );
   });
 });
+
+describe("feedback cards", () => {
+  it("renders notes as body text, bold only when selected (ds-7)", () => {
+    expect(ruleBody(".feedback-comment-note")).toMatch(/font-weight: 500;/);
+    expect(
+      ruleBody('.feedback-comment[aria-pressed="true"] .feedback-comment-note'),
+    ).toMatch(/font-weight: 700;/);
+  });
+
+  it("draws card edges with the strong rule (ds-20)", () => {
+    expect(ruleBody(".feedback-comment")).toMatch(
+      /border: 1px solid var\(--line-strong\);/,
+    );
+  });
+});

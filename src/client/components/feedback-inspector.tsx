@@ -1221,7 +1221,7 @@ export function FeedbackInspector({
           >
             {pinNumbers.get(item.id) ?? 0}
           </span>
-          <strong>{item.note}</strong>
+          <span className="feedback-comment-note">{item.note}</span>
           <ElementLine projectId={projectId} pin={item} />
           {otherTags.length ? (
             <span className="feedback-comment-tags">

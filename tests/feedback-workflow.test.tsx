@@ -109,7 +109,7 @@ describe("feedback workflow integration", () => {
     expect(list.querySelectorAll(".feedback-list > li")).toHaveLength(1);
     expect(
       screen.queryByText("Only once.", {
-        selector: ".feedback-comment strong",
+        selector: ".feedback-comment-note",
       }),
     ).toBeNull();
     expect(

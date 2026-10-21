@@ -56,7 +56,7 @@ async function stored(id: string) {
 
 async function openCard(note: string) {
   const card = await screen.findByText(note, {
-    selector: ".feedback-comment strong",
+    selector: ".feedback-comment-note",
   });
   fireEvent.click(card.closest("button")!);
   return screen.getByRole("textbox", { name: "Feedback note" });
