@@ -33,10 +33,8 @@ import {
   FEEDBACK_STATUSES,
   isOpenFeedback,
   normalizePinCoordinates,
-  type CreateFeedbackInput,
   type FeedbackRecord,
   type FeedbackStatus,
-  type UpdateFeedbackInput,
 } from "../shared/feedback";
 import {
   captureUrl,
@@ -45,19 +43,16 @@ import {
   type PublicScreen,
 } from "../shared/projects";
 import {
-  FeedbackApiError,
   fetchApprovals,
   fetchCaptions,
   fetchFeedback,
   fetchProjects,
   migrateLegacyFeedback,
-  patchFeedback,
-  postFeedback,
   putApproval,
   putCaption,
-  removeFeedback,
 } from "./feedback-api";
 import { SHORTCUTS, useShortcuts } from "./shortcuts";
+import { useFeedbackStore } from "./use-feedback-store";
 import { versionModel } from "./versions";
 
 type Place = { project?: string; version?: string; screen?: string };
@@ -499,98 +494,14 @@ function Workbench({
     setSelectedFeedbackId(null);
   }, []);
 
-  const upsertRecord = useCallback((record: FeedbackRecord) => {
-    setFeedbackRecords((current) =>
-      current.some((item) => item.id === record.id)
-        ? current.map((item) => (item.id === record.id ? record : item))
-        : [...current, record],
-    );
+  const clearSelectionOnDelete = useCallback((id: string) => {
+    setSelectedFeedbackId((current) => (current === id ? null : current));
   }, []);
-
-  // Writes run one at a time. Each records the revision it replaced, so a
-  // write queued behind this tab's own save is rebased onto that save instead
-  // of failing; a change made elsewhere still surfaces as a 409 conflict.
-  const mutationChainRef = useRef<Promise<unknown>>(Promise.resolve());
-  const ownRevisionsRef = useRef(new Map<string, string>());
-
-  const enqueue = useCallback(<T,>(operation: () => Promise<T>) => {
-    const run = mutationChainRef.current.catch(() => undefined).then(operation);
-    mutationChainRef.current = run;
-    return run;
-  }, []);
-
-  const latestOwnRevision = useCallback((id: string, expected: string) => {
-    let revision = expected;
-    while (ownRevisionsRef.current.has(`${id}@${revision}`)) {
-      revision = ownRevisionsRef.current.get(`${id}@${revision}`)!;
-    }
-    return revision;
-  }, []);
-
-  const withConflictRefresh = useCallback(
-    async <T,>(operation: () => Promise<T>) => {
-      try {
-        return await operation();
-      } catch (error) {
-        if (error instanceof FeedbackApiError && error.current) {
-          upsertRecord(error.current);
-        }
-        throw error;
-      }
-    },
-    [upsertRecord],
-  );
-
-  const createFeedback = useCallback(
-    (input: CreateFeedbackInput) =>
-      enqueue(async () => {
-        const created = await postFeedback(project.id, input);
-        upsertRecord(created);
-        return created;
-      }),
-    [enqueue, project.id, upsertRecord],
-  );
-
-  const updateFeedback = useCallback(
-    (id: string, input: UpdateFeedbackInput) =>
-      enqueue(() =>
-        withConflictRefresh(async () => {
-          const expectedUpdatedAt = latestOwnRevision(
-            id,
-            input.expectedUpdatedAt,
-          );
-          const updated = await patchFeedback(project.id, id, {
-            ...input,
-            expectedUpdatedAt,
-          });
-          ownRevisionsRef.current.set(
-            `${id}@${expectedUpdatedAt}`,
-            updated.updatedAt,
-          );
-          upsertRecord(updated);
-          return updated;
-        }),
-      ),
-    [enqueue, latestOwnRevision, project.id, upsertRecord, withConflictRefresh],
-  );
-
-  const deleteFeedback = useCallback(
-    (id: string, expectedUpdatedAt: string) =>
-      enqueue(() =>
-        withConflictRefresh(async () => {
-          await removeFeedback(
-            project.id,
-            id,
-            latestOwnRevision(id, expectedUpdatedAt),
-          );
-          setFeedbackRecords((current) =>
-            current.filter((item) => item.id !== id),
-          );
-          setSelectedFeedbackId((current) => (current === id ? null : current));
-        }),
-      ),
-    [enqueue, latestOwnRevision, project.id, withConflictRefresh],
-  );
+  const { createFeedback, updateFeedback, deleteFeedback } = useFeedbackStore({
+    projectId: project.id,
+    setRecords: setFeedbackRecords,
+    onDeleted: clearSelectionOnDelete,
+  });
 
   const togglePinStatus = useCallback((status: FeedbackStatus) => {
     setHiddenPinStatuses((current) => {

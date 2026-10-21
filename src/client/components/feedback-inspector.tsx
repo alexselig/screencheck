@@ -11,7 +11,9 @@ import {
 
 import { createPinNumbers } from "../../shared/export";
 import { ElementLine } from "./element-line";
-import { type ApproveShortcut, SHORTCUTS } from "../shortcuts";
+import type { ApproveShortcut } from "../shortcuts";
+import { ApprovalBar } from "./approval-bar";
+import { VerifyActions } from "./verify-actions";
 import {
   FEEDBACK_STATUSES,
   STATUS_LABELS,
@@ -92,7 +94,6 @@ function sameTarget(left: SaveTarget, right: SaveTarget) {
 const RECOVERY_PREFIX = "screencheck.feedback-recovery.v1:";
 const COLLAPSED_STATUSES_KEY = "screencheck:collapsed-feedback-statuses";
 const NOTE_SAVE_DELAY_MS = 500;
-const shortcutLabel = SHORTCUTS.approve.label;
 
 function recoveryStorageKey(projectId: string) {
   return `${RECOVERY_PREFIX}${projectId}`;
@@ -972,92 +973,36 @@ export function FeedbackInspector({
 
   function verifyActions(item: FeedbackRecord) {
     const pin = pinNumbers.get(item.id) ?? 0;
-    const reopening = reopeningId === item.id;
     return (
-      <div
-        aria-label={`Check the fix for pin ${pin}`}
-        className="feedback-verify"
-        role="group"
-      >
-        {reopening ? (
-          <label>
-            Why reopen?
-            <textarea
-              aria-label={`Why reopen pin ${pin}?`}
-              autoFocus
-              onChange={(event) => setReopenDraft(event.target.value)}
-              placeholder="What still needs to change?"
-              value={reopenDraft}
-            />
-          </label>
-        ) : null}
-        <div className="feedback-verify-buttons">
-          {reopening ? (
-            <>
-              <button
-                className="feedback-reopen-confirm"
-                // The reason is the agent's instruction; reopening without one
-                // tells it nothing.
-                disabled={!reopenDraft.trim()}
-                onClick={() => {
-                  const note = reopenDraft.trim();
-                  if (!note) return;
-                  void updateCard(item, {
-                    status: "OPEN",
-                    message: { note, role: "reviewer" },
-                  });
-                }}
-                type="button"
-              >
-                Reopen
-              </button>
-              <button
-                onClick={() => {
-                  setReopeningId(null);
-                  setCardMessage(null);
-                  requestFocus(() =>
-                    asideRef.current?.querySelector<HTMLElement>(
-                      `[aria-label="Reopen pin ${pin}"]`,
-                    ),
-                  );
-                }}
-                type="button"
-              >
-                Cancel
-              </button>
-            </>
-          ) : (
-            <>
-              {item.status === "RESOLVED" ? (
-                <button
-                  aria-label={`Verify pin ${pin}`}
-                  className="feedback-verify-button"
-                  onClick={() => void updateCard(item, { status: "VERIFIED" })}
-                  type="button"
-                >
-                  Verify
-                </button>
-              ) : null}
-              <button
-                aria-label={`Reopen pin ${pin}`}
-                onClick={() => {
-                  setReopenDraft("");
-                  setCardMessage(null);
-                  setReopeningId(item.id);
-                }}
-                type="button"
-              >
-                Reopen
-              </button>
-            </>
-          )}
-        </div>
-        {cardMessage?.id === item.id ? (
-          <span aria-live="polite" className="feedback-verify-state">
-            {cardMessage.text}
-          </span>
-        ) : null}
-      </div>
+      <VerifyActions
+        message={cardMessage?.id === item.id ? cardMessage.text : undefined}
+        onCancelReopen={() => {
+          setReopeningId(null);
+          setCardMessage(null);
+          requestFocus(() =>
+            asideRef.current?.querySelector<HTMLElement>(
+              `[aria-label="Reopen pin ${pin}"]`,
+            ),
+          );
+        }}
+        onConfirmReopen={(note) =>
+          void updateCard(item, {
+            status: "OPEN",
+            message: { note, role: "reviewer" },
+          })
+        }
+        onReopenDraftChange={setReopenDraft}
+        onStartReopen={() => {
+          setReopenDraft("");
+          setCardMessage(null);
+          setReopeningId(item.id);
+        }}
+        onVerify={() => void updateCard(item, { status: "VERIFIED" })}
+        pin={pin}
+        reopenDraft={reopenDraft}
+        reopening={reopeningId === item.id}
+        status={item.status}
+      />
     );
   }
 
@@ -1660,62 +1605,17 @@ export function FeedbackInspector({
       })}
 
       {approval ? (
-        <div className="screen-approval">
-          {confirmingApproval && !approval.approved && unverifiedFixes > 0 ? (
-            <div
-              aria-label="Confirm approval"
-              className="screen-approval-confirm"
-              onKeyDown={(event) => {
-                if (event.key !== "Escape") return;
-                event.preventDefault();
-                closeApprovalConfirm();
-              }}
-              role="group"
-            >
-              <span>
-                {unverifiedFixes} fix{unverifiedFixes === 1 ? "" : "es"} not
-                verified. Approve anyway?
-              </span>
-              <button
-                className="screen-approval-anyway"
-                onClick={() => {
-                  closeApprovalConfirm();
-                  approval.onToggle();
-                }}
-                type="button"
-              >
-                Approve
-              </button>
-              <button autoFocus onClick={closeApprovalConfirm} type="button">
-                Cancel
-              </button>
-            </div>
-          ) : (
-            <button
-              aria-pressed={approval.approved}
-              className="screen-approval-toggle"
-              ref={approvalToggleRef}
-              // Wait for feedback too, so unverified fixes are counted.
-              disabled={!approval.ready || !ready}
-              onClick={() => {
-                if (!approval.approved && unverifiedFixes > 0) {
-                  setConfirmingApproval(true);
-                } else {
-                  approval.onToggle();
-                }
-              }}
-              aria-keyshortcuts={SHORTCUTS.approve.aria}
-              title={`${approval.approved ? "Click to unapprove" : "Approve screen"} (${shortcutLabel})`}
-              type="button"
-            >
-              <span aria-hidden="true" className="screen-approval-box">
-                {approval.approved ? "✓" : ""}
-              </span>
-              {approval.approved ? "Screen approved" : "Approve screen"}
-              <kbd aria-hidden="true">{shortcutLabel}</kbd>
-            </button>
-          )}
-        </div>
+        <ApprovalBar
+          approved={approval.approved}
+          confirming={confirmingApproval}
+          // Wait for feedback too, so unverified fixes are counted.
+          disabled={!approval.ready || !ready}
+          onAskConfirm={() => setConfirmingApproval(true)}
+          onCloseConfirm={closeApprovalConfirm}
+          onToggle={approval.onToggle}
+          toggleRef={approvalToggleRef}
+          unverifiedFixes={unverifiedFixes}
+        />
       ) : null}
     </aside>
   );
