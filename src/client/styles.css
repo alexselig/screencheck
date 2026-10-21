@@ -250,8 +250,10 @@ h1 {
   outline-offset: 0;
 }
 
+/* One disabled recipe for Prev/Next, Export, Download and Approve. */
 .action-bar-nav button:disabled {
-  color: var(--ink-muted);
+  color: var(--line-strong);
+  font-weight: 600;
   cursor: not-allowed;
 }
 
@@ -327,7 +329,8 @@ h1 {
 }
 
 .action-bar-export:disabled {
-  color: var(--ink-muted);
+  color: var(--line-strong);
+  font-weight: 600;
   cursor: not-allowed;
 }
 
@@ -348,7 +351,7 @@ h1 {
   overflow: auto;
   gap: var(--space-3);
   padding: var(--space-4);
-  border-top: 4px solid var(--bauhaus-orange);
+  border-top: 4px solid var(--ink);
   background: var(--surface);
   color: var(--ink);
 }
@@ -434,7 +437,10 @@ h1 {
 }
 
 .export-dialog-actions .export-download:disabled {
-  opacity: 0.45;
+  border-color: var(--line-strong);
+  background: var(--surface);
+  color: var(--line-strong);
+  font-weight: 600;
   cursor: not-allowed;
 }
 
@@ -1063,8 +1069,8 @@ h1 {
 .fullscreen-edge-feedback .fullscreen-edge-handle {
   border-right: 0;
   border-left: 1px solid var(--ink);
-  background: var(--bauhaus-orange);
-  color: var(--ink);
+  background: var(--ink);
+  color: var(--surface);
 }
 
 /* Collapsed handles stay grey so they don't compete with the screen. */
@@ -1476,9 +1482,12 @@ button.tag-chip:hover {
   color: var(--surface);
 }
 
+/* Orange is kept for the loud action and unresolved pins; P1 is an ink
+   chip with an orange tick. */
 .tag-suggested.tag-p1[aria-pressed="true"] {
-  border-color: var(--bauhaus-orange);
-  background: var(--bauhaus-orange);
+  border-color: var(--ink);
+  background: var(--surface);
+  box-shadow: inset 4px 0 0 var(--bauhaus-orange);
   color: var(--ink);
 }
 
@@ -1836,7 +1845,7 @@ button.tag-chip:hover {
 }
 
 .feedback-group-title.tag-p1::before {
-  background: var(--bauhaus-orange);
+  background: var(--ink);
 }
 
 .feedback-count {
@@ -2286,7 +2295,7 @@ button.tag-chip:hover {
   text-transform: none;
 }
 
-.screen-approval-toggle:hover {
+.screen-approval-toggle:hover:not(:disabled) {
   background: var(--surface-alt);
 }
 
@@ -2302,7 +2311,10 @@ button.tag-chip:hover {
 }
 
 .screen-approval-toggle:disabled {
-  opacity: 0.5;
+  border-color: var(--line-strong);
+  background: var(--surface);
+  color: var(--line-strong);
+  font-weight: 600;
   cursor: not-allowed;
 }
 

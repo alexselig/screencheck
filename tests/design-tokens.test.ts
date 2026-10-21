@@ -118,9 +118,12 @@ describe("type and control scale", () => {
         expect(["0.12em", "inherit"]).toContain(spacing);
       }
     }
-    // 600 is kept only for the rail numerals (ds-35).
-    expect(rules.match(/font-weight: 600;/g)).toHaveLength(1);
-    expect(ruleBody(".screen-ordinal")).toMatch(/font-weight: 600;/);
+    // 600 is kept for the rail numerals (ds-35) and disabled controls (ds-32).
+    for (const match of rules.matchAll(
+      /\n([^{}\n]+) \{[^}]*font-weight: 600;/g,
+    )) {
+      expect(match[1]).toMatch(/^\.screen-ordinal$|:disabled$/);
+    }
   });
 
   it("keeps passive counts and filters out of action blue (ds-19)", () => {
@@ -195,5 +198,37 @@ describe("rail rows", () => {
   it("keeps the version outside the truncating title (ds-12)", () => {
     expect(ruleBody(".screen-version")).toMatch(/flex: none;/);
     expect(ruleBody(".screen-version")).not.toMatch(/overflow/);
+  });
+});
+
+describe("colour roles", () => {
+  it("spends orange on the loud action and unresolved marks only (ds-18)", () => {
+    expect(ruleBody('.tag-suggested.tag-p1[aria-pressed="true"]')).toMatch(
+      /background: var\(--surface\);[\s\S]*inset 4px 0 0 var\(--bauhaus-orange\)/,
+    );
+    expect(
+      ruleBody(".fullscreen-edge-feedback .fullscreen-edge-handle"),
+    ).toMatch(/background: var\(--ink\);/);
+    expect(ruleBody(".export-dialog")).toMatch(
+      /border-top: 4px solid var\(--ink\);/,
+    );
+    expect(ruleBody(".feedback-group-title.tag-p1::before")).not.toMatch(
+      /orange/,
+    );
+  });
+
+  it("uses one disabled recipe without opacity (ds-32)", () => {
+    expect(rules).not.toMatch(/opacity: 0\.[45]/);
+    for (const selector of [
+      ".action-bar-nav button:disabled",
+      ".action-bar-export:disabled",
+      ".export-dialog-actions .export-download:disabled",
+      ".screen-approval-toggle:disabled",
+    ]) {
+      const body = ruleBody(selector);
+      expect(body).toMatch(/color: var\(--line-strong\);/);
+      expect(body).toMatch(/font-weight: 600;/);
+      expect(body).toMatch(/cursor: not-allowed;/);
+    }
   });
 });
