@@ -254,4 +254,14 @@ describe("panel layout", () => {
       /border-color: transparent;/,
     );
   });
+
+  it("gives the empty panel a blue-soft field with a blue rule (ds-30)", () => {
+    const empty = ruleBody(".feedback-empty");
+    expect(empty).toMatch(/border-left: 4px solid var\(--bauhaus-blue\);/);
+    expect(empty).toMatch(/background: var\(--blue-soft\);/);
+    expect(empty).not.toMatch(/dashed/);
+    expect(ruleBody(".feedback-empty-add")).toMatch(
+      /min-height: var\(--size-touch\);/,
+    );
+  });
 });

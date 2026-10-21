@@ -830,6 +830,8 @@ function Workbench({
         setDraftPin(pin);
       }}
       onSelectFeedback={setSelectedFeedbackId}
+      onAddFeedback={startPin}
+      onSelectScreen={(screenId) => selectRailItem({ screenId })}
       onUpdate={updateFeedback}
       onDelete={deleteFeedback}
       onVisibleFeedbackChange={setVisibleFeedback}

@@ -1,6 +1,7 @@
 import {
   useCallback,
   useEffect,
+  useId,
   useLayoutEffect,
   useMemo,
   useRef,
@@ -11,7 +12,7 @@ import {
 
 import { createPinNumbers } from "../../shared/export";
 import { ElementLine } from "./element-line";
-import type { ApproveShortcut } from "../shortcuts";
+import { SHORTCUTS, type ApproveShortcut } from "../shortcuts";
 import { ApprovalBar } from "./approval-bar";
 import { VerifyActions } from "./verify-actions";
 import {
@@ -19,6 +20,7 @@ import {
   STATUS_LABELS,
   PRIORITY_TAGS,
   feedbackThread,
+  isOpenFeedback,
   migrateLegacyTags,
   normalizeTags,
   normalizedCoordinateSchema,
@@ -250,6 +252,8 @@ export function FeedbackInspector({
   approveShortcut,
   ready = true,
   adding = false,
+  onAddFeedback,
+  onSelectScreen,
 }: {
   projectId: string;
   screens: ReviewScreen[];
@@ -272,7 +276,11 @@ export function FeedbackInspector({
   approveShortcut?: ApproveShortcut;
   ready?: boolean;
   adding?: boolean;
+  // The empty state's inline Add feedback and its jump to the next screen.
+  onAddFeedback?: () => void;
+  onSelectScreen?: (screenId: string) => void;
 }) {
+  const emptyHeadingId = useId();
   const initialRecoveries = useMemo(
     () => readRecoveryEntries(projectId),
     [projectId],
@@ -1511,6 +1519,27 @@ export function FeedbackInspector({
     </section>
   );
 
+  // Open feedback elsewhere in this version, and the next screen that has
+  // some, for the empty state.
+  const reviewSummary = (() => {
+    const open = new Map<string, number>();
+    for (const item of feedback) {
+      if (item.version === version && isOpenFeedback(item)) {
+        open.set(item.screenId, (open.get(item.screenId) ?? 0) + 1);
+      }
+    }
+    if (!open.size) return null;
+    const at = screens.findIndex((item) => item.id === selectedScreenId);
+    const next = [...screens.slice(at + 1), ...screens.slice(0, at + 1)].find(
+      (item) => item.id !== selectedScreenId && open.has(item.id),
+    );
+    return {
+      open: [...open.values()].reduce((sum, count) => sum + count, 0),
+      screens: open.size,
+      next,
+    };
+  })();
+
   return (
     <aside
       aria-label="Feedback inspector"
@@ -1527,11 +1556,45 @@ export function FeedbackInspector({
         </span>
       </div>
 
-      {visibleFeedback.length === 0 ? (
-        <p className="feedback-empty">
-          No feedback on this screen yet. Choose Add feedback, then click the
-          screen to drop pin 1.
-        </p>
+      {visibleFeedback.length === 0 && !effectiveDraftPin ? (
+        <section aria-labelledby={emptyHeadingId} className="feedback-empty">
+          <h3 id={emptyHeadingId}>No feedback yet</h3>
+          <p>
+            No feedback on this screen yet. Choose Add feedback, then click the
+            screen to drop pin 1.
+          </p>
+          {onAddFeedback ? (
+            <button
+              aria-label="Add feedback to this screen"
+              className="feedback-empty-add"
+              disabled={!ready || adding}
+              onClick={onAddFeedback}
+              type="button"
+            >
+              Add feedback{" "}
+              <kbd aria-hidden="true">{SHORTCUTS.addFeedback.kbd}</kbd>
+            </button>
+          ) : null}
+          {reviewSummary ? (
+            <p className="feedback-empty-summary">
+              {reviewSummary.open} open across {reviewSummary.screens} screen
+              {reviewSummary.screens === 1 ? "" : "s"}
+              {reviewSummary.next && onSelectScreen ? (
+                <>
+                  {" · "}
+                  <button
+                    className="feedback-empty-next"
+                    onClick={() => onSelectScreen(reviewSummary.next!.id)}
+                    type="button"
+                  >
+                    Next: {String(reviewSummary.next.ordinal).padStart(2, "0")}{" "}
+                    {reviewSummary.next.title}
+                  </button>
+                </>
+              ) : null}
+            </p>
+          ) : null}
+        </section>
       ) : null}
 
       {STATUS_SECTIONS.map((section) => {
