@@ -27,30 +27,39 @@ Ctrl+C to stop.
 
 ## What's seeded
 
-The version picker (top right) opens on **build-42**, the newer build.
+Tidewater has two builds: **build-41**, from before the agent's fixes, and
+**build-42**, with them. Both ids end in a number, so ScreenCheck treats them
+like two resolutions of one revision (see "Versions, revisions and
+resolutions" in the README). The screen index lists every screen at both
+builds, 18 rows labelled `· 41` and `· 42`, and the **Resolution** picker (top
+right) narrows it to one build. It opens on **02 Sign in · 42**.
 
-| Screen               | What's there                                       |
-| -------------------- | -------------------------------------------------- |
-| 01 Sign in           | Approved (green check in the rail)                 |
-| 02 Home              | One Won't fix with an agent reply, one In progress |
-| 03 Choose route      | Pin 1 Fixed with a reply thread; pin 2 open        |
-| 04 Pick a sailing    | One Verified, a P0 and a P1 open                   |
-| 05 Vehicle           | P0 In progress                                     |
-| 06 Review and pay    | Pin 1 Fixed with a reply; pin 2 P0 open            |
-| 07 Booking confirmed | P2 open, for the agent to fix                      |
-| 08 My trips          | P1 open, for the agent to fix                      |
-| 09 Settings          | Blank and unapproved, for your own pins            |
+| Row                            | What's there                                       |
+| ------------------------------ | -------------------------------------------------- |
+| 02 Sign in · 42                | Approved (teal check in the rail)                  |
+| 04 Home · 42                   | One Won't fix with an agent reply, one In progress |
+| 05 Choose route · 41           | A P1 open on the older build                       |
+| 06 Choose route · 42           | Pin 1 Fixed with a reply thread; pin 2 open        |
+| 07 Pick a sailing · 41         | A P2 open on the older build                       |
+| 08 Pick a sailing · 42         | One Verified, a P0 and a P1 open                   |
+| 10 Vehicle and passengers · 42 | P0 In progress                                     |
+| 12 Review and pay · 42         | Pin 1 Fixed with a reply; pin 2 P0 open            |
+| 14 Booking confirmed · 42      | P2 open, for the agent to fix                      |
+| 16 My trips · 42               | P1 open, for the agent to fix                      |
+| 18 Settings · 42               | Blank and unapproved, for your own pins            |
 
-**build-41** is the older build, with two open comments of its own.
+The other rows have no feedback.
 
 ## Part 1: Look around (2 min)
 
-1. **Screen index (left rail).** Screens are grouped Access, Booking, Account.
-   Orange badges are open counts; a green check means approved. Click
-   **«** to collapse the rail to numbers.
+1. **Screen index (left rail).** Screens are grouped Access, Booking, Account,
+   and each one appears once per build: **05 Choose route · 41** sits right
+   above **06 Choose route · 42**. Orange badges are open counts; a teal check
+   means approved. Click **«** to collapse the rail to numbers.
 2. **Move between screens.** Use **‹ Prev / Next ›** in the bottom bar, the
-   **← →** keys, or **[ ]**. After clicking a screen in the rail, **↑ ↓**
-   step through the list and **Home / End** jump to the first or last screen.
+   **← →** keys, or **[ ]**; each step moves one row, through both builds.
+   After clicking a row in the rail, **↑ ↓** step through the list and
+   **Home / End** jump to the first or last row.
 3. **Showing caption.** Above each capture, click the text after "SHOWING" to
    edit the note on what state the screen is in.
 4. **Feedback panel (right).** Cards are grouped by status (Backlog, In
@@ -59,32 +68,38 @@ The version picker (top right) opens on **build-42**, the newer build.
 
 ## Part 2: Review like a designer (8 min)
 
-5. **Drop a pin.** Go to **09 Settings**, press **⌘F** (or click **Add
+5. **Drop a pin.** Go to **18 Settings · 42**, press **⌘F** (or click **Add
    feedback**), then click the **Save changes** button on the capture.
    - Type a note. It saves as you type; there's no Save button.
    - Click **P0**, type `Layout` in Add tag and press Enter.
    - The card shows an element line, `↳ span "Save changes"`. That's the
      element under your click, taken from the capture's element map.
    - **Cancel pin** removes a pin you haven't written anything on.
-6. **Reply thread.** Go to **03 Choose route** and open pin 1 under Fixed. You'll
-   see the agent's reply, your follow-up and the agent's second fix. Add a
-   reply in the Reply box.
+6. **Reply thread.** Go to **06 Choose route · 42** and open pin 1 under
+   Fixed. You'll see the agent's reply, your follow-up and the agent's second
+   fix. Add a reply in the Reply box.
 7. **Approval guard.** Still on Choose route, tick **Approve screen** (or press
    **⌘A**). ScreenCheck asks "1 fix not verified. Approve anyway?" Click **Cancel**.
 8. **Verify a fix.** On pin 1, click **Verify**. It moves to Verified. Only a
    reviewer can verify; agents can't. Tick **Approve screen** again: no
-   warning this time, and the rail shows a green check.
-9. **Reopen a fix.** Go to **06 Review and pay**, open pin 1 and click
+   warning this time, and the rail shows a teal check.
+9. **Reopen a fix.** Go to **12 Review and pay · 42**, open pin 1 and click
    **Reopen**. It goes back to Backlog for the agent to try again.
-10. **Approve your own screen.** On **09 Settings**, tick **Approve screen**.
-    Open comments don't block approval; only unverified fixes ask first.
-11. **Compare builds.** Switch the version picker to **build-41**. The Route
-    screen has no "Save 10%" pill, and the old comments are there. Switch back
-    to build-42.
+10. **Approve your own screen.** On **18 Settings · 42**, tick **Approve
+    screen**. Open comments don't block approval; only unverified fixes ask
+    first.
+11. **Compare builds.** Go to **05 Choose route · 41**, the row above the one
+    you just reviewed. The older build has no "Save 10%" pill, and its old
+    comment is there. To review one build at a time, set **Resolution** to
+    `42`: the rail drops the `· 41` rows and renumbers 01–09. Set it back to
+    **All**.
 12. **Fullscreen.** Click the corner icon at the bottom left. The rail
     collapses and the feedback panel tucks away; ← → still work.
 13. **Export.** Click **Export**. Choose Markdown or JSON, all screens or this
     one, and which statuses to include, then **Download**.
+14. **Hide approved screens.** At the top of the screen index, click **Hide
+    approved screens** to drop approved rows so only what's left to review
+    remains.
 
 ## Part 3: Let an agent close the loop (5 min)
 
@@ -102,7 +117,7 @@ npm run -s screencheck -- reply --url http://127.0.0.1:4299 --project tidewater 
   --id <id> --status fixed --note "Show ticket is now the primary button."
 ```
 
-Go to **08 My trips** in the browser. The card has moved to **Fixed** with the
+Go to **16 My trips · 42** in the browser. The card has moved to **Fixed** with the
 agent's reply, and it waits for you to **Verify** or **Reopen**.
 
 Other options: `--status in-progress|wont-fix|backlog`, `--author <name>`,
@@ -134,7 +149,7 @@ Try asking your agent:
 > Use screencheck-playground to list open feedback on Tidewater's Booking
 > confirmed screen, then reply to it as if you'd fixed it.
 
-Then check **07 Booking confirmed** in the browser.
+Then check **14 Booking confirmed · 42** in the browser.
 
 ## Start over
 

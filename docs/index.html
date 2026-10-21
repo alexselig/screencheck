@@ -13,7 +13,13 @@
       property="og:description"
       content="Pin numbered feedback on captures of every screen, approve them one by one, and let agents close the loop."
     />
-    <meta property="og:image" content="assets/hero.png" />
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="https://screencheck.dev/" />
+    <meta
+      property="og:image"
+      content="https://screencheck.dev/assets/hero.png"
+    />
+    <meta name="twitter:card" content="summary_large_image" />
     <link
       rel="icon"
       href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' fill='%23141414'/%3E%3Ctext x='16' y='24' font-family='Arial Black,Arial' font-weight='900' font-size='22' fill='%23fff' text-anchor='middle'%3ES%3C/text%3E%3C/svg%3E"
@@ -535,6 +541,32 @@
         background: none;
         padding: 0;
       }
+      .keys-title {
+        margin-top: var(--space-6);
+      }
+      .keys {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 16px;
+      }
+      .keys th,
+      .keys td {
+        text-align: left;
+        padding: 10px var(--space-3) 10px 0;
+        border-bottom: 1px solid var(--line);
+        vertical-align: top;
+      }
+      .keys thead th {
+        font-size: 13px;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        color: var(--ink-muted);
+        border-bottom: 2px solid var(--ink);
+      }
+      .keys tbody th {
+        font-weight: 700;
+        white-space: nowrap;
+      }
       .note {
         margin-top: var(--space-5);
         padding: var(--space-3) var(--space-4);
@@ -1001,7 +1033,13 @@
               </p>
               <ul>
                 <li><b>← →</b> or <b>[ ]</b> move between screens.</li>
-                <li><b>↑ ↓</b> step through the screen index once it has focus.</li>
+                <li>
+                  <b>↑ ↓</b> and <b>Home / End</b> step through the screen index
+                  once it has focus.
+                </li>
+                <li>
+                  <b>Esc</b> closes an open edge panel, then leaves fullscreen.
+                </li>
                 <li>
                   The address bar keeps the project, build and screen, so links
                   open in the same place.
@@ -1151,8 +1189,63 @@ await captureFullPage(page, {
     "viewport": { "width": 1440, "height": 1000 }
   }]
 }</code></pre>
+              <p>
+                Register one version per build and width, such as
+                <code>abc1234-desktop-1440</code> and
+                <code>abc1234-mobile-390</code>, and the screen index lists
+                every screen at each width. <b>Revision</b> and
+                <b>Resolution</b> pickers narrow it.
+              </p>
             </div>
           </div>
+          <h3 class="keys-title" id="keys-title">Keyboard</h3>
+          <table class="keys" aria-labelledby="keys-title">
+            <thead>
+              <tr>
+                <th scope="col">Keys</th>
+                <th scope="col">Action</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <th scope="row">⌘F / Ctrl+F</th>
+                <td>Add feedback (replaces the browser's find in this app)</td>
+              </tr>
+              <tr>
+                <th scope="row">← / → or [ / ]</th>
+                <td>Previous / next screen (ignored while typing)</td>
+              </tr>
+              <tr>
+                <th scope="row">↑ / ↓, Home / End</th>
+                <td>
+                  In the screen index: previous / next, first / last screen
+                </td>
+              </tr>
+              <tr>
+                <th scope="row">⌘A / Ctrl+A</th>
+                <td>Approve / unapprove the screen (ignored while typing)</td>
+              </tr>
+              <tr>
+                <th scope="row">Enter / Esc</th>
+                <td>In the Showing caption: save / cancel the edit</td>
+              </tr>
+              <tr>
+                <th scope="row">Enter or ,</th>
+                <td>
+                  In Add tag: add the tag (Backspace when empty removes the
+                  last)
+                </td>
+              </tr>
+              <tr>
+                <th scope="row">Esc</th>
+                <td>Cancel placing a pin; close the Export dialog</td>
+              </tr>
+              <tr>
+                <th scope="row">Esc (fullscreen)</th>
+                <td>Close an open edge panel, then leave fullscreen</td>
+              </tr>
+            </tbody>
+          </table>
           <p class="note">
             Feedback is saved to
             <code>~/.screencheck/feedback/&lt;project&gt;/</code>. Set

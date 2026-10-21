@@ -1,7 +1,14 @@
 // Builds the publishable package: the client with Vite into dist/client, the
 // Node entry points with esbuild into dist/, and types for screencheck/capture.
 import { execFileSync } from "node:child_process";
-import { chmodSync, existsSync, rmSync } from "node:fs";
+import {
+  chmodSync,
+  existsSync,
+  readdirSync,
+  readFileSync,
+  rmSync,
+  writeFileSync,
+} from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -60,3 +67,18 @@ run(bin("tsc"), [
   "ES2022,DOM,DOM.Iterable",
   "--skipLibCheck",
 ]);
+
+// Consumers on moduleResolution node16/nodenext need explicit extensions on
+// relative imports inside the declarations (TS2834); the source omits them.
+const TYPES = path.join(DIST, "types");
+for (const entry of readdirSync(TYPES, { recursive: true })) {
+  if (!entry.endsWith(".d.ts")) continue;
+  const file = path.join(TYPES, entry);
+  const source = readFileSync(file, "utf8");
+  const fixed = source.replace(
+    /(from\s+["'])(\.{1,2}\/[^"']+?)(["'])/g,
+    (match, open, specifier, close) =>
+      /\.[cm]?js$/.test(specifier) ? match : `${open}${specifier}.js${close}`,
+  );
+  if (fixed !== source) writeFileSync(file, fixed);
+}

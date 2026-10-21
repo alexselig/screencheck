@@ -19,6 +19,12 @@ import { chromium } from "playwright";
 
 import { captureFullPage } from "../../src/capture/full-page.ts";
 import { SCREENS } from "../site/demo-app.mjs";
+import {
+  BUILDS,
+  PROJECT,
+  PROJECT_NAME,
+  REGISTERED_SCREENS,
+} from "./project.mjs";
 
 const ROOT = path.resolve(
   path.dirname(fileURLToPath(import.meta.url)),
@@ -26,7 +32,6 @@ const ROOT = path.resolve(
 );
 const PORT = Number(process.env.PLAYGROUND_PORT ?? 4299);
 const ORIGIN = `http://127.0.0.1:${PORT}`;
-const PROJECT = "tidewater";
 const HOME =
   process.env.PLAYGROUND_HOME ??
   path.join(homedir(), ".screencheck-playground");
@@ -49,9 +54,10 @@ const FIXES = [
   ["review-pay", ">Pay £125<", ">Pay £125 for 2 sailings<"],
 ];
 
+const [OLDER, NEWER] = BUILDS;
 const VERSIONS = {
-  "build-41": SCREENS,
-  "build-42": SCREENS.map((screen) => {
+  [OLDER]: SCREENS,
+  [NEWER]: SCREENS.map((screen) => {
     let html = screen.html;
     for (const [id, from, to] of FIXES) {
       if (id === screen.id) html = html.replace(from, to);
@@ -62,7 +68,7 @@ const VERSIONS = {
 
 // Each scenario is staged for a step in docs/PLAYGROUND.md.
 const SEED = {
-  "build-41": [
+  [OLDER]: [
     {
       screen: "route",
       x: 0.62,
@@ -80,7 +86,7 @@ const SEED = {
       status: "OPEN",
     },
   ],
-  "build-42": [
+  [NEWER]: [
     // A fix with a thread, waiting for you to Verify.
     {
       screen: "route",
@@ -204,7 +210,7 @@ const SEED = {
 };
 
 // Settings stays blank and unapproved so you can pin and approve it yourself.
-const APPROVED = { "build-42": ["sign-in"] };
+const APPROVED = { [NEWER]: ["sign-in"] };
 
 async function renderCaptures(browser, captureRoot) {
   const page = await browser.newPage({
@@ -226,20 +232,12 @@ async function renderCaptures(browser, captureRoot) {
 async function writeRegistration(projectsRoot, captureRoot) {
   const registration = {
     id: PROJECT,
-    name: "Tidewater",
+    name: PROJECT_NAME,
     versions: Object.keys(VERSIONS).map((id) => ({
       id,
       captureRoot: path.join(captureRoot, id),
     })),
-    screens: SCREENS.map((screen, index) => ({
-      id: screen.id,
-      ordinal: index + 1,
-      title: screen.title,
-      group: screen.group,
-      description: screen.description,
-      capturePath: `${screen.id}.png`,
-      viewport: { width: 1440, height: 1000 },
-    })),
+    screens: REGISTERED_SCREENS,
   };
   await writeFile(
     path.join(projectsRoot, `${PROJECT}.json`),
