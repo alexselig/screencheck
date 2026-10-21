@@ -583,7 +583,7 @@ h1 {
   font-weight: 700;
   line-height: 1;
   text-align: center;
-  opacity: 0.75;
+  grid-column: 2;
 }
 
 /* Section bands are neutral: blue means selected and orange means a loud
@@ -600,7 +600,7 @@ h1 {
   width: calc(100% + 32px);
   margin-inline: calc(var(--space-3) * -1);
   min-height: 40px;
-  grid-template-columns: 56px minmax(0, 1fr);
+  grid-template-columns: 64px minmax(0, 1fr) auto;
   gap: var(--space-2);
   align-items: center;
   padding: var(--space-2) var(--space-4) var(--space-2) var(--space-4);
@@ -630,30 +630,27 @@ h1 {
   outline-color: var(--ink);
 }
 
-/* The digits sit dead center in the number column; badges hang off their
-   left edge so they never pull the number off center. The approved check sits
-   above the open-comment count when a screen has both, which keeps the pair
-   inside the 64px collapsed strip. */
+/* The number column is a fixed 40px badge slot plus the digits, so badges
+   sit side by side and never move the number. */
 .screen-number {
-  position: relative;
-  justify-self: center;
+  display: grid;
+  grid-template-columns: 40px 24px;
+  align-items: center;
 }
 
 .screen-badges {
-  position: absolute;
-  top: 50%;
-  right: calc(100% + 4px);
   display: flex;
-  flex-direction: column;
-  align-items: flex-end;
-  gap: 2px;
-  transform: translateY(-50%);
+  justify-content: flex-end;
+  align-items: center;
+  gap: var(--space-1);
+  padding-right: var(--space-1);
 }
 
 /* Trim the digits to cap height so the row and its badges center on the
    visible glyphs rather than on the display font's padded line box. */
 .screen-ordinal {
   display: block;
+  grid-column: 2;
   min-width: 20px;
   font-family: var(--font-display);
   font-size: 15px;
@@ -663,37 +660,34 @@ h1 {
   text-box: trim-both cap alphabetic;
 }
 
-/* The paper ring keeps both badges legible on the blue current row. */
 .screen-approved-mark,
 .screen-open-count {
   flex: none;
-  height: 14px;
+  height: 18px;
 }
 
 .screen-approved-mark {
-  width: 14px;
+  width: 18px;
   overflow: visible;
 }
 
 .screen-open-count {
   display: grid;
-  min-width: 14px;
+  min-width: 18px;
   place-items: center;
   padding: 0 var(--space-1);
   border-radius: 999px;
   background: var(--bauhaus-orange);
-  outline: 1.5px solid var(--surface);
   color: var(--ink);
   font-family: var(--font-sans);
   font-size: 11px;
   font-weight: 700;
+  font-variant-numeric: tabular-nums;
   line-height: 1;
 }
 
 .screen-approved-mark circle {
   fill: var(--success);
-  stroke: var(--surface);
-  stroke-width: 1.5px;
 }
 
 .screen-approved-mark path {
@@ -711,17 +705,32 @@ h1 {
   white-space: nowrap;
 }
 
+/* The version tells two rows of one screen apart, so only the title
+   truncates. */
+.screen-version {
+  flex: none;
+  color: var(--ink-muted);
+  font-size: 11px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.screen-rail li button[aria-current="page"] .screen-version {
+  color: inherit;
+}
+
 /* Number column is the same width collapsed and expanded, so numbers hold
    their position when the compact rail opens on hover. The start padding
    keeps badges clear of the row edge and its inset focus ring. */
 .screen-rail[data-mode="compact"] li button {
   width: calc(100% + 8px);
   margin-inline: calc(var(--space-1) * -1);
-  grid-template-columns: 56px minmax(0, 1fr);
-  padding-inline: var(--space-3) var(--space-2);
+  grid-template-columns: 64px minmax(0, 1fr) auto;
+  padding-inline: var(--space-1);
 }
 
 .screen-rail[data-mode="compact"]:not([data-expanded="true"]) .screen-name,
+.screen-rail[data-mode="compact"]:not([data-expanded="true"]) .screen-version,
 .screen-rail[data-mode="compact"]:not([data-expanded="true"]) .rail-pin-button {
   display: none;
 }
@@ -2051,21 +2060,36 @@ button.tag-chip:hover {
     width: auto;
     margin-inline: 0;
     min-height: 56px;
-    grid-template-columns: auto auto;
+    grid-template-columns: auto auto auto;
     gap: var(--space-2);
-    /* Room on the left for the badges that hang off the number. */
-    padding: var(--space-2) var(--space-3) var(--space-2) var(--space-5);
+    padding: var(--space-2) var(--space-3);
     border-bottom: 0;
   }
 
   .screen-rail[data-mode="compact"] li button {
-    grid-template-columns: auto auto;
-    padding-inline: var(--space-5) var(--space-3);
+    grid-template-columns: auto auto auto;
+    padding-inline: var(--space-3);
+  }
+
+  /* In the strip the badge slot only takes the room its badges need. */
+  .screen-number {
+    grid-template-columns: auto 24px;
+  }
+
+  .screen-badges:empty {
+    display: none;
   }
 
   .screen-rail .screen-name,
-  .screen-rail[data-mode="compact"]:not([data-expanded="true"]) .screen-name {
+  .screen-rail[data-mode="compact"]:not([data-expanded="true"]) .screen-name,
+  .screen-rail[data-mode="compact"]:not([data-expanded="true"])
+    .screen-version {
     display: inline;
+  }
+
+  .screen-rail[data-mode="compact"]:not([data-expanded="true"])
+    .screen-version-tag {
+    display: none;
   }
 
   /* The screen strip stays at the top so screens are one tap away. */

@@ -52,4 +52,27 @@ describe("resolution filter", () => {
       screenCount,
     );
   });
+
+  it("numbers rows by screen so the rail and counters agree (ds-8)", async () => {
+    render(<App />);
+    await screen.findByRole("combobox", { name: "Viewport" });
+    const nav = screen.getByRole("navigation");
+    const [first, second] = EXAMPLE_PROJECT.screens;
+    expect(
+      within(nav).getByRole("button", { name: `01. ${first!.title} · 390` }),
+    ).toBeInTheDocument();
+    const row = within(nav).getByRole("button", {
+      name: `02. ${second!.title} · 390`,
+    });
+    fireEvent.click(row);
+    const total = EXAMPLE_PROJECT.screens.length;
+    const place = document.querySelector(".action-bar-place")!;
+    expect(place).toHaveTextContent(`02 / ${total}`);
+    expect(place).toHaveTextContent("390");
+    // The version is its own element, so the title never truncates it away.
+    expect(row.querySelector(".screen-name")).toHaveTextContent(
+      new RegExp(`^${second!.title}$`),
+    );
+    expect(row.querySelector(".screen-version")).toHaveTextContent("390");
+  });
 });

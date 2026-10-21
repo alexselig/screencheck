@@ -14,10 +14,16 @@ const SPEC_TOKENS = path.join(
   "repos/alex-tools-design-md/Bauhausian/bauhausian-tokens.css",
 );
 
+// Every top-level rule for exactly this selector, joined.
 function ruleBody(selector: string) {
-  const start = rules.indexOf(`\n${selector} {`);
-  if (start < 0) throw new Error(`no rule for ${selector}`);
-  return rules.slice(start, rules.indexOf("}", start));
+  const bodies: string[] = [];
+  let start = rules.indexOf(`\n${selector} {`);
+  while (start >= 0) {
+    bodies.push(rules.slice(start, rules.indexOf("}", start)));
+    start = rules.indexOf(`\n${selector} {`, start + 1);
+  }
+  if (!bodies.length) throw new Error(`no rule for ${selector}`);
+  return bodies.join("\n");
 }
 
 describe("Bauhausian tokens", () => {
@@ -172,5 +178,22 @@ describe("feedback cards", () => {
     expect(ruleBody(".feedback-comment")).toMatch(
       /border: 1px solid var\(--line-strong\);/,
     );
+  });
+});
+
+describe("rail rows", () => {
+  it("sets badges side by side in a 40px slot at 18px (ds-11)", () => {
+    expect(ruleBody(".screen-number")).toMatch(
+      /grid-template-columns: 40px 24px;/,
+    );
+    expect(ruleBody(".screen-badges")).not.toMatch(/column|absolute/);
+    expect(ruleBody(".screen-open-count")).toMatch(/font-size: 11px;/);
+    expect(ruleBody(".screen-open-count")).not.toMatch(/outline/);
+    expect(ruleBody(".screen-approved-mark")).toMatch(/width: 18px;/);
+  });
+
+  it("keeps the version outside the truncating title (ds-12)", () => {
+    expect(ruleBody(".screen-version")).toMatch(/flex: none;/);
+    expect(ruleBody(".screen-version")).not.toMatch(/overflow/);
   });
 });

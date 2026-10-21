@@ -263,10 +263,11 @@ export function ScreenRail({
                 tabIndex={
                   screen.id === rovingId || (!rovingId && index === 0) ? 0 : -1
                 }
-                aria-label={`${String(screen.ordinal).padStart(2, "0")}. ${screen.title}${approved ? " (approved)" : ""}${openCount ? `, ${openCount} open` : ""}`}
+                aria-label={`${String(screen.ordinal).padStart(2, "0")}. ${screen.title}${screen.versionLabel ? ` · ${screen.versionLabel}` : ""}${approved ? " (approved)" : ""}${openCount ? `, ${openCount} open` : ""}`}
                 onClick={() => onSelect(screen.id)}
                 title={[
                   screen.title,
+                  screen.versionLabel ?? "",
                   approved ? "Approved" : "",
                   openCount ? `${openCount} open` : "",
                 ]
@@ -305,6 +306,11 @@ export function ScreenRail({
                   ) : null}
                 </span>
                 <span className="screen-name">{screen.title}</span>
+                {screen.versionLabel ? (
+                  <span aria-hidden="true" className="screen-version">
+                    {versionTag(screen.versionLabel)}
+                  </span>
+                ) : null}
               </button>
             </li>
           );

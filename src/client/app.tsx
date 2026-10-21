@@ -536,7 +536,8 @@ function Workbench({
     const shown = revisionVersions.filter(
       (item) => resolution === "all" || item === resolution,
     );
-    let ordinal = 0;
+    // Rows keep their screen's ordinal; the version is a separate tag, so
+    // the rail, canvas and action bar share one numbering.
     return screens.flatMap((screen) =>
       shown.map((item) => ({
         ...screen,
@@ -544,8 +545,6 @@ function Workbench({
         screenId: screen.id,
         version: item,
         versionLabel: labelOf(item),
-        ordinal: ++ordinal,
-        title: `${screen.title} · ${labelOf(item)}`,
       })),
     );
   }, [revisionVersions, resolution, screens, labelOf]);
@@ -855,6 +854,7 @@ function Workbench({
         <div>
           <span className="eyebrow">
             {String(selected.ordinal).padStart(2, "0")} / {screens.length} ·{" "}
+            {flatMode ? `${labelOf(version)} · ` : ""}
             {selected.group}
           </span>
           <h2>{selected.title}</h2>
@@ -1075,6 +1075,7 @@ function Workbench({
             {String(selected.ordinal).padStart(2, "0")} / {screens.length}
           </strong>{" "}
           {selected.title}
+          {flatMode ? ` · ${labelOf(version)}` : ""}
         </span>
         <button
           aria-label="Next screen"
