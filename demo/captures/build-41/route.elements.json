@@ -1,0 +1,373 @@
+{
+  "version": 1,
+  "capture": {
+    "width": 1440,
+    "height": 1000
+  },
+  "elements": [
+    {
+      "box": {
+        "x": 0,
+        "y": 0,
+        "w": 1,
+        "h": 0.064
+      },
+      "tag": "header",
+      "selector": "header",
+      "role": "banner"
+    },
+    {
+      "box": {
+        "x": 0.03333,
+        "y": 0.017,
+        "w": 0.05998,
+        "h": 0.03
+      },
+      "tag": "div",
+      "selector": "header > div:nth-of-type(1)",
+      "name": "tidewater"
+    },
+    {
+      "box": {
+        "x": 0.11554,
+        "y": 0.0215,
+        "w": 0.17572,
+        "h": 0.021
+      },
+      "tag": "nav",
+      "selector": "header > nav",
+      "role": "navigation"
+    },
+    {
+      "box": {
+        "x": 0.11554,
+        "y": 0.0215,
+        "w": 0.02287,
+        "h": 0.021
+      },
+      "tag": "span",
+      "selector": "header > nav > span:nth-of-type(1)",
+      "name": "Book"
+    },
+    {
+      "box": {
+        "x": 0.15508,
+        "y": 0.0215,
+        "w": 0.03512,
+        "h": 0.021
+      },
+      "tag": "span",
+      "selector": "header > nav > span:nth-of-type(2)",
+      "name": "My trips"
+    },
+    {
+      "box": {
+        "x": 0.20687,
+        "y": 0.0215,
+        "w": 0.04755,
+        "h": 0.021
+      },
+      "tag": "span",
+      "selector": "header > nav > span:nth-of-type(3)",
+      "name": "Timetables"
+    },
+    {
+      "box": {
+        "x": 0.27108,
+        "y": 0.0215,
+        "w": 0.02017,
+        "h": 0.021
+      },
+      "tag": "span",
+      "selector": "header > nav > span:nth-of-type(4)",
+      "name": "Help"
+    },
+    {
+      "box": {
+        "x": 0.88167,
+        "y": 0.016,
+        "w": 0.08499,
+        "h": 0.032
+      },
+      "tag": "div",
+      "selector": "header > div:nth-of-type(2)",
+      "name": "Maya Okafor MO"
+    },
+    {
+      "box": {
+        "x": 0.94444,
+        "y": 0.016,
+        "w": 0.02222,
+        "h": 0.032
+      },
+      "tag": "div",
+      "selector": "header > div:nth-of-type(2) > div",
+      "name": "MO"
+    },
+    {
+      "box": {
+        "x": 0.11111,
+        "y": 0.064,
+        "w": 0.77778,
+        "h": 0.6065
+      },
+      "tag": "main",
+      "selector": "main",
+      "role": "main"
+    },
+    {
+      "box": {
+        "x": 0.14444,
+        "y": 0.104,
+        "w": 0.71111,
+        "h": 0.0395
+      },
+      "tag": "div",
+      "selector": "main > div:nth-of-type(1)",
+      "source": {
+        "file": "src/booking/Steps.tsx",
+        "line": 12
+      }
+    },
+    {
+      "box": {
+        "x": 0.14444,
+        "y": 0.104,
+        "w": 0.17361,
+        "h": 0.0395
+      },
+      "tag": "div",
+      "selector": "main > div:nth-of-type(1) > div:nth-of-type(1)",
+      "name": "1. Route",
+      "source": {
+        "file": "src/booking/Steps.tsx",
+        "line": 12
+      }
+    },
+    {
+      "box": {
+        "x": 0.32361,
+        "y": 0.104,
+        "w": 0.17361,
+        "h": 0.0395
+      },
+      "tag": "div",
+      "selector": "main > div:nth-of-type(1) > div:nth-of-type(2)",
+      "name": "2. Sailing",
+      "source": {
+        "file": "src/booking/Steps.tsx",
+        "line": 12
+      }
+    },
+    {
+      "box": {
+        "x": 0.50278,
+        "y": 0.104,
+        "w": 0.17361,
+        "h": 0.0395
+      },
+      "tag": "div",
+      "selector": "main > div:nth-of-type(1) > div:nth-of-type(3)",
+      "name": "3. Vehicle & passengers",
+      "source": {
+        "file": "src/booking/Steps.tsx",
+        "line": 12
+      }
+    },
+    {
+      "box": {
+        "x": 0.68194,
+        "y": 0.104,
+        "w": 0.17361,
+        "h": 0.0395
+      },
+      "tag": "div",
+      "selector": "main > div:nth-of-type(1) > div:nth-of-type(4)",
+      "name": "4. Review & pay",
+      "source": {
+        "file": "src/booking/Steps.tsx",
+        "line": 12
+      }
+    },
+    {
+      "box": {
+        "x": 0.14444,
+        "y": 0.1715,
+        "w": 0.71111,
+        "h": 0.048
+      },
+      "tag": "h1",
+      "selector": "main > h1",
+      "role": "heading",
+      "name": "Where are you going?"
+    },
+    {
+      "box": {
+        "x": 0.14444,
+        "y": 0.2275,
+        "w": 0.71111,
+        "h": 0.0225
+      },
+      "tag": "p",
+      "selector": "main > p",
+      "name": "Pick a route and dates. Return trips save 10%."
+    },
+    {
+      "box": {
+        "x": 0.16111,
+        "y": 0.302,
+        "w": 0.20879,
+        "h": 0.0695
+      },
+      "tag": "div",
+      "selector": "div:nth-of-type(2) > div:nth-of-type(1) > div:nth-of-type(1) > div:nth-of-type(1)",
+      "name": "From Harbour"
+    },
+    {
+      "box": {
+        "x": 0.16111,
+        "y": 0.3275,
+        "w": 0.20879,
+        "h": 0.044
+      },
+      "tag": "div",
+      "selector": "div:nth-of-type(1) > div:nth-of-type(1) > div:nth-of-type(1) > div",
+      "name": "Harbour"
+    },
+    {
+      "box": {
+        "x": 0.38379,
+        "y": 0.302,
+        "w": 0.2088,
+        "h": 0.0695
+      },
+      "tag": "div",
+      "selector": "div:nth-of-type(2) > div:nth-of-type(1) > div:nth-of-type(1) > div:nth-of-type(2)",
+      "name": "To Gull Island"
+    },
+    {
+      "box": {
+        "x": 0.38379,
+        "y": 0.3275,
+        "w": 0.2088,
+        "h": 0.044
+      },
+      "tag": "div",
+      "selector": "div:nth-of-type(1) > div:nth-of-type(1) > div:nth-of-type(2) > div",
+      "name": "Gull Island"
+    },
+    {
+      "box": {
+        "x": 0.16111,
+        "y": 0.4075,
+        "w": 0.20879,
+        "h": 0.0695
+      },
+      "tag": "div",
+      "selector": "div:nth-of-type(2) > div:nth-of-type(1) > div:nth-of-type(1) > div:nth-of-type(3)",
+      "name": "Out Fri 14 Nov"
+    },
+    {
+      "box": {
+        "x": 0.16111,
+        "y": 0.433,
+        "w": 0.20879,
+        "h": 0.044
+      },
+      "tag": "div",
+      "selector": "div:nth-of-type(1) > div:nth-of-type(1) > div:nth-of-type(3) > div",
+      "name": "Fri 14 Nov"
+    },
+    {
+      "box": {
+        "x": 0.38379,
+        "y": 0.4075,
+        "w": 0.2088,
+        "h": 0.0695
+      },
+      "tag": "div",
+      "selector": "div:nth-of-type(2) > div:nth-of-type(1) > div:nth-of-type(1) > div:nth-of-type(4)",
+      "name": "Back Sun 16 Nov"
+    },
+    {
+      "box": {
+        "x": 0.38379,
+        "y": 0.433,
+        "w": 0.2088,
+        "h": 0.044
+      },
+      "tag": "div",
+      "selector": "div:nth-of-type(1) > div:nth-of-type(1) > div:nth-of-type(4) > div",
+      "name": "Sun 16 Nov"
+    },
+    {
+      "box": {
+        "x": 0.16111,
+        "y": 0.493,
+        "w": 0.43148,
+        "h": 0.0485
+      },
+      "tag": "div",
+      "selector": "main > div:nth-of-type(2) > div:nth-of-type(1) > div:nth-of-type(2)",
+      "source": {
+        "file": "src/booking/TripTypeToggle.tsx",
+        "line": 24
+      }
+    },
+    {
+      "box": {
+        "x": 0.16111,
+        "y": 0.493,
+        "w": 0.07497,
+        "h": 0.0485
+      },
+      "tag": "span",
+      "selector": "div:nth-of-type(2) > div:nth-of-type(1) > div:nth-of-type(2) > span:nth-of-type(1)",
+      "role": "button",
+      "name": "One way",
+      "source": {
+        "file": "src/booking/TripTypeToggle.tsx",
+        "line": 24
+      }
+    },
+    {
+      "box": {
+        "x": 0.24302,
+        "y": 0.493,
+        "w": 0.06432,
+        "h": 0.0485
+      },
+      "tag": "span",
+      "selector": "div:nth-of-type(2) > div:nth-of-type(1) > div:nth-of-type(2) > span:nth-of-type(2)",
+      "role": "button",
+      "name": "Return",
+      "source": {
+        "file": "src/booking/TripTypeToggle.tsx",
+        "line": 24
+      }
+    },
+    {
+      "box": {
+        "x": 0.63981,
+        "y": 0.302,
+        "w": 0.19907,
+        "h": 0.027
+      },
+      "tag": "h2",
+      "selector": "main > div:nth-of-type(2) > div:nth-of-type(2) > h2",
+      "role": "heading",
+      "name": "Route map"
+    },
+    {
+      "box": {
+        "x": 0.63981,
+        "y": 0.574,
+        "w": 0.19907,
+        "h": 0.0195
+      },
+      "tag": "p",
+      "selector": "main > div:nth-of-type(2) > div:nth-of-type(2) > p",
+      "name": "Crossing time about 55 minutes."
+    }
+  ]
+}

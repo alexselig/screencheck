@@ -1,0 +1,712 @@
+{
+  "version": 1,
+  "capture": {
+    "width": 1440,
+    "height": 1000
+  },
+  "elements": [
+    {
+      "box": {
+        "x": 0,
+        "y": 0,
+        "w": 1,
+        "h": 0.064
+      },
+      "tag": "header",
+      "selector": "header",
+      "role": "banner"
+    },
+    {
+      "box": {
+        "x": 0.03333,
+        "y": 0.017,
+        "w": 0.05998,
+        "h": 0.03
+      },
+      "tag": "div",
+      "selector": "header > div:nth-of-type(1)",
+      "name": "tidewater"
+    },
+    {
+      "box": {
+        "x": 0.11554,
+        "y": 0.0215,
+        "w": 0.17572,
+        "h": 0.021
+      },
+      "tag": "nav",
+      "selector": "header > nav",
+      "role": "navigation"
+    },
+    {
+      "box": {
+        "x": 0.11554,
+        "y": 0.0215,
+        "w": 0.02287,
+        "h": 0.021
+      },
+      "tag": "span",
+      "selector": "header > nav > span:nth-of-type(1)",
+      "name": "Book"
+    },
+    {
+      "box": {
+        "x": 0.15508,
+        "y": 0.0215,
+        "w": 0.03512,
+        "h": 0.021
+      },
+      "tag": "span",
+      "selector": "header > nav > span:nth-of-type(2)",
+      "name": "My trips"
+    },
+    {
+      "box": {
+        "x": 0.20687,
+        "y": 0.0215,
+        "w": 0.04755,
+        "h": 0.021
+      },
+      "tag": "span",
+      "selector": "header > nav > span:nth-of-type(3)",
+      "name": "Timetables"
+    },
+    {
+      "box": {
+        "x": 0.27108,
+        "y": 0.0215,
+        "w": 0.02017,
+        "h": 0.021
+      },
+      "tag": "span",
+      "selector": "header > nav > span:nth-of-type(4)",
+      "name": "Help"
+    },
+    {
+      "box": {
+        "x": 0.88167,
+        "y": 0.016,
+        "w": 0.08499,
+        "h": 0.032
+      },
+      "tag": "div",
+      "selector": "header > div:nth-of-type(2)",
+      "name": "Maya Okafor MO"
+    },
+    {
+      "box": {
+        "x": 0.94444,
+        "y": 0.016,
+        "w": 0.02222,
+        "h": 0.032
+      },
+      "tag": "div",
+      "selector": "header > div:nth-of-type(2) > div",
+      "name": "MO"
+    },
+    {
+      "box": {
+        "x": 0.11111,
+        "y": 0.064,
+        "w": 0.77778,
+        "h": 0.7495
+      },
+      "tag": "main",
+      "selector": "main",
+      "role": "main"
+    },
+    {
+      "box": {
+        "x": 0.14444,
+        "y": 0.104,
+        "w": 0.71111,
+        "h": 0.0395
+      },
+      "tag": "div",
+      "selector": "main > div:nth-of-type(1)",
+      "source": {
+        "file": "src/booking/Steps.tsx",
+        "line": 12
+      }
+    },
+    {
+      "box": {
+        "x": 0.14444,
+        "y": 0.104,
+        "w": 0.17361,
+        "h": 0.0395
+      },
+      "tag": "div",
+      "selector": "main > div:nth-of-type(1) > div:nth-of-type(1)",
+      "name": "1. Route",
+      "source": {
+        "file": "src/booking/Steps.tsx",
+        "line": 12
+      }
+    },
+    {
+      "box": {
+        "x": 0.32361,
+        "y": 0.104,
+        "w": 0.17361,
+        "h": 0.0395
+      },
+      "tag": "div",
+      "selector": "main > div:nth-of-type(1) > div:nth-of-type(2)",
+      "name": "2. Sailing",
+      "source": {
+        "file": "src/booking/Steps.tsx",
+        "line": 12
+      }
+    },
+    {
+      "box": {
+        "x": 0.50278,
+        "y": 0.104,
+        "w": 0.17361,
+        "h": 0.0395
+      },
+      "tag": "div",
+      "selector": "main > div:nth-of-type(1) > div:nth-of-type(3)",
+      "name": "3. Vehicle & passengers",
+      "source": {
+        "file": "src/booking/Steps.tsx",
+        "line": 12
+      }
+    },
+    {
+      "box": {
+        "x": 0.68194,
+        "y": 0.104,
+        "w": 0.17361,
+        "h": 0.0395
+      },
+      "tag": "div",
+      "selector": "main > div:nth-of-type(1) > div:nth-of-type(4)",
+      "name": "4. Review & pay",
+      "source": {
+        "file": "src/booking/Steps.tsx",
+        "line": 12
+      }
+    },
+    {
+      "box": {
+        "x": 0.14444,
+        "y": 0.1715,
+        "w": 0.71111,
+        "h": 0.048
+      },
+      "tag": "h1",
+      "selector": "main > h1",
+      "role": "heading",
+      "name": "Outbound · Fri 14 Nov"
+    },
+    {
+      "box": {
+        "x": 0.14444,
+        "y": 0.2275,
+        "w": 0.71111,
+        "h": 0.0225
+      },
+      "tag": "p",
+      "selector": "main > p",
+      "name": "Harbour → Gull Island. Prices are per vehicle with up to 2 adults."
+    },
+    {
+      "box": {
+        "x": 0.14444,
+        "y": 0.278,
+        "w": 0.71111,
+        "h": 0.077
+      },
+      "tag": "div",
+      "selector": "[data-testid=\"sailing-06:15\"]",
+      "testId": "sailing-06:15",
+      "source": {
+        "file": "src/booking/SailingRow.tsx",
+        "line": 18
+      }
+    },
+    {
+      "box": {
+        "x": 0.15625,
+        "y": 0.3,
+        "w": 0.07639,
+        "h": 0.033
+      },
+      "tag": "div",
+      "selector": "[data-testid=\"sailing-06:15\"] > div:nth-of-type(1)",
+      "name": "06:15",
+      "source": {
+        "file": "src/booking/SailingRow.tsx",
+        "line": 18
+      }
+    },
+    {
+      "box": {
+        "x": 0.24375,
+        "y": 0.297,
+        "w": 0.06388,
+        "h": 0.018
+      },
+      "tag": "b",
+      "selector": "[data-testid=\"sailing-06:15\"] > div:nth-of-type(2) > b",
+      "name": "Arrives 07:10",
+      "source": {
+        "file": "src/booking/SailingRow.tsx",
+        "line": 18
+      }
+    },
+    {
+      "box": {
+        "x": 0.24375,
+        "y": 0.3185,
+        "w": 0.41806,
+        "h": 0.0195
+      },
+      "tag": "div",
+      "selector": "[data-testid=\"sailing-06:15\"] > div:nth-of-type(2) > div",
+      "name": "MV Petrel",
+      "source": {
+        "file": "src/booking/SailingRow.tsx",
+        "line": 18
+      }
+    },
+    {
+      "box": {
+        "x": 0.67292,
+        "y": 0.30675,
+        "w": 0.08333,
+        "h": 0.0195
+      },
+      "tag": "div",
+      "selector": "[data-testid=\"sailing-06:15\"] > div:nth-of-type(3)",
+      "name": "Seats left",
+      "source": {
+        "file": "src/booking/SailingRow.tsx",
+        "line": 18
+      }
+    },
+    {
+      "box": {
+        "x": 0.76736,
+        "y": 0.303,
+        "w": 0.07639,
+        "h": 0.027
+      },
+      "tag": "div",
+      "selector": "[data-testid=\"sailing-06:15\"] > div:nth-of-type(4)",
+      "name": "£48",
+      "source": {
+        "file": "src/booking/SailingRow.tsx",
+        "line": 18
+      }
+    },
+    {
+      "box": {
+        "x": 0.14444,
+        "y": 0.365,
+        "w": 0.71111,
+        "h": 0.079
+      },
+      "tag": "div",
+      "selector": "[data-testid=\"sailing-08:40\"]",
+      "testId": "sailing-08:40",
+      "source": {
+        "file": "src/booking/SailingRow.tsx",
+        "line": 18
+      }
+    },
+    {
+      "box": {
+        "x": 0.15694,
+        "y": 0.388,
+        "w": 0.07639,
+        "h": 0.033
+      },
+      "tag": "div",
+      "selector": "[data-testid=\"sailing-08:40\"] > div:nth-of-type(1)",
+      "name": "08:40",
+      "source": {
+        "file": "src/booking/SailingRow.tsx",
+        "line": 18
+      }
+    },
+    {
+      "box": {
+        "x": 0.24444,
+        "y": 0.385,
+        "w": 0.06388,
+        "h": 0.018
+      },
+      "tag": "b",
+      "selector": "[data-testid=\"sailing-08:40\"] > div:nth-of-type(2) > b",
+      "name": "Arrives 09:35",
+      "source": {
+        "file": "src/booking/SailingRow.tsx",
+        "line": 18
+      }
+    },
+    {
+      "box": {
+        "x": 0.24444,
+        "y": 0.4065,
+        "w": 0.41667,
+        "h": 0.0195
+      },
+      "tag": "div",
+      "selector": "[data-testid=\"sailing-08:40\"] > div:nth-of-type(2) > div",
+      "name": "MV Cormorant · Fastest",
+      "source": {
+        "file": "src/booking/SailingRow.tsx",
+        "line": 18
+      }
+    },
+    {
+      "box": {
+        "x": 0.67222,
+        "y": 0.39475,
+        "w": 0.08333,
+        "h": 0.0195
+      },
+      "tag": "div",
+      "selector": "[data-testid=\"sailing-08:40\"] > div:nth-of-type(3)",
+      "name": "Selected",
+      "source": {
+        "file": "src/booking/SailingRow.tsx",
+        "line": 18
+      }
+    },
+    {
+      "box": {
+        "x": 0.76667,
+        "y": 0.391,
+        "w": 0.07639,
+        "h": 0.027
+      },
+      "tag": "div",
+      "selector": "[data-testid=\"sailing-08:40\"] > div:nth-of-type(4)",
+      "name": "£62",
+      "source": {
+        "file": "src/booking/SailingRow.tsx",
+        "line": 18
+      }
+    },
+    {
+      "box": {
+        "x": 0.14444,
+        "y": 0.454,
+        "w": 0.71111,
+        "h": 0.077
+      },
+      "tag": "div",
+      "selector": "[data-testid=\"sailing-11:05\"]",
+      "testId": "sailing-11:05",
+      "source": {
+        "file": "src/booking/SailingRow.tsx",
+        "line": 18
+      }
+    },
+    {
+      "box": {
+        "x": 0.15625,
+        "y": 0.476,
+        "w": 0.07639,
+        "h": 0.033
+      },
+      "tag": "div",
+      "selector": "[data-testid=\"sailing-11:05\"] > div:nth-of-type(1)",
+      "name": "11:05",
+      "source": {
+        "file": "src/booking/SailingRow.tsx",
+        "line": 18
+      }
+    },
+    {
+      "box": {
+        "x": 0.24375,
+        "y": 0.473,
+        "w": 0.06388,
+        "h": 0.018
+      },
+      "tag": "b",
+      "selector": "[data-testid=\"sailing-11:05\"] > div:nth-of-type(2) > b",
+      "name": "Arrives 12:00",
+      "source": {
+        "file": "src/booking/SailingRow.tsx",
+        "line": 18
+      }
+    },
+    {
+      "box": {
+        "x": 0.24375,
+        "y": 0.4945,
+        "w": 0.41806,
+        "h": 0.0195
+      },
+      "tag": "div",
+      "selector": "[data-testid=\"sailing-11:05\"] > div:nth-of-type(2) > div",
+      "name": "MV Petrel",
+      "source": {
+        "file": "src/booking/SailingRow.tsx",
+        "line": 18
+      }
+    },
+    {
+      "box": {
+        "x": 0.67292,
+        "y": 0.48275,
+        "w": 0.08333,
+        "h": 0.0195
+      },
+      "tag": "div",
+      "selector": "[data-testid=\"sailing-11:05\"] > div:nth-of-type(3)",
+      "name": "Seats left",
+      "source": {
+        "file": "src/booking/SailingRow.tsx",
+        "line": 18
+      }
+    },
+    {
+      "box": {
+        "x": 0.76736,
+        "y": 0.479,
+        "w": 0.07639,
+        "h": 0.027
+      },
+      "tag": "div",
+      "selector": "[data-testid=\"sailing-11:05\"] > div:nth-of-type(4)",
+      "name": "£62",
+      "source": {
+        "file": "src/booking/SailingRow.tsx",
+        "line": 18
+      }
+    },
+    {
+      "box": {
+        "x": 0.14444,
+        "y": 0.541,
+        "w": 0.71111,
+        "h": 0.077
+      },
+      "tag": "div",
+      "selector": "[data-testid=\"sailing-13:30\"]",
+      "testId": "sailing-13:30",
+      "source": {
+        "file": "src/booking/SailingRow.tsx",
+        "line": 18
+      }
+    },
+    {
+      "box": {
+        "x": 0.15625,
+        "y": 0.563,
+        "w": 0.07639,
+        "h": 0.033
+      },
+      "tag": "div",
+      "selector": "[data-testid=\"sailing-13:30\"] > div:nth-of-type(1)",
+      "name": "13:30",
+      "source": {
+        "file": "src/booking/SailingRow.tsx",
+        "line": 18
+      }
+    },
+    {
+      "box": {
+        "x": 0.24375,
+        "y": 0.56,
+        "w": 0.06388,
+        "h": 0.018
+      },
+      "tag": "b",
+      "selector": "[data-testid=\"sailing-13:30\"] > div:nth-of-type(2) > b",
+      "name": "Arrives 14:25",
+      "source": {
+        "file": "src/booking/SailingRow.tsx",
+        "line": 18
+      }
+    },
+    {
+      "box": {
+        "x": 0.24375,
+        "y": 0.5815,
+        "w": 0.41806,
+        "h": 0.0195
+      },
+      "tag": "div",
+      "selector": "[data-testid=\"sailing-13:30\"] > div:nth-of-type(2) > div",
+      "name": "MV Cormorant · Few seats left",
+      "source": {
+        "file": "src/booking/SailingRow.tsx",
+        "line": 18
+      }
+    },
+    {
+      "box": {
+        "x": 0.67292,
+        "y": 0.56975,
+        "w": 0.08333,
+        "h": 0.0195
+      },
+      "tag": "div",
+      "selector": "[data-testid=\"sailing-13:30\"] > div:nth-of-type(3)",
+      "name": "Seats left",
+      "source": {
+        "file": "src/booking/SailingRow.tsx",
+        "line": 18
+      }
+    },
+    {
+      "box": {
+        "x": 0.76736,
+        "y": 0.566,
+        "w": 0.07639,
+        "h": 0.027
+      },
+      "tag": "div",
+      "selector": "[data-testid=\"sailing-13:30\"] > div:nth-of-type(4)",
+      "name": "£55",
+      "source": {
+        "file": "src/booking/SailingRow.tsx",
+        "line": 18
+      }
+    },
+    {
+      "box": {
+        "x": 0.14444,
+        "y": 0.628,
+        "w": 0.71111,
+        "h": 0.077
+      },
+      "tag": "div",
+      "selector": "[data-testid=\"sailing-17:10\"]",
+      "testId": "sailing-17:10",
+      "source": {
+        "file": "src/booking/SailingRow.tsx",
+        "line": 18
+      }
+    },
+    {
+      "box": {
+        "x": 0.15625,
+        "y": 0.65,
+        "w": 0.07639,
+        "h": 0.033
+      },
+      "tag": "div",
+      "selector": "[data-testid=\"sailing-17:10\"] > div:nth-of-type(1)",
+      "name": "17:10",
+      "source": {
+        "file": "src/booking/SailingRow.tsx",
+        "line": 18
+      }
+    },
+    {
+      "box": {
+        "x": 0.24375,
+        "y": 0.647,
+        "w": 0.06388,
+        "h": 0.018
+      },
+      "tag": "b",
+      "selector": "[data-testid=\"sailing-17:10\"] > div:nth-of-type(2) > b",
+      "name": "Arrives 18:05",
+      "source": {
+        "file": "src/booking/SailingRow.tsx",
+        "line": 18
+      }
+    },
+    {
+      "box": {
+        "x": 0.24375,
+        "y": 0.6685,
+        "w": 0.41806,
+        "h": 0.0195
+      },
+      "tag": "div",
+      "selector": "[data-testid=\"sailing-17:10\"] > div:nth-of-type(2) > div",
+      "name": "MV Petrel",
+      "source": {
+        "file": "src/booking/SailingRow.tsx",
+        "line": 18
+      }
+    },
+    {
+      "box": {
+        "x": 0.67292,
+        "y": 0.65675,
+        "w": 0.08333,
+        "h": 0.0195
+      },
+      "tag": "div",
+      "selector": "[data-testid=\"sailing-17:10\"] > div:nth-of-type(3)",
+      "name": "Seats left",
+      "source": {
+        "file": "src/booking/SailingRow.tsx",
+        "line": 18
+      }
+    },
+    {
+      "box": {
+        "x": 0.76736,
+        "y": 0.653,
+        "w": 0.07639,
+        "h": 0.027
+      },
+      "tag": "div",
+      "selector": "[data-testid=\"sailing-17:10\"] > div:nth-of-type(4)",
+      "name": "£70",
+      "source": {
+        "file": "src/booking/SailingRow.tsx",
+        "line": 18
+      }
+    },
+    {
+      "box": {
+        "x": 0.14444,
+        "y": 0.725,
+        "w": 0.71111,
+        "h": 0.0485
+      },
+      "tag": "div",
+      "selector": "main > div:nth-of-type(7)",
+      "source": {
+        "file": "src/booking/Footer.tsx",
+        "line": 36
+      }
+    },
+    {
+      "box": {
+        "x": 0.14444,
+        "y": 0.725,
+        "w": 0.05722,
+        "h": 0.0485
+      },
+      "tag": "span",
+      "selector": "main > div:nth-of-type(7) > span:nth-of-type(1)",
+      "role": "button",
+      "name": "Back",
+      "source": {
+        "file": "src/booking/Footer.tsx",
+        "line": 36
+      }
+    },
+    {
+      "box": {
+        "x": 0.72932,
+        "y": 0.725,
+        "w": 0.12624,
+        "h": 0.0485
+      },
+      "tag": "span",
+      "selector": "main > div:nth-of-type(7) > span:nth-of-type(2)",
+      "role": "button",
+      "name": "Continue to vehicle",
+      "source": {
+        "file": "src/booking/Footer.tsx",
+        "line": 42
+      }
+    }
+  ]
+}

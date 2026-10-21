@@ -7,6 +7,7 @@ import { DataRootInUseError } from "../server/lock";
 import { readRuntimeInfo, type RuntimeInfo } from "../server/runtime";
 import { CAPTURE_USAGE, parseCaptureArgs, runCapture } from "./capture";
 import { DOCTOR_USAGE, runDoctor } from "./doctor";
+import { DEMO_USAGE, type DemoHandle, startDemo } from "./demo";
 import { ADD_USAGE, INIT_USAGE, runAdd, runInit } from "./init";
 import { REPLY_USAGE, runReply } from "./reply";
 
@@ -18,6 +19,7 @@ Usage: screencheck <command> [options]
 
 Commands:
   serve     Start the review server (default port 4173)
+  demo      Try ScreenCheck on a seeded sample project
   init      Register a project from a folder of captures
   add       Add a folder of captures as a new version of a project
   status    Show whether a server is running and where
@@ -84,6 +86,8 @@ export type CliIo = {
   readRuntime?: () => RuntimeInfo | null;
   open?: (url: string) => void;
   serve?: typeof serve;
+  // Receives the running demo so tests can stop it.
+  onDemo?: (demo: DemoHandle) => void;
 };
 
 function portOf(origin: string) {
@@ -169,6 +173,22 @@ export async function main(
           }
           throw caught;
         }
+      }
+      case "demo": {
+        if (wantsHelp(rest)) return (log(DEMO_USAGE), 0);
+        const demo = await startDemo(rest, {
+          log,
+          env,
+          open: (url) => (io.open ?? openBrowser)(url),
+          ...(io.clientRoot ? { clientRoot: io.clientRoot } : {}),
+        });
+        io.onDemo?.(demo);
+        if (!io.onDemo) {
+          for (const signal of ["SIGINT", "SIGTERM"] as const) {
+            process.once(signal, () => process.exit(0));
+          }
+        }
+        return "running";
       }
       case "status": {
         if (wantsHelp(rest)) return (log(STATUS_USAGE), 0);

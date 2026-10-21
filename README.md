@@ -23,6 +23,14 @@ with screenshots).
 npx screencheck serve --open
 ```
 
+To look around first, `npx screencheck demo --open` starts it on a seeded
+sample project: a made-up ferry booking app in two builds with comments in
+every state. It needs no Playwright or captures of your own, keeps its data in
+`~/.screencheck-demo` (`--reset` starts over, `SCREENCHECK_DEMO_HOME` moves it)
+and isn't recorded as your running server. It prints the `reply --url` command
+and an MCP config pointing at itself, and
+[docs/PLAYGROUND.md](docs/PLAYGROUND.md) walks through each feature.
+
 Or install it once so `screencheck` is on your PATH:
 
 ```bash
@@ -44,6 +52,7 @@ and `server.json` — for a sandboxed trial, a test run or CI.
 | Command                                              | What it does                                                     |
 | ---------------------------------------------------- | ---------------------------------------------------------------- |
 | `screencheck serve [--port 4173] [--open]`           | Start the review server                                          |
+| `screencheck demo [--port 0] [--reset] [--open]`     | Try it on a seeded sample project                                |
 | `screencheck status`                                 | Print the running server's origin, or "not running"              |
 | `screencheck init <id> --captures <dir>`             | Register a project from a folder of captures (see below)         |
 | `screencheck add <id> <dir>`                         | Add a folder of captures as a new version                        |
@@ -70,7 +79,10 @@ npm run playground   # seeded demo on http://127.0.0.1:4299
 ```
 
 Captures a made-up ferry booking app in two builds, seeds feedback in every
-state and opens the browser. [docs/PLAYGROUND.md](docs/PLAYGROUND.md) walks
+state and opens the browser. It is the same scenario as `screencheck demo`,
+rendered live with the dev server; the scenario lives in `scripts/playground/scenario.mjs`, and
+`node scripts/demo/build-assets.mjs` re-renders the captures bundled in
+`demo/` after changing it. [docs/PLAYGROUND.md](docs/PLAYGROUND.md) walks
 through each feature, from dropping a pin to an agent replying over MCP.
 
 ## Current implementation

@@ -29,7 +29,14 @@ describe("screencheck CLI", () => {
     const help = io();
     expect(await main(["--help"], help.io)).toBe(0);
     expect(help.out.join("\n")).toBe(HELP);
-    for (const command of ["serve", "status", "reply", "mcp", "capture"]) {
+    for (const command of [
+      "serve",
+      "demo",
+      "status",
+      "reply",
+      "mcp",
+      "capture",
+    ]) {
       expect(HELP).toContain(command);
     }
 
@@ -58,6 +65,7 @@ describe("screencheck CLI", () => {
       ["capture", "--wait-for <selector>"],
       ["init", "--captures <dir>"],
       ["add", "--version <id>"],
+      ["demo", "--reset"],
     ]) {
       const run = io();
       expect(await main([command!, "--help"], run.io)).toBe(0);

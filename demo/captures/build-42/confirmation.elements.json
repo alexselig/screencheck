@@ -1,0 +1,269 @@
+{
+  "version": 1,
+  "capture": {
+    "width": 1440,
+    "height": 1000
+  },
+  "elements": [
+    {
+      "box": {
+        "x": 0,
+        "y": 0,
+        "w": 1,
+        "h": 0.064
+      },
+      "tag": "header",
+      "selector": "header",
+      "role": "banner"
+    },
+    {
+      "box": {
+        "x": 0.03333,
+        "y": 0.017,
+        "w": 0.05998,
+        "h": 0.03
+      },
+      "tag": "div",
+      "selector": "header > div:nth-of-type(1)",
+      "name": "tidewater"
+    },
+    {
+      "box": {
+        "x": 0.11554,
+        "y": 0.0215,
+        "w": 0.17572,
+        "h": 0.021
+      },
+      "tag": "nav",
+      "selector": "header > nav",
+      "role": "navigation"
+    },
+    {
+      "box": {
+        "x": 0.11554,
+        "y": 0.0215,
+        "w": 0.02287,
+        "h": 0.021
+      },
+      "tag": "span",
+      "selector": "header > nav > span:nth-of-type(1)",
+      "name": "Book"
+    },
+    {
+      "box": {
+        "x": 0.15508,
+        "y": 0.0215,
+        "w": 0.03512,
+        "h": 0.021
+      },
+      "tag": "span",
+      "selector": "header > nav > span:nth-of-type(2)",
+      "name": "My trips"
+    },
+    {
+      "box": {
+        "x": 0.20687,
+        "y": 0.0215,
+        "w": 0.04755,
+        "h": 0.021
+      },
+      "tag": "span",
+      "selector": "header > nav > span:nth-of-type(3)",
+      "name": "Timetables"
+    },
+    {
+      "box": {
+        "x": 0.27108,
+        "y": 0.0215,
+        "w": 0.02017,
+        "h": 0.021
+      },
+      "tag": "span",
+      "selector": "header > nav > span:nth-of-type(4)",
+      "name": "Help"
+    },
+    {
+      "box": {
+        "x": 0.88167,
+        "y": 0.016,
+        "w": 0.08499,
+        "h": 0.032
+      },
+      "tag": "div",
+      "selector": "header > div:nth-of-type(2)",
+      "name": "Maya Okafor MO"
+    },
+    {
+      "box": {
+        "x": 0.94444,
+        "y": 0.016,
+        "w": 0.02222,
+        "h": 0.032
+      },
+      "tag": "div",
+      "selector": "header > div:nth-of-type(2) > div",
+      "name": "MO"
+    },
+    {
+      "box": {
+        "x": 0.11111,
+        "y": 0.064,
+        "w": 0.77778,
+        "h": 0.625
+      },
+      "tag": "main",
+      "selector": "main",
+      "role": "main"
+    },
+    {
+      "box": {
+        "x": 0.27778,
+        "y": 0.144,
+        "w": 0.44444,
+        "h": 0.465
+      },
+      "tag": "div",
+      "selector": "main > div",
+      "source": {
+        "file": "src/booking/Confirmation.tsx",
+        "line": 33
+      }
+    },
+    {
+      "box": {
+        "x": 0.47778,
+        "y": 0.192,
+        "w": 0.04444,
+        "h": 0.064
+      },
+      "tag": "div",
+      "selector": "main > div > div:nth-of-type(1)",
+      "name": "✓",
+      "source": {
+        "file": "src/booking/Confirmation.tsx",
+        "line": 33
+      }
+    },
+    {
+      "box": {
+        "x": 0.31111,
+        "y": 0.276,
+        "w": 0.37778,
+        "h": 0.048
+      },
+      "tag": "h1",
+      "selector": "main > div > h1",
+      "role": "heading",
+      "name": "You're booked",
+      "source": {
+        "file": "src/booking/Confirmation.tsx",
+        "line": 33
+      }
+    },
+    {
+      "box": {
+        "x": 0.31111,
+        "y": 0.332,
+        "w": 0.37778,
+        "h": 0.0225
+      },
+      "tag": "p",
+      "selector": "main > div > p",
+      "name": "Reference TW-48213. Tickets are in My trips and on their way to your email.",
+      "source": {
+        "file": "src/booking/Confirmation.tsx",
+        "line": 33
+      }
+    },
+    {
+      "box": {
+        "x": 0.31111,
+        "y": 0.39725,
+        "w": 0.09632,
+        "h": 0.0225
+      },
+      "tag": "span",
+      "selector": "main > div > div:nth-of-type(2) > span:nth-of-type(1)",
+      "name": "Outbound · Fri 08:40",
+      "source": {
+        "file": "src/booking/Confirmation.tsx",
+        "line": 33
+      }
+    },
+    {
+      "box": {
+        "x": 0.63303,
+        "y": 0.3965,
+        "w": 0.05586,
+        "h": 0.024
+      },
+      "tag": "span",
+      "selector": "main > div > div:nth-of-type(2) > span:nth-of-type(2)",
+      "name": "Confirmed",
+      "source": {
+        "file": "src/booking/Confirmation.tsx",
+        "line": 33
+      }
+    },
+    {
+      "box": {
+        "x": 0.31111,
+        "y": 0.45025,
+        "w": 0.08724,
+        "h": 0.0225
+      },
+      "tag": "span",
+      "selector": "main > div > div:nth-of-type(3) > span:nth-of-type(1)",
+      "name": "Return · Sun 17:10",
+      "source": {
+        "file": "src/booking/Confirmation.tsx",
+        "line": 33
+      }
+    },
+    {
+      "box": {
+        "x": 0.64587,
+        "y": 0.4495,
+        "w": 0.04302,
+        "h": 0.024
+      },
+      "tag": "span",
+      "selector": "main > div > div:nth-of-type(3) > span:nth-of-type(2)",
+      "name": "Waitlist",
+      "source": {
+        "file": "src/booking/Confirmation.tsx",
+        "line": 33
+      }
+    },
+    {
+      "box": {
+        "x": 0.39515,
+        "y": 0.5125,
+        "w": 0.09053,
+        "h": 0.0485
+      },
+      "tag": "span",
+      "selector": "main > div > div:nth-of-type(4) > span:nth-of-type(1)",
+      "name": "View tickets",
+      "source": {
+        "file": "src/booking/Confirmation.tsx",
+        "line": 33
+      }
+    },
+    {
+      "box": {
+        "x": 0.49401,
+        "y": 0.5125,
+        "w": 0.11084,
+        "h": 0.0485
+      },
+      "tag": "span",
+      "selector": "main > div > div:nth-of-type(4) > span:nth-of-type(2)",
+      "name": "Add to calendar",
+      "source": {
+        "file": "src/booking/Confirmation.tsx",
+        "line": 33
+      }
+    }
+  ]
+}
