@@ -263,6 +263,18 @@ describe("panel layout", () => {
     expect(head).toMatch(/border-bottom: 1px solid var\(--line\);/);
   });
 
+  it("outlines the frame while adding feedback (ds-16)", () => {
+    const frame = ruleBody(
+      '.review-canvas[data-adding-feedback="true"] .screen-frame',
+    );
+    expect(frame).toMatch(/outline: 2px solid var\(--bauhaus-blue\);/);
+    expect(frame).toMatch(/outline-offset: 4px;/);
+    expect(ruleBody(".canvas-adding-hint")).toMatch(
+      /background: var\(--blue-soft\);/,
+    );
+    expect(styles).not.toMatch(/\.action-bar-hint/);
+  });
+
   it("gives the empty panel a blue-soft field with a blue rule (ds-30)", () => {
     const empty = ruleBody(".feedback-empty");
     expect(empty).toMatch(/border-left: 4px solid var\(--bauhaus-blue\);/);

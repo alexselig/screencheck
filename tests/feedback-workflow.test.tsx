@@ -129,13 +129,15 @@ describe("feedback workflow integration", () => {
 
     fireEvent.click(add);
     expect(add).toHaveAttribute("aria-pressed", "true");
-    expect(
-      screen.getByText(/Click the screen to place a pin/),
-    ).toBeInTheDocument();
+    const hint = screen.getByText(/Click the screen to place pin 1\b/);
+    expect(hint).toHaveTextContent(/Esc to cancel/);
+    // ds-16: the hint sits on the canvas, right above the frame.
+    expect(screen.getByTestId("canvas")).toContainElement(hint);
+    expect(hint.nextElementSibling).toBe(screen.getByTestId("screen-frame"));
 
     fireEvent.keyDown(window, { key: "Escape" });
     expect(add).toHaveAttribute("aria-pressed", "false");
-    expect(screen.queryByText(/Click the screen to place a pin/)).toBeNull();
+    expect(screen.queryByText(/Click the screen to place pin/)).toBeNull();
   });
 
   it("shows a load error with retry instead of an empty review", async () => {

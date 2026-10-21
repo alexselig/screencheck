@@ -850,6 +850,10 @@ function Workbench({
       version={version}
     />
   );
+  const nextPinNumber =
+    feedbackRecords.filter(
+      (item) => item.screenId === selected.id && item.version === version,
+    ).length + 1;
   const captureKey = `${project.id}/${version}/${selected.id}`;
   const frameSize =
     captureSize?.key === captureKey ? captureSize : selected.viewport;
@@ -898,6 +902,12 @@ function Workbench({
         onSave={saveCaption}
         saved={captions ? captionFor(captions, version, selectedId) : undefined}
       />
+      {placingPin ? (
+        <p className="canvas-adding-hint" role="status">
+          Click the screen to place pin {nextPinNumber}, or use the arrow keys
+          and Enter · Esc to cancel
+        </p>
+      ) : null}
       <div
         className="screen-frame"
         data-testid="screen-frame"
@@ -1069,10 +1079,6 @@ function Workbench({
         </button>
         {placingPin ? (
           <>
-            <p className="action-bar-hint" role="status">
-              Click the screen to place a pin, or use the arrow keys and Enter ·
-              Esc to cancel
-            </p>
             <button
               className="action-bar-whole-screen"
               onClick={() => placePin(WHOLE_SCREEN_PIN)}
