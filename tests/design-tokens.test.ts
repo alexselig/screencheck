@@ -245,4 +245,13 @@ describe("panel layout", () => {
     expect(body).toMatch(/color: var\(--success\);/);
     expect(body).toMatch(/border-radius: var\(--radius-pill\);/);
   });
+
+  it("commits a new pin with a blue Save beside a quiet Cancel (ds-31)", () => {
+    expect(ruleBody(".feedback-save-button")).toMatch(
+      /background: var\(--bauhaus-blue\);/,
+    );
+    expect(ruleBody(".feedback-editor .feedback-cancel-button")).toMatch(
+      /border-color: transparent;/,
+    );
+  });
 });

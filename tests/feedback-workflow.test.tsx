@@ -202,4 +202,38 @@ describe("legacy browser feedback migration", () => {
     expect(localStorage.getItem(key)).not.toBeNull();
     expect(await api.storage.listFeedback("example")).toHaveLength(1);
   });
+
+  it("saves a new pin explicitly and closes its editor (ds-31)", async () => {
+    render(<App />);
+    await waitFor(() =>
+      expect(
+        screen.getByRole("button", { name: "Add feedback" }),
+      ).toBeEnabled(),
+    );
+    fireEvent.click(screen.getByRole("button", { name: "Add feedback" }));
+    const frame = screen.getByTestId("screen-frame");
+    fakeRect(frame);
+    fireEvent.click(frame, { clientX: 500, clientY: 350 });
+
+    const save = screen.getByRole("button", { name: "Save pin" });
+    expect(save).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Cancel" })).toBeEnabled();
+    fireEvent.change(screen.getByRole("textbox", { name: "Feedback note" }), {
+      target: { value: "Saved on purpose." },
+    });
+    expect(save).toBeEnabled();
+    fireEvent.click(save);
+
+    await waitFor(() =>
+      expect(
+        screen.queryByRole("region", { name: "Feedback editor" }),
+      ).toBeNull(),
+    );
+    expect(await screen.findByTestId("feedback-pin")).toBeInTheDocument();
+    expect(
+      screen.getByText("Saved on purpose.", {
+        selector: ".feedback-comment-note",
+      }),
+    ).toBeInTheDocument();
+  });
 });

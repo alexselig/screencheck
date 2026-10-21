@@ -1116,6 +1116,21 @@ export function FeedbackInspector({
     focusCard(item.id, item.status);
   }
 
+  // Save pin: send the note now rather than on the next pause, then close
+  // the editor so the reviewer sees the pin has been kept.
+  async function saveNewPin() {
+    if (editingRecord) {
+      collapseEditor(editingRecord);
+      return;
+    }
+    const pin = draftPinRef.current;
+    await flushPendingSave();
+    const created = pin ? createdRef.current.get(pin) : undefined;
+    if (!created) return;
+    onSelectFeedback(null);
+    focusCard(created.id, created.status);
+  }
+
   function collapseButton(item: FeedbackRecord) {
     return (
       <button
@@ -1348,6 +1363,18 @@ export function FeedbackInspector({
           value={editor.note}
         />
       </label>
+      <span aria-live="polite" className="feedback-save-state" role="status">
+        {saveMessage}
+      </span>
+      {retrySave ? (
+        <button
+          className="feedback-retry-button"
+          onClick={() => retrySave.run()}
+          type="button"
+        >
+          Retry
+        </button>
+      ) : null}
       {editingRecord ? (
         <ElementLine projectId={projectId} pin={editingRecord} />
       ) : null}
@@ -1450,35 +1477,35 @@ export function FeedbackInspector({
         </label>
       ) : null}
 
-      <span aria-live="polite" className="feedback-save-state" role="status">
-        {saveMessage}
-      </span>
-      {retrySave ? (
-        <button
-          className="feedback-retry-button"
-          onClick={() => retrySave.run()}
-          type="button"
-        >
-          Retry
-        </button>
-      ) : null}
-      {effectiveDraftPin ? (
-        <button
-          className="feedback-cancel-button"
-          onClick={() => {
-            writeRecovery(
-              projectId,
-              createRecoveryKey(version, selectedScreenId),
-              null,
-            );
-            setRecoveredPin(null);
-            setEditor(EMPTY_EDITOR);
-            onCancelDraft();
-          }}
-          type="button"
-        >
-          Cancel pin
-        </button>
+      {effectiveDraftPin || freshRecord ? (
+        <div className="feedback-editor-actions">
+          <button
+            className="feedback-save-button"
+            disabled={!editingRecord && !editor.note.trim()}
+            onClick={() => void saveNewPin()}
+            type="button"
+          >
+            Save pin
+          </button>
+          {effectiveDraftPin ? (
+            <button
+              className="feedback-cancel-button"
+              onClick={() => {
+                writeRecovery(
+                  projectId,
+                  createRecoveryKey(version, selectedScreenId),
+                  null,
+                );
+                setRecoveredPin(null);
+                setEditor(EMPTY_EDITOR);
+                onCancelDraft();
+              }}
+              type="button"
+            >
+              Cancel
+            </button>
+          ) : null}
+        </div>
       ) : null}
       {editingRecord ? deleteBar(editingRecord) : null}
     </section>

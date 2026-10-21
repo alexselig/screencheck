@@ -1208,8 +1208,50 @@ h1 {
   cursor: pointer;
 }
 
-.feedback-editor .feedback-cancel-button {
+/* A new pin commits with Save pin; Cancel is the quiet way out. */
+.feedback-editor-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
   margin-top: var(--space-1);
+}
+
+.feedback-save-button {
+  min-height: var(--size-touch);
+  padding: 0 var(--space-4);
+  border: 1px solid var(--bauhaus-blue);
+  background: var(--bauhaus-blue);
+  color: var(--on-blue);
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.feedback-save-button:hover:not(:disabled) {
+  border-color: color-mix(in srgb, var(--bauhaus-blue) 85%, var(--ink));
+  background: color-mix(in srgb, var(--bauhaus-blue) 85%, var(--ink));
+}
+
+.feedback-save-button:disabled {
+  border-color: var(--line-strong);
+  background: var(--surface);
+  color: var(--line-strong);
+  font-weight: 600;
+  cursor: not-allowed;
+}
+
+.feedback-editor .feedback-cancel-button {
+  border-color: transparent;
+  background: transparent;
+}
+
+.feedback-editor .feedback-cancel-button:hover {
+  background: var(--surface-alt);
+}
+
+.feedback-save-button:focus-visible,
+.feedback-editor .feedback-cancel-button:focus-visible {
+  outline: 2px solid var(--bauhaus-blue);
+  outline-offset: 2px;
 }
 
 .feedback-add-button {
