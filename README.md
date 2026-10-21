@@ -309,8 +309,9 @@ claude mcp add screencheck -- npx -y screencheck mcp
 ## Register a project
 
 Each project is one JSON file in `~/.screencheck/projects/` (or
-`SCREENCHECK_PROJECTS`). Captures stay wherever they already live; each
-version points at its folder:
+`SCREENCHECK_PROJECTS`). Until one is registered, the app shows that folder,
+a minimal file to copy and any files that failed to parse. Captures stay
+wherever they already live; each version points at its folder:
 
 ```json
 {

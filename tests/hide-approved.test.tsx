@@ -133,7 +133,9 @@ describe("hide approved screens with Prev/Next", () => {
 
   it("skips hidden approved screens with Next and the arrow keys", async () => {
     render(<App />);
-    const rail = screen.getByRole("navigation", { name: "Screen navigation" });
+    const rail = await screen.findByRole("navigation", {
+      name: "Screen navigation",
+    });
     await within(rail).findByRole("button", { name: /Show approved screens/ });
     expect(
       within(rail).queryByRole("button", { name: /Session bootstrap/ }),

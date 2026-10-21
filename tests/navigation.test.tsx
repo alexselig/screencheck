@@ -25,13 +25,19 @@ afterEach(async () => {
   await api.dispose();
 });
 
+// The workbench renders once the project list has loaded.
+async function renderApp() {
+  render(<App />);
+  await screen.findByRole("contentinfo", { name: "Review actions" });
+}
+
 function actionBar() {
   return screen.getByRole("contentinfo", { name: "Review actions" });
 }
 
 describe("action bar", () => {
   it("keeps Add feedback in the fixed footer, not the side panel", async () => {
-    render(<App />);
+    await renderApp();
     const add = within(actionBar()).getByRole("button", {
       name: "Add feedback",
     });
@@ -44,7 +50,7 @@ describe("action bar", () => {
   });
 
   it("toggles fullscreen from the bottom-left of the footer", async () => {
-    render(<App />);
+    await renderApp();
     const view = within(actionBar()).getByRole("button", {
       name: "View fullscreen",
     });
@@ -63,7 +69,7 @@ describe("action bar", () => {
   });
 
   it("shows the collapsed rail in fullscreen and expands it on hover", async () => {
-    render(<App />);
+    await renderApp();
     fireEvent.click(
       within(actionBar()).getByRole("button", { name: "View fullscreen" }),
     );
@@ -85,8 +91,8 @@ describe("action bar", () => {
     ).toBeVisible();
   });
 
-  it("centres screen navigation in the footer", () => {
-    render(<App />);
+  it("centres screen navigation in the footer", async () => {
+    await renderApp();
     const nav = within(actionBar()).getByRole("button", {
       name: "Next screen",
     });
@@ -95,7 +101,7 @@ describe("action bar", () => {
   });
 
   it("starts a pin with Cmd+F or Ctrl+F instead of the browser find bar", async () => {
-    render(<App />);
+    await renderApp();
     const add = within(actionBar()).getByRole("button", {
       name: "Add feedback",
     });
@@ -117,7 +123,7 @@ describe("action bar", () => {
   });
 
   it("steps through screens with Prev/Next and the arrow keys", async () => {
-    render(<App />);
+    await renderApp();
     const bar = actionBar();
     const prev = within(bar).getByRole("button", { name: "Previous screen" });
     const next = within(bar).getByRole("button", { name: "Next screen" });
@@ -137,7 +143,7 @@ describe("action bar", () => {
   });
 
   it("does not change screens while typing a note", async () => {
-    render(<App />);
+    await renderApp();
     const add = within(actionBar()).getByRole("button", {
       name: "Add feedback",
     });
@@ -166,7 +172,7 @@ describe("action bar", () => {
 
   it("opens the screen named in the address", async () => {
     window.history.replaceState(null, "", "#project=example&screen=dashboard");
-    render(<App />);
+    await renderApp();
     await waitFor(() =>
       expect(actionBar()).toHaveTextContent("03 / 3 Populated dashboard"),
     );

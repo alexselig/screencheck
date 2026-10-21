@@ -40,6 +40,7 @@ import {
 } from "../shared/feedback";
 import {
   captureUrl,
+  type ProjectList,
   type PublicProject,
   type PublicScreen,
 } from "../shared/projects";
@@ -57,39 +58,6 @@ import {
   removeFeedback,
 } from "./feedback-api";
 import { versionModel } from "./versions";
-
-// Shown only when the server cannot list projects, so feedback still works.
-const FALLBACK_PROJECT: PublicProject = {
-  id: "example",
-  name: "Example project",
-  versions: ["live"],
-  screens: [
-    {
-      id: "landing",
-      ordinal: 1,
-      title: "Public landing",
-      group: "Access",
-      viewport: { width: 1440, height: 1000 },
-      hasCapture: false,
-    },
-    {
-      id: "bootstrap",
-      ordinal: 2,
-      title: "Session bootstrap",
-      group: "Access",
-      viewport: { width: 1440, height: 1000 },
-      hasCapture: false,
-    },
-    {
-      id: "dashboard",
-      ordinal: 3,
-      title: "Populated dashboard",
-      group: "Portfolio",
-      viewport: { width: 1440, height: 1000 },
-      hasCapture: false,
-    },
-  ],
-};
 
 type Place = { project?: string; version?: string; screen?: string };
 
@@ -216,10 +184,113 @@ function writeHiddenPinStatuses(hidden: FeedbackStatus[]) {
 }
 
 export function App() {
+  const [list, setList] = useState<ProjectList | null>(null);
+  useEffect(() => {
+    let cancelled = false;
+    fetchProjects()
+      .then((loaded) => {
+        if (!cancelled) setList(loaded);
+      })
+      .catch((error: unknown) => {
+        if (cancelled) return;
+        setList({
+          projects: [],
+          problems: [
+            `Projects could not load (${error instanceof Error ? error.message : "unknown error"}).`,
+          ],
+        });
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+  if (!list) {
+    return (
+      <main className="workbench-shell">
+        <p className="workbench-banner" role="status">
+          Loading projects…
+        </p>
+      </main>
+    );
+  }
+  if (list.projects.length === 0) return <NoProjects list={list} />;
+  return <Workbench projects={list.projects} projectProblems={list.problems} />;
+}
+
+const MINIMAL_REGISTRATION = `{
+  "id": "my-app",
+  "name": "My app",
+  "versions": [{ "id": "build-1", "captureRoot": "/path/to/captures" }],
+  "screens": [
+    {
+      "id": "home",
+      "ordinal": 1,
+      "title": "Home",
+      "group": "Main",
+      "capturePath": "home.png",
+      "viewport": { "width": 1440, "height": 1000 }
+    }
+  ]
+}`;
+
+// A fresh install: say where projects go and how to add one, rather than
+// showing a placeholder that looks like a broken demo.
+function NoProjects({ list }: { list: ProjectList }) {
+  const [copied, setCopied] = useState(false);
+  const folder = list.projectsRoot ?? "~/.screencheck/projects";
+  return (
+    <main className="workbench-shell">
+      <header className="workbench-header">
+        <div>
+          <span className="eyebrow">Design review</span>
+          <h1>ScreenCheck</h1>
+        </div>
+      </header>
+      {list.problems.map((problem) => (
+        <p
+          className="workbench-banner workbench-banner-error"
+          key={problem}
+          role="alert"
+        >
+          {problem}
+        </p>
+      ))}
+      <section aria-labelledby="no-projects-title" className="no-projects">
+        <h2 id="no-projects-title">No projects yet</h2>
+        <p>
+          Add one JSON file per project to <code>{folder}</code>, then reload.
+          Each version points at the folder its captures already live in.
+        </p>
+        <pre aria-label="Minimal project file">{MINIMAL_REGISTRATION}</pre>
+        <button
+          onClick={() => {
+            void navigator.clipboard
+              ?.writeText(MINIMAL_REGISTRATION)
+              .then(() => setCopied(true))
+              .catch(() => undefined);
+          }}
+          type="button"
+        >
+          {copied ? "Copied" : "Copy example"}
+        </button>
+        <p>
+          To look around first, run <code>npm run playground</code> for a seeded
+          demo.
+        </p>
+      </section>
+    </main>
+  );
+}
+
+function Workbench({
+  projects,
+  projectProblems,
+}: {
+  projects: PublicProject[];
+  projectProblems: string[];
+}) {
   const [railMode, setRailMode] = useState<RailMode>("wide");
   const initialPlace = useMemo(readPlace, []);
-  const [projects, setProjects] = useState<PublicProject[] | null>(null);
-  const [projectProblems, setProjectProblems] = useState<string[]>([]);
   const [projectId, setProjectId] = useState(initialPlace.project ?? "");
   // A shared link or reload opens the version in the URL; when a newer
   // build exists the header offers to switch rather than switching silently.
@@ -231,9 +302,7 @@ export function App() {
   // "all" lists every resolution in the rail; a version narrows it to one.
   const [resolutionChoice, setResolutionChoice] = useState("all");
   const project =
-    projects?.find((item) => item.id === projectId) ??
-    projects?.[0] ??
-    FALLBACK_PROJECT;
+    projects.find((item) => item.id === projectId) ?? projects[0]!;
   const screens: PublicScreen[] = project.screens;
   const [revisionChoice, setRevisionChoice] = useState("");
   const versions = useMemo(
@@ -250,7 +319,6 @@ export function App() {
       ? revisionOf(versionChoice)
       : newestRevision;
   const newerBuild =
-    projects !== null &&
     !newerDismissed &&
     (!initialPlace.project || project.id === initialPlace.project) &&
     initialPlace.version !== undefined &&
@@ -317,29 +385,6 @@ export function App() {
   useFollowPage(panelRef, 64);
 
   useEffect(() => {
-    let cancelled = false;
-    fetchProjects()
-      .then((list) => {
-        if (cancelled) return;
-        setProjects(
-          list.projects.length > 0 ? list.projects : [FALLBACK_PROJECT],
-        );
-        setProjectProblems(list.problems);
-      })
-      .catch((error: unknown) => {
-        if (cancelled) return;
-        setProjects([FALLBACK_PROJECT]);
-        setProjectProblems([
-          `Projects could not load (${error instanceof Error ? error.message : "unknown error"}); showing the example project.`,
-        ]);
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, []);
-
-  useEffect(() => {
-    if (!projects) return;
     const params = new URLSearchParams({
       project: project.id,
       version,
@@ -380,7 +425,6 @@ export function App() {
   }, [feedbackRecords, version]);
 
   useEffect(() => {
-    if (!projects) return;
     let cancelled = false;
     setLoadState({ kind: "loading" });
     (async () => {
@@ -407,7 +451,6 @@ export function App() {
   }, [loadAttempt, projects, project.id]);
 
   useEffect(() => {
-    if (!projects) return;
     let cancelled = false;
     setApprovals(null);
     fetchApprovals(project.id).then(
@@ -430,7 +473,6 @@ export function App() {
   }, [loadAttempt, projects, project.id]);
 
   useEffect(() => {
-    if (!projects) return;
     let cancelled = false;
     setCaptions(null);
     fetchCaptions(project.id).then(
@@ -1262,7 +1304,7 @@ export function App() {
           <h1>ScreenCheck</h1>
         </div>
         <div className="header-controls">
-          {projects && projects.length > 1 ? (
+          {projects.length > 1 ? (
             <label>
               Project
               <select

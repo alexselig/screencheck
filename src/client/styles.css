@@ -2316,3 +2316,21 @@ button.tag-chip:hover {
 .action-bar-whole-screen {
   white-space: nowrap;
 }
+
+.no-projects {
+  max-width: 640px;
+  padding: 32px 24px;
+}
+
+.no-projects h2 {
+  margin: 0 0 8px;
+}
+
+.no-projects pre {
+  overflow-x: auto;
+  margin: 16px 0 8px;
+  padding: 12px;
+  border: 1px solid var(--line);
+  background: var(--surface-alt);
+  font-size: 12px;
+}

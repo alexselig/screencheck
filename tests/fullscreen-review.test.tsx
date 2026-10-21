@@ -27,7 +27,9 @@ afterEach(async () => {
 
 async function enterFullscreen() {
   render(<App />);
-  const bar = screen.getByRole("contentinfo", { name: "Review actions" });
+  const bar = await screen.findByRole("contentinfo", {
+    name: "Review actions",
+  });
   await waitFor(() =>
     expect(
       within(bar).getByRole("button", { name: "Add feedback" }),

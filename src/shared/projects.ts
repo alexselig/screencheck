@@ -27,6 +27,8 @@ export type PublicProject = {
 export type ProjectList = {
   projects: PublicProject[];
   problems: string[];
+  // Sent only when no project is registered, for the empty state.
+  projectsRoot?: string;
 };
 
 export function captureUrl(

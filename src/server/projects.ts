@@ -9,6 +9,8 @@ import { elementMapPathFor } from "../shared/elements";
 import { parseScreens, type ReviewScreen } from "../shared/manifest";
 import type { PublicProject, ProjectList } from "../shared/projects";
 
+// Kept only so feedback written to it before any project was registered
+// stays reachable; it is no longer listed on a fresh install.
 export const EXAMPLE_PROJECT: PublicProject = {
   id: "example",
   name: "Example project",
@@ -18,7 +20,7 @@ export const EXAMPLE_PROJECT: PublicProject = {
       id: "landing",
       ordinal: 1,
       title: "Public landing",
-      description: "Public sign-in landing page before authentication.",
+      description: "First screen a visitor sees.",
       group: "Access",
       viewport: { width: 1440, height: 1000 },
       hasCapture: false,
@@ -27,8 +29,7 @@ export const EXAMPLE_PROJECT: PublicProject = {
       id: "bootstrap",
       ordinal: 2,
       title: "Session bootstrap",
-      description:
-        "Secure-session handoff while Microsoft identity is verified.",
+      description: "Loading state shown while a session starts.",
       group: "Access",
       viewport: { width: 1440, height: 1000 },
       hasCapture: false,
@@ -37,8 +38,7 @@ export const EXAMPLE_PROJECT: PublicProject = {
       id: "dashboard",
       ordinal: 3,
       title: "Populated dashboard",
-      description:
-        "Portfolio dashboard populated with skills and workflow states.",
+      description: "Main view with sample data.",
       group: "Portfolio",
       viewport: { width: 1440, height: 1000 },
       hasCapture: false,
@@ -181,10 +181,12 @@ export function createProjectCatalog({
       }
       // The placeholder project stays available while it holds feedback, so
       // notes written before any project was registered are never hidden.
-      if (projects.length === 0 || (await hasFeedback(EXAMPLE_PROJECT.id))) {
-        projects.push(EXAMPLE_PROJECT);
-      }
-      return { projects, problems };
+      if (await hasFeedback(EXAMPLE_PROJECT.id)) projects.push(EXAMPLE_PROJECT);
+      // With nothing to show, tell the browser where registrations go so the
+      // empty state can say so. The server only binds to loopback.
+      return projects.length === 0
+        ? { projects, problems, projectsRoot: path.resolve(projectsRoot) }
+        : { projects, problems };
     },
     async capture(projectId: string, versionId: string, screenId: string) {
       const { registrations } = await readRegistrations(projectsRoot);
