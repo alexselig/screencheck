@@ -35,6 +35,12 @@ records itself in `~/.screencheck/server.json`, so the other commands find it
 without a port. Throwaway servers (demos, scripts) can set `SCREENCHECK_RECORD=0`
 so they don't take that slot from your real one. Node 22 or later.
 
+If ScreenCheck is already running, `serve` prints where (`ScreenCheck is
+already running at … (pid N)`) and exits 0, opening it with `--open`. If the
+port belongs to some other program it says so; `--port 0` picks any free port.
+Set `SCREENCHECK_HOME` to move all state at once — `feedback/`, `projects/`
+and `server.json` — for a sandboxed trial, a test run or CI.
+
 | Command                                              | What it does                                                     |
 | ---------------------------------------------------- | ---------------------------------------------------------------- |
 | `screencheck serve [--port 4173] [--open]`           | Start the review server                                          |
@@ -161,8 +167,11 @@ Feedback is written to disk by the server, never only to the browser:
 ~/.screencheck/feedback/<projectId>/feedback.json
 ```
 
-Set `SCREENCHECK_DATA` to use another folder (useful for testing). The
-server prints the folder it is using on startup.
+Set `SCREENCHECK_DATA` to use another folder (useful for testing), or
+`SCREENCHECK_HOME` to move everything. The server prints the folder it is
+using on startup. Only one server process may use a data folder at a time: it
+holds `server.lock` there while it runs, and a second one refuses to start and
+names the first (a lock left by a crashed process is taken over).
 
 | Route                                                      | Purpose                                                                                                                          |
 | ---------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------- |

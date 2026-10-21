@@ -8,6 +8,7 @@ import { join } from "node:path";
 
 import { handleApi, sendJson as json } from "./api";
 import { appHome } from "./home";
+import { acquireDataRootLock } from "./lock";
 import { createProjectCatalog, defaultProjectsRoot } from "./projects";
 import { assertLoopbackHost, LOOPBACK_HOST } from "./origin";
 import {
@@ -69,48 +70,71 @@ export async function startServer({
   clientRoot,
 }: ServerOptions = {}) {
   assertLoopbackHost(host);
-  const storage = sharedFeedbackStorage(dataRoot);
-  const catalog = createProjectCatalog({
-    projectsRoot,
-    hasFeedback: async (projectId) =>
-      (await storage.listFeedback(projectId)).length > 0,
-  });
-  let boundPort = port;
-  const fallback = await createFallback(clientRoot);
-  const server = createServer(
-    async (request: IncomingMessage, response: ServerResponse) => {
-      if (request.url === "/healthz") {
-        json(response, 200, { ok: true });
-        return;
-      }
-      if (
-        await handleApi(request, response, {
-          storage,
-          port: boundPort,
-          catalog,
-        })
-      )
-        return;
-      await fallback.handle(request, response, boundPort);
-    },
-  );
-  await new Promise<void>((resolve, reject) => {
-    server.once("error", reject);
-    server.listen(port, host, resolve);
-  });
-  boundPort = (server.address() as AddressInfo).port;
-  return {
-    origin: `http://${host}:${boundPort}`,
-    dataRoot,
-    projectsRoot,
-    mode: clientRoot ? ("static" as const) : ("dev" as const),
-    async close() {
-      await fallback.close?.();
+  const lock = await acquireDataRootLock(dataRoot);
+  try {
+    return await listen();
+  } catch (error) {
+    lock.release();
+    throw error;
+  }
+
+  async function listen() {
+    const storage = sharedFeedbackStorage(dataRoot);
+    const catalog = createProjectCatalog({
+      projectsRoot,
+      hasFeedback: async (projectId) =>
+        (await storage.listFeedback(projectId)).length > 0,
+    });
+    let boundPort = port;
+    const fallback = await createFallback(clientRoot);
+    const server = createServer(
+      async (request: IncomingMessage, response: ServerResponse) => {
+        if (request.url === "/healthz") {
+          json(response, 200, { ok: true });
+          return;
+        }
+        if (
+          await handleApi(request, response, {
+            storage,
+            port: boundPort,
+            catalog,
+          })
+        )
+          return;
+        await fallback.handle(request, response, boundPort);
+      },
+    );
+    try {
       await new Promise<void>((resolve, reject) => {
-        server.close((error) => (error ? reject(error) : resolve()));
+        server.once("error", reject);
+        server.listen(port, host, resolve);
       });
-    },
-  };
+    } catch (error) {
+      // Vite holds its own watchers; without this a failed listen leaves the
+      // process running.
+      await fallback.close?.().catch(() => undefined);
+      throw error;
+    }
+    boundPort = (server.address() as AddressInfo).port;
+    const origin = `http://${host}:${boundPort}`;
+    lock.setOrigin(origin);
+    return {
+      origin,
+      dataRoot,
+      projectsRoot,
+      mode: clientRoot ? ("static" as const) : ("dev" as const),
+      async close() {
+        try {
+          await fallback.close?.();
+          await new Promise<void>((resolve, reject) => {
+            server.close((error) => (error ? reject(error) : resolve()));
+          });
+        } finally {
+          lock.release();
+        }
+      },
+    };
+  }
 }
 
 // Starts the server for interactive use: logs where it lives and records it
