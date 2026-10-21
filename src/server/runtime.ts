@@ -28,7 +28,7 @@ export function writeRuntimeInfo(info: RuntimeInfo, file = runtimeFile()) {
   writeFileSync(file, `${JSON.stringify(info, null, 2)}\n`);
 }
 
-function processAlive(pid: number) {
+export function processAlive(pid: number) {
   try {
     process.kill(pid, 0);
     return true;

@@ -3,18 +3,36 @@ import { describe, expect, it } from "vitest";
 import { parseScreens } from "../src/shared/manifest";
 
 describe("screen manifest", () => {
-  it("requires a description of the state shown on every screen", () => {
-    expect(() =>
+  it("defaults the group to Screens and the description to the title", () => {
+    expect(
       parseScreens([
         {
           id: "a",
           ordinal: 1,
-          title: "A",
-          group: "One",
+          title: "Home page",
           viewport: { width: 1440, height: 1000 },
         },
       ]),
-    ).toThrow(/description/i);
+    ).toEqual([
+      expect.objectContaining({
+        group: "Screens",
+        description: "Home page",
+      }),
+    ]);
+  });
+
+  it("names the missing field when a screen is incomplete", async () => {
+    const { formatZodError } = await import("../src/shared/zod-format");
+    const { ZodError } = await import("zod");
+    try {
+      parseScreens([{ id: "a", ordinal: 1, title: "A" }]);
+      throw new Error("expected a failure");
+    } catch (error) {
+      expect(error).toBeInstanceOf(ZodError);
+      expect(formatZodError(error as InstanceType<typeof ZodError>)).toMatch(
+        /\[0\]\.viewport/,
+      );
+    }
   });
 
   it("requires unique stable ordinals", () => {

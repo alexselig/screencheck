@@ -647,7 +647,10 @@ export type CaptureResult = PinnedChromeReport & {
   elements: ElementMap | null;
 };
 
-// `shots/checkout.png` -> `shots/checkout.elements.json`.
+// `shots/checkout.png` -> `shots/checkout.elements.json`. The same rule as
+// elementMapPathFor in shared/elements (a test keeps them equal); it is
+// repeated so plain `node` scripts can import this file, which only allows
+// type imports of extensionless paths.
 export function elementMapPath(capturePath: string) {
   return `${capturePath.replace(/\.[^./\\]*$/, "")}.elements.json`;
 }

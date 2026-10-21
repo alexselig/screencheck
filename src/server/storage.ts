@@ -1,8 +1,10 @@
 import {
+  copyFile,
   mkdir,
   open,
   readFile,
   rename,
+  unlink,
   type FileHandle,
 } from "node:fs/promises";
 import { randomUUID } from "node:crypto";
@@ -32,11 +34,16 @@ import {
   type ScreenCaption,
   type SetCaptionInput,
 } from "../shared/captions";
+import { formatZodError } from "../shared/zod-format";
 
 // The shape of feedback records on disk. v1 files (no `schemaVersion`) hold a
 // single `reply` per comment; v2 holds `thread`. Older files are migrated in
 // memory on read and only rewritten by the next mutation. `version` stays 1 so
 // older builds can still read the envelope.
+//
+// Additive fields don't bump the schema version: records and thread messages
+// are parsed loosely, so an older build keeps fields it doesn't know. Bump it
+// only when an existing field changes meaning.
 export const FEEDBACK_SCHEMA_VERSION = 2;
 
 const feedbackEnvelopeSchema = z.object({
@@ -44,6 +51,26 @@ const feedbackEnvelopeSchema = z.object({
   schemaVersion: z.number().int().min(1).optional(),
   feedback: z.array(feedbackRecordSchema),
 });
+
+// Records are validated one at a time, so one bad record never hides the rest.
+const rawFeedbackEnvelopeSchema = z.object({
+  version: z.literal(1),
+  schemaVersion: z.number().int().min(1).optional(),
+  feedback: z.array(z.unknown()),
+});
+
+export const STORE_FILES = [
+  "feedback.json",
+  "approvals.json",
+  "captions.json",
+] as const;
+export type StoreFile = (typeof STORE_FILES)[number];
+
+export const REJECTED_FILE = "feedback.rejected.json";
+
+export function backupPathFor(file: string) {
+  return `${file}.bak`;
+}
 
 const approvalsEnvelopeSchema = z.object({
   version: z.literal(1),
@@ -65,11 +92,76 @@ function captionsQueue(projectId: string) {
 }
 
 type StorageFileSystem = {
+  copyFile: typeof copyFile;
   mkdir: typeof mkdir;
   open: typeof open;
   readFile: typeof readFile;
   rename: typeof rename;
+  unlink: typeof unlink;
 };
+
+// Errors whose message is safe to show a client: no absolute paths. `file`
+// is for the server log.
+export class StoreError extends Error {
+  constructor(
+    message: string,
+    readonly file: string,
+  ) {
+    super(message);
+    this.name = "StoreError";
+  }
+}
+
+export class InvalidProjectIdError extends Error {
+  constructor(projectId: string) {
+    super(`Invalid project id: ${projectId}`);
+    this.name = "InvalidProjectIdError";
+  }
+}
+
+export type RejectedRecord = {
+  index: number;
+  id: string | null;
+  problem: string;
+};
+
+// Some records in feedback.json are invalid. Reads still return the valid
+// ones; writes wait until the bad records are repaired or quarantined, so
+// nothing is dropped by a rewrite.
+export class FeedbackQuarantineError extends Error {
+  constructor(
+    projectId: string,
+    readonly rejected: RejectedRecord[],
+  ) {
+    super(
+      `${rejected.length} record${rejected.length === 1 ? "" : "s"} in ${projectId}/feedback.json ${rejected.length === 1 ? "is" : "are"} invalid (${rejected.map(describeRejected).join("; ")}). Repair ${rejected.length === 1 ? "it" : "them"}, or run \`screencheck doctor ${projectId} --quarantine\` to move ${rejected.length === 1 ? "it" : "them"} to ${REJECTED_FILE}; changes are refused until then.`,
+    );
+    this.name = "FeedbackQuarantineError";
+  }
+}
+
+export function describeRejected(item: RejectedRecord) {
+  return `feedback[${item.index}]${item.id ? ` (id ${item.id})` : ""}: ${item.problem}`;
+}
+
+function isMissing(error: unknown) {
+  return (
+    typeof error === "object" &&
+    error !== null &&
+    "code" in error &&
+    error.code === "ENOENT"
+  );
+}
+
+// Opening or syncing a directory isn't supported everywhere (Windows refuses
+// both); the rename has already happened, so skip the extra durability step.
+const DIRECTORY_SYNC_UNSUPPORTED = new Set([
+  "EISDIR",
+  "EPERM",
+  "EACCES",
+  "EINVAL",
+  "ENOTSUP",
+]);
 
 export class FeedbackConflictError extends Error {
   readonly current: FeedbackRecord;
@@ -94,11 +186,12 @@ export type FeedbackStorageOptions = {
   // Ids for new thread messages; random UUIDs unless a test needs fixed ones.
   newId?: () => string;
   fileSystem?: Partial<StorageFileSystem>;
+  platform?: NodeJS.Platform;
 };
 
 function assertProjectId(projectId: string) {
   if (!/^[a-z0-9][a-z0-9._-]*$/i.test(projectId)) {
-    throw new Error(`Invalid project id: ${projectId}`);
+    throw new InvalidProjectIdError(projectId);
   }
 }
 
@@ -125,12 +218,15 @@ function nextUpdatedAt(now: Date, previous?: string) {
 
 export function createFeedbackStorage(options: FeedbackStorageOptions) {
   const fileSystem: StorageFileSystem = {
+    copyFile,
     mkdir,
     open,
     readFile,
     rename,
+    unlink,
     ...options.fileSystem,
   };
+  const platform = options.platform ?? process.platform;
   const now = options.now ?? (() => new Date());
   const newId = options.newId ?? randomUUID;
   const mutationQueues = new Map<string, Promise<void>>();
@@ -141,24 +237,46 @@ export function createFeedbackStorage(options: FeedbackStorageOptions) {
     return {
       directory,
       current: join(directory, "feedback.json"),
-      next: join(directory, "feedback.json.next"),
     };
   }
 
-  async function read(projectId: string): Promise<FeedbackRecord[]> {
+  async function exists(file: string) {
+    try {
+      await fileSystem.readFile(file);
+      return true;
+    } catch {
+      return false;
+    }
+  }
+
+  async function damaged(
+    projectId: string,
+    file: string,
+    fileName: string,
+    detail: string,
+  ) {
+    const backup = (await exists(backupPathFor(file)))
+      ? ` A backup of the last good version is in ${fileName}.bak; restore it with \`screencheck doctor ${projectId} --restore\`, or repair the file.`
+      : " Restore or repair it.";
+    return new StoreError(
+      `${fileName} in project "${projectId}" ${detail}.${backup}`,
+      file,
+    );
+  }
+
+  // Valid records plus any that failed validation, each with its index, id
+  // and the first problem Zod found.
+  async function readState(projectId: string): Promise<{
+    feedback: FeedbackRecord[];
+    rejected: RejectedRecord[];
+    raw: unknown[];
+  }> {
     const { current } = paths(projectId);
     let contents: string;
     try {
       contents = await fileSystem.readFile(current, "utf8");
     } catch (error) {
-      if (
-        typeof error === "object" &&
-        error !== null &&
-        "code" in error &&
-        error.code === "ENOENT"
-      ) {
-        return [];
-      }
+      if (isMissing(error)) return { feedback: [], rejected: [], raw: [] };
       throw error;
     }
 
@@ -166,8 +284,11 @@ export function createFeedbackStorage(options: FeedbackStorageOptions) {
     try {
       parsed = JSON.parse(contents);
     } catch {
-      throw new Error(
-        `${current} contains invalid JSON; restore or repair it.`,
+      throw await damaged(
+        projectId,
+        current,
+        "feedback.json",
+        "contains invalid JSON",
       );
     }
     if (
@@ -177,17 +298,52 @@ export function createFeedbackStorage(options: FeedbackStorageOptions) {
       typeof parsed.schemaVersion === "number" &&
       parsed.schemaVersion > FEEDBACK_SCHEMA_VERSION
     ) {
-      throw new Error(
-        `${current} was written by a newer ScreenCheck (schema ${parsed.schemaVersion}); update ScreenCheck to read it.`,
+      throw new StoreError(
+        `feedback.json in project "${projectId}" was written by a newer ScreenCheck (schema ${parsed.schemaVersion}); update ScreenCheck to read it.`,
+        current,
       );
     }
-    const result = feedbackEnvelopeSchema.safeParse(parsed);
-    if (!result.success) {
-      throw new Error(
-        `${current} contains invalid feedback data; restore or repair it.`,
+    const envelope = rawFeedbackEnvelopeSchema.safeParse(parsed);
+    if (!envelope.success) {
+      throw await damaged(
+        projectId,
+        current,
+        "feedback.json",
+        `contains invalid feedback data (${formatZodError(envelope.error)})`,
       );
     }
-    return result.data.feedback;
+    const feedback: FeedbackRecord[] = [];
+    const rejected: RejectedRecord[] = [];
+    envelope.data.feedback.forEach((raw, index) => {
+      const result = feedbackRecordSchema.safeParse(raw);
+      if (result.success) {
+        feedback.push(result.data);
+        return;
+      }
+      const id =
+        typeof raw === "object" &&
+        raw !== null &&
+        "id" in raw &&
+        typeof raw.id === "string"
+          ? raw.id
+          : null;
+      rejected.push({
+        index,
+        id,
+        problem: formatZodError(
+          new z.ZodError(result.error.issues.slice(0, 1)),
+        ),
+      });
+    });
+    return { feedback, rejected, raw: envelope.data.feedback };
+  }
+
+  // For mutations: every record must be valid, or the rewrite would drop
+  // the invalid ones.
+  async function read(projectId: string): Promise<FeedbackRecord[]> {
+    const { feedback, rejected } = await readState(projectId);
+    if (rejected.length) throw new FeedbackQuarantineError(projectId, rejected);
+    return feedback;
   }
 
   async function syncAndClose(handle: FileHandle) {
@@ -207,6 +363,35 @@ export function createFeedbackStorage(options: FeedbackStorageOptions) {
     await writeAtomically(projectId, "feedback.json", envelope);
   }
 
+  async function syncDirectory(directory: string) {
+    if (platform === "win32") return;
+    let handle: FileHandle;
+    try {
+      handle = await fileSystem.open(directory, "r");
+    } catch (error) {
+      if (
+        DIRECTORY_SYNC_UNSUPPORTED.has(
+          (error as NodeJS.ErrnoException).code ?? "",
+        )
+      )
+        return;
+      throw error;
+    }
+    try {
+      await syncAndClose(handle);
+    } catch (error) {
+      if (
+        DIRECTORY_SYNC_UNSUPPORTED.has(
+          (error as NodeJS.ErrnoException).code ?? "",
+        )
+      )
+        return;
+      throw error;
+    }
+  }
+
+  // Writes a unique temp file (so two processes can never interleave into
+  // one), keeps the previous version as `<name>.bak`, then renames into place.
   async function writeAtomically(
     projectId: string,
     fileName: string,
@@ -214,19 +399,32 @@ export function createFeedbackStorage(options: FeedbackStorageOptions) {
   ) {
     const { directory } = paths(projectId);
     const current = join(directory, fileName);
-    const next = `${current}.next`;
+    const next = `${current}.${process.pid}.${randomUUID()}.next`;
     await fileSystem.mkdir(directory, { recursive: true, mode: 0o700 });
-    const handle = await fileSystem.open(next, "w", 0o600);
+    const handle = await fileSystem.open(next, "wx", 0o600);
     try {
       await handle.writeFile(`${JSON.stringify(data, null, 2)}\n`, "utf8");
       await syncAndClose(handle);
     } catch (error) {
       await handle.close().catch(() => undefined);
+      await fileSystem.unlink(next).catch(() => undefined);
       throw error;
     }
-    await fileSystem.rename(next, current);
-    const directoryHandle = await fileSystem.open(directory, "r");
-    await syncAndClose(directoryHandle);
+    try {
+      await fileSystem.copyFile(current, backupPathFor(current));
+    } catch (error) {
+      if (!isMissing(error)) {
+        await fileSystem.unlink(next).catch(() => undefined);
+        throw error;
+      }
+    }
+    try {
+      await fileSystem.rename(next, current);
+    } catch (error) {
+      await fileSystem.unlink(next).catch(() => undefined);
+      throw error;
+    }
+    await syncDirectory(directory);
   }
 
   async function readEnvelope<T>(
@@ -240,26 +438,22 @@ export function createFeedbackStorage(options: FeedbackStorageOptions) {
     try {
       contents = await fileSystem.readFile(file, "utf8");
     } catch (error) {
-      if (
-        typeof error === "object" &&
-        error !== null &&
-        "code" in error &&
-        error.code === "ENOENT"
-      ) {
-        return null;
-      }
+      if (isMissing(error)) return null;
       throw error;
     }
     let parsed: unknown;
     try {
       parsed = JSON.parse(contents);
     } catch {
-      throw new Error(`${file} contains invalid JSON; restore or repair it.`);
+      throw await damaged(projectId, file, fileName, "contains invalid JSON");
     }
     const result = schema.safeParse(parsed);
     if (!result.success) {
-      throw new Error(
-        `${file} contains invalid ${label} data; restore or repair it.`,
+      throw await damaged(
+        projectId,
+        file,
+        fileName,
+        `contains invalid ${label} data (${formatZodError(result.error)})`,
       );
     }
     return result.data;
@@ -385,7 +579,119 @@ export function createFeedbackStorage(options: FeedbackStorageOptions) {
 
   async function listFeedback(projectId: string) {
     await afterPendingMutation(projectId);
-    return read(projectId);
+    return (await readState(projectId)).feedback;
+  }
+
+  // The valid records plus a line for each record that failed validation.
+  async function inspectFeedback(projectId: string) {
+    await afterPendingMutation(projectId);
+    const { feedback, rejected } = await readState(projectId);
+    return { feedback, rejected };
+  }
+
+  // Moves invalid records into feedback.rejected.json (appending, with the
+  // reason and time) and keeps the valid ones in feedback.json.
+  function quarantineFeedback(projectId: string): Promise<RejectedRecord[]> {
+    return serializeMutation(projectId, async () => {
+      const { feedback, rejected, raw } = await readState(projectId);
+      if (!rejected.length) return [];
+      const file = join(paths(projectId).directory, REJECTED_FILE);
+      let previous: unknown[] = [];
+      try {
+        const existing = JSON.parse(await fileSystem.readFile(file, "utf8"));
+        if (Array.isArray(existing?.rejected)) previous = existing.rejected;
+      } catch (error) {
+        if (!isMissing(error)) {
+          throw new StoreError(
+            `${REJECTED_FILE} in project "${projectId}" is unreadable; move it aside and try again.`,
+            file,
+          );
+        }
+      }
+      const rejectedAt = now().toISOString();
+      await writeAtomically(projectId, REJECTED_FILE, {
+        version: 1,
+        rejected: [
+          ...previous,
+          ...rejected.map((item) => ({
+            rejectedAt,
+            problem: item.problem,
+            record: raw[item.index],
+          })),
+        ],
+      });
+      await write(projectId, feedback);
+      return rejected;
+    });
+  }
+
+  function queueFor(projectId: string, fileName: StoreFile) {
+    if (fileName === "approvals.json") return approvalsQueue(projectId);
+    if (fileName === "captions.json") return captionsQueue(projectId);
+    return projectId;
+  }
+
+  async function checkFile(projectId: string, fileName: StoreFile) {
+    try {
+      if (fileName === "feedback.json") {
+        const { feedback, rejected } = await readState(projectId);
+        return rejected.length
+          ? {
+              ok: false,
+              problem: new FeedbackQuarantineError(projectId, rejected).message,
+              count: feedback.length,
+            }
+          : { ok: true, problem: null, count: feedback.length };
+      }
+      const count =
+        fileName === "approvals.json"
+          ? (await readApprovals(projectId)).length
+          : (await readCaptions(projectId)).length;
+      return { ok: true, problem: null, count };
+    } catch (error) {
+      return {
+        ok: false,
+        problem: error instanceof Error ? error.message : String(error),
+        count: 0,
+      };
+    }
+  }
+
+  // Health of each store file in a project, and whether a backup exists.
+  async function checkStore(projectId: string) {
+    const directory = paths(projectId).directory;
+    return Promise.all(
+      STORE_FILES.map(async (fileName) => ({
+        file: fileName,
+        ...(await checkFile(projectId, fileName)),
+        hasBackup: await exists(backupPathFor(join(directory, fileName))),
+      })),
+    );
+  }
+
+  // Promotes `<name>.bak` over a damaged store file. The damaged file is kept
+  // as `<name>.damaged-<time>`. Healthy files are left alone unless `force`.
+  function restoreBackup(
+    projectId: string,
+    fileName: StoreFile,
+    { force = false }: { force?: boolean } = {},
+  ): Promise<"restored" | "healthy" | "no-backup"> {
+    return serializeMutation(queueFor(projectId, fileName), async () => {
+      const directory = paths(projectId).directory;
+      const current = join(directory, fileName);
+      const backup = backupPathFor(current);
+      if (!(await exists(backup))) return "no-backup";
+      if (!force && (await checkFile(projectId, fileName)).ok) return "healthy";
+      if (await exists(current)) {
+        const stamp = now().toISOString().replace(/[:.]/g, "-");
+        await fileSystem.copyFile(current, `${current}.damaged-${stamp}`);
+      }
+      const next = `${current}.${process.pid}.${randomUUID()}.next`;
+      await fileSystem.copyFile(backup, next);
+      await fileSystem.rename(next, current);
+      await syncDirectory(directory);
+      return "restored";
+    });
   }
 
   function createFeedback(
@@ -544,6 +850,10 @@ export function createFeedbackStorage(options: FeedbackStorageOptions) {
 
   return {
     listFeedback,
+    inspectFeedback,
+    quarantineFeedback,
+    checkStore,
+    restoreBackup,
     createFeedback,
     updateFeedback,
     deleteFeedback,

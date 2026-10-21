@@ -23,6 +23,14 @@ with screenshots).
 npx screencheck serve --open
 ```
 
+To look around first, `npx screencheck demo --open` starts it on a seeded
+sample project: a made-up ferry booking app in two builds with comments in
+every state. It needs no Playwright or captures of your own, keeps its data in
+`~/.screencheck-demo` (`--reset` starts over, `SCREENCHECK_DEMO_HOME` moves it)
+and isn't recorded as your running server. It prints the `reply --url` command
+and an MCP config pointing at itself, and
+[docs/PLAYGROUND.md](docs/PLAYGROUND.md) walks through each feature.
+
 Or install it once so `screencheck` is on your PATH:
 
 ```bash
@@ -35,13 +43,23 @@ records itself in `~/.screencheck/server.json`, so the other commands find it
 without a port. Throwaway servers (demos, scripts) can set `SCREENCHECK_RECORD=0`
 so they don't take that slot from your real one. Node 22 or later.
 
+If ScreenCheck is already running, `serve` prints where (`ScreenCheck is
+already running at … (pid N)`) and exits 0, opening it with `--open`. If the
+port belongs to some other program it says so; `--port 0` picks any free port.
+Set `SCREENCHECK_HOME` to move all state at once — `feedback/`, `projects/`
+and `server.json` — for a sandboxed trial, a test run or CI.
+
 | Command                                              | What it does                                                     |
 | ---------------------------------------------------- | ---------------------------------------------------------------- |
 | `screencheck serve [--port 4173] [--open]`           | Start the review server                                          |
+| `screencheck demo [--port 0] [--reset] [--open]`     | Try it on a seeded sample project                                |
 | `screencheck status`                                 | Print the running server's origin, or "not running"              |
+| `screencheck init <id> --captures <dir>`             | Register a project from a folder of captures (see below)         |
+| `screencheck add <id> <dir>`                         | Add a folder of captures as a new version                        |
 | `screencheck reply --project <id> ...`               | List open comments or reply to one (see below)                   |
 | `screencheck mcp [--url <origin>] [--author <name>]` | Run the MCP server on stdio for coding agents                    |
 | `screencheck capture <url> --out <file>`             | Full-page screenshot without mid-page footers (needs Playwright) |
+| `screencheck doctor [<project>] [--restore]`         | Check stored feedback; restore a damaged file from its backup    |
 
 `screencheck --help` lists them; `screencheck <command> --help` shows options.
 
@@ -73,7 +91,10 @@ npm run playground   # seeded demo on http://127.0.0.1:4299
 ```
 
 Captures a made-up ferry booking app in two builds, seeds feedback in every
-state and opens the browser. [docs/PLAYGROUND.md](docs/PLAYGROUND.md) walks
+state and opens the browser. It is the same scenario as `screencheck demo`,
+rendered live with the dev server; the scenario lives in `scripts/playground/scenario.mjs`, and
+`node scripts/demo/build-assets.mjs` re-renders the captures bundled in
+`demo/` after changing it. [docs/PLAYGROUND.md](docs/PLAYGROUND.md) walks
 through each feature, from dropping a pin to an agent replying over MCP.
 
 ## Current implementation
@@ -175,24 +196,32 @@ Feedback is written to disk by the server, never only to the browser:
 ~/.screencheck/feedback/<projectId>/feedback.json
 ```
 
-Set `SCREENCHECK_DATA` to use another folder (useful for testing). The
-server prints the folder it is using on startup.
+Set `SCREENCHECK_DATA` to use another folder (useful for testing), or
+`SCREENCHECK_HOME` to move everything. The server prints the folder it is
+using on startup. Only one server process may use a data folder at a time: it
+holds `server.lock` there while it runs, and a second one refuses to start and
+names the first (a lock left by a crashed process is taken over).
 
-| Route                                                      | Purpose                                                                                                                          |
-| ---------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------- |
-| `GET /healthz`                                             | `{"ok": true}` once the server is up; scripts and the playground poll it                                                         |
-| `GET /api/projects/:projectId/feedback`                    | List feedback                                                                                                                    |
-| `POST /api/projects/:projectId/feedback`                   | Create (idempotent on `clientMutationId`)                                                                                        |
-| `PATCH /api/projects/:projectId/feedback/:id`              | Update; `409` with the current record if `expectedUpdatedAt` is stale. See below for replies, messages and Verified              |
-| `DELETE /api/projects/:projectId/feedback/:id`             | Delete the expected revision                                                                                                     |
-| `GET /api/projects`                                        | Registered projects and screens (no local paths or proxy settings)                                                               |
-| `GET /api/projects/:projectId/captures/:version/:screenId` | A screen's capture image, only from inside that version's `captureRoot`                                                          |
-| `GET /api/projects/:projectId/elements/:version/:screenId` | A screen's element map (`<capture>.elements.json`), only from inside `captureRoot`; `404` when there is none, `500` if malformed |
-| `POST /api/projects/:projectId/feedback/import`            | Merge records saved elsewhere, keeping ids                                                                                       |
-| `GET /api/projects/:projectId/approvals`                   | Approved screens (stored beside `feedback.json` in `approvals.json`)                                                             |
-| `PUT /api/projects/:projectId/approvals`                   | Set `{version, screenId, approved}`; returns the full list                                                                       |
-| `GET /api/projects/:projectId/captions`                    | Screen descriptions (stored beside `feedback.json` in `captions.json`)                                                           |
-| `PUT /api/projects/:projectId/captions`                    | Set `{version, screenId, text}`; empty text clears; returns the list                                                             |
+API responses carry `Cross-Origin-Resource-Policy: same-origin`, and the app
+page forbids framing (`frame-ancestors 'none'`, `X-Frame-Options: DENY`). A
+malformed path or project id gets `400`; storage failures get a `500` whose
+details (including file paths) go only to the server log.
+
+| Route                                                      | Purpose                                                                                                                                                                                                          |
+| ---------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `GET /healthz`                                             | `{"ok": true}` once the server is up; scripts and the playground poll it                                                                                                                                         |
+| `GET /api/projects/:projectId/feedback`                    | List feedback                                                                                                                                                                                                    |
+| `POST /api/projects/:projectId/feedback`                   | Create (idempotent on `clientMutationId`)                                                                                                                                                                        |
+| `PATCH /api/projects/:projectId/feedback/:id`              | Update; `409` with the current record if `expectedUpdatedAt` is stale. See below for replies, messages and Verified                                                                                              |
+| `DELETE /api/projects/:projectId/feedback/:id`             | Delete the expected revision                                                                                                                                                                                     |
+| `GET /api/projects`                                        | Registered projects and screens (no local paths or proxy settings)                                                                                                                                               |
+| `GET /api/projects/:projectId/captures/:version/:screenId` | A screen's capture image, only from inside that version's `captureRoot`; revalidated by `ETag`, so a re-capture shows at once                                                                                    |
+| `GET /api/projects/:projectId/elements/:version/:screenId` | A screen's element map (`<capture>.elements.json`), only from inside `captureRoot`; `404` when there is none, `500` if malformed                                                                                 |
+| `POST /api/projects/:projectId/feedback/import`            | Merge records saved elsewhere, keeping ids                                                                                                                                                                       |
+| `GET /api/projects/:projectId/approvals`                   | Approved screens (stored beside `feedback.json` in `approvals.json`)                                                                                                                                             |
+| `PUT /api/projects/:projectId/approvals`                   | Set `{version, screenId, approved}`; reviewer only (`x-screencheck-actor: reviewer`, else `403`); `409` with `unverified: N` while the screen has Fixed comments, unless `override: true`; returns the full list |
+| `GET /api/projects/:projectId/captions`                    | Screen descriptions (stored beside `feedback.json` in `captions.json`)                                                                                                                                           |
+| `PUT /api/projects/:projectId/captions`                    | Set `{version, screenId, text}`; empty text clears; returns the list                                                                                                                                             |
 
 Feedback records carry `thread: [{id, author, role, note, at, status?}]`
 (`role` is `reviewer` or `agent`; `status` is the change that message made)
@@ -215,6 +244,17 @@ max); requests with a non-loopback `Host` header are refused. If
 error with a Retry button — it never treats a damaged file as empty or
 overwrites it.
 
+Each write goes to a unique temp file that is renamed into place, and the
+previous version is kept as `<file>.bak` (`feedback.json.bak`,
+`approvals.json.bak`, `captions.json.bak`). Fields this build doesn't know
+are kept when it rewrites a record, so an older build can't strip what a newer
+one added. If a single record is invalid, the others still load: `GET` lists
+the valid ones with a `problems` entry naming the bad record and field, and
+writes return `409` until it is fixed or quarantined. `screencheck doctor`
+checks every project; `--restore` puts a damaged file back from its `.bak`
+(keeping the damaged copy as `<file>.damaged-<time>`), and `--quarantine`
+moves invalid records to `feedback.rejected.json`.
+
 Feedback saved by earlier builds in browser `localStorage` is imported on first
 load. The browser copy is removed only after every record is accepted; anything
 unreadable is left in place and reported. Project registrations, captures,
@@ -230,6 +270,14 @@ through `~/.screencheck/server.json`, or pass `--url` / `--port`):
 # Open comments, tab-separated: id, version/screen pin N, status, tags, note
 npx screencheck reply --project shop --list
 
+# Narrow it down; --status takes a comma-separated list
+npx screencheck reply --project shop --list --screen 3 --tag P0
+npx screencheck reply --project shop --list --status fixed,wont-fix --json
+
+# One comment in full: note, what the screen shows, the element under the pin
+# and the whole thread
+npx screencheck reply --project shop --show --id <feedbackId>
+
 # Say what was done and mark it Fixed (or --status wont-fix with the reason)
 npx screencheck reply --project shop \
   --id <feedbackId> --status fixed --author Copilot \
@@ -238,13 +286,21 @@ npx screencheck reply --project shop \
 
 From a clone, `node scripts/reply.mjs` still works with the same flags.
 
-`--status` accepts `fixed`, `wont-fix`, `in-progress` or `backlog` and may be
-left out to reply without moving the comment. Each reply is added to the
-comment's thread; `--clear` removes the latest agent reply. Agents cannot mark
-a comment Verified: they set Fixed and the reviewer verifies it in ScreenCheck.
-Markdown exports list each comment's `id` so the agent can address it; if the
-reviewer edits a comment at the same moment, the script re-reads and retries
-once.
+`--status` accepts the same names as the MCP server (`fixed`, `wont-fix`,
+`in-progress`, `backlog`, or API values like `RESOLVED`) and may be left out to
+reply without moving the comment. Each reply is added to the comment's thread;
+`--clear` removes the latest agent reply. Agents cannot mark a comment
+Verified: they set Fixed and the reviewer verifies it in ScreenCheck.
+`--screen` takes a screen id, its number in the index or its title. `--json`
+prints the same comment objects as the MCP `list_feedback` tool. Markdown
+exports list each comment's `id` so the agent can address it.
+
+The CLI and the MCP server share one API client, so they number pins, name
+statuses and handle conflicts the same way. If the reviewer edits a comment at
+the same moment, the reply re-reads it and retries once. If the reviewer
+changed its status meanwhile (verified it, reopened it), the agent's note is
+still added but its status change is dropped, and the command fails with a
+message naming the reviewer's change, so the agent rereads before acting.
 
 ## MCP server
 
@@ -258,14 +314,14 @@ It finds the running server on its own: `--url`, then `SCREENCHECK_URL`, then
 looks this up on every call, so it can start before ScreenCheck does; until
 then each tool says ScreenCheck isn't running.
 
-| Tool              | What it does                                                                                                                                                   |
-| ----------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `list_projects`   | Projects, versions and screens, with open-comment counts                                                                                                       |
-| `list_feedback`   | Comments with pin number, screen, status, tags, note, latest reply and pin position. Filters: `project`, `version`, `screen`, `status`, `tag`, `includeClosed` |
-| `get_comment`     | One comment in full, the screen's caption, and a crop of the capture around the pin with the pin circled (`fullCapture: true` for the whole screen)            |
-| `reply`           | Answer a comment (`note`) and optionally set `status`; retries once if the reviewer edited it meanwhile                                                        |
-| `set_status`      | Change status without a note (closing as fixed or won't fix still needs `reply`)                                                                               |
-| `approval_status` | Per-screen approval and open comments by priority for a version, e.g. `7/9 approved, 3 open (1 P0)`                                                            |
+| Tool              | What it does                                                                                                                                                                                  |
+| ----------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `list_projects`   | Projects, versions and screens, with open-comment counts                                                                                                                                      |
+| `list_feedback`   | Comments with pin number, screen, status, tags, note, latest message (labelled Reviewer or Agent) and pin position. Filters: `project`, `version`, `screen`, `status`, `tag`, `includeClosed` |
+| `get_comment`     | One comment in full, the screen's caption, and a crop of the capture around the pin with the pin circled (`fullCapture: true` for the whole screen)                                           |
+| `reply`           | Answer a comment (`note`) and optionally set `status`; retries once if the reviewer edited it meanwhile, but never overrides a status the reviewer just set                                   |
+| `set_status`      | Change status without a note (closing as fixed or won't fix still needs `reply`)                                                                                                              |
+| `approval_status` | Per-screen approval and open comments by priority for a version, e.g. `7/9 approved, 3 open (1 P0)`                                                                                           |
 
 Statuses take the friendly names `backlog`, `in-progress`, `fixed` and
 `wont-fix`. Agents can't set `verified`; only a reviewer can. Each project's
@@ -273,10 +329,23 @@ Markdown export is also a resource (`screencheck://project/<id>/feedback.md`),
 and the `fix_open_feedback` prompt walks an agent through the open P0 and P1
 comments. Replies are signed `Agent` unless the tool call passes `author` or
 the server is started with `--author <name>` (or `SCREENCHECK_AUTHOR`).
+Each comment's latest message says who wrote it (`Reviewer (Alex): …` or
+`Agent (Copilot): …`), and `awaitingAgent: true` marks comments where the
+reviewer spoke last, such as a fix reopened with a reason.
 
-The command is `npx -y screencheck mcp` (or `screencheck mcp` if it's
-installed globally). From a clone, use
+For MCP, install ScreenCheck once with `npm i -g screencheck` and use the
+command `screencheck mcp`. The configs below use `npx -y screencheck mcp`,
+which works without an install, but the first launch downloads the package
+and can outlast an agent's MCP startup timeout, so ScreenCheck shows as failed
+until the next session. From a clone, use
 `npx tsx /path/to/screencheck/src/mcp/main.ts` instead.
+
+Image processing uses [sharp](https://sharp.pixelplumbing.com/) when it's
+installed (`npm i -g sharp` next to a global install). It is an optional
+dependency, which keeps the install small: without it, `get_comment` crops PNG
+captures with a built-in encoder and returns other formats (WebP, JPEG) whole,
+without the pin drawn; `screencheck capture --out shot.webp` asks you to
+install sharp or save a PNG.
 
 **Copilot CLI** (`~/.copilot/mcp-config.json`):
 
@@ -315,6 +384,25 @@ claude mcp add screencheck -- npx -y screencheck mcp
 
 ## Register a project
 
+The quickest way is to point ScreenCheck at a folder of captures:
+
+```bash
+# One version per subfolder (captures/build-41, captures/build-42, ...);
+# a folder with images and no subfolders becomes version "v1".
+npx screencheck init shop --captures ./captures --name Shop
+
+# Later, add the next build as another version
+npx screencheck add shop ./captures/build-43
+```
+
+`init` turns every PNG, JPEG or WebP into a screen: the id and title come from
+the file name (`03_order-history.png` becomes "Order history"), the group is
+"Screens", the description is the title and the viewport is the image size.
+It writes `<id>.json` into the registry and refuses to overwrite one without
+`--force`; `--projects <dir>` writes somewhere else. A running server picks
+the file up on the next request. Edit the JSON afterwards to group screens
+and describe what each capture shows.
+
 Each project is one JSON file in `~/.screencheck/projects/` (or
 `SCREENCHECK_PROJECTS`). Captures stay wherever they already live; each
 version points at its folder:
@@ -340,9 +428,28 @@ version points at its folder:
 }
 ```
 
-A capture must sit inside its version's `captureRoot`. To register a project
-from its own manifests, keep a small importer script beside the registrations
-rather than in this repository.
+Only `id`, `ordinal`, `title` and `viewport` are required per screen: `group`
+defaults to "Screens" and `description` to the title. A registration that
+doesn't parse is listed in `problems` with the field at fault, for example
+`try.json: screens[1].viewport: Invalid input: expected object, received undefined`.
+
+A capture must sit inside its version's `captureRoot`. A relative
+`capturePath` is read from the `captureRoot`, subfolders included
+(`flows/checkout.png`); a path that climbs out of it is refused. An absolute
+path outside the root falls back to the same file name inside it. Without a
+`capturePath`, the capture is `<screen id>.webp`. A declared capture that is
+missing, or one that points outside the root, is listed in `problems` from
+`GET /api/projects` (and the inspector) rather than silently showing "No
+capture". Registrations are re-read only when a file in the folder changes.
+
+Feedback, approvals and captions are checked against the registry: a write
+for an unregistered project, version or screen gets `404` naming the valid
+ids (for example `Unknown project "shpo". Projects: shop, try.`), so a typo in
+a script or agent can't save comments nobody will see. The `example`
+placeholder project is always accepted.
+
+To register a project from its own manifests, keep a small importer script
+beside the registrations rather than in this repository.
 
 ## Versions, revisions and resolutions
 
@@ -394,7 +501,9 @@ scroller) are not covered; capture those by scrolling the container instead.
 ## Element map
 
 When `captureFullPage` is given a `path`, it also writes an element map beside
-the capture: `checkout.png` gets `checkout.elements.json`. It records the
+the capture: `checkout.png` gets `checkout.elements.json`. `screencheck capture`
+writes one the same way, and swaps the image into place whole, so a re-capture
+is never served half-written. It records the
 visible, meaningful elements after the footer adjustments, so the boxes line up
 with the full-page shot:
 

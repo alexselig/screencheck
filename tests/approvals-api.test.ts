@@ -37,7 +37,12 @@ afterEach(async () => {
   await rm(root, { recursive: true, force: true });
 });
 
-function put(body: unknown, headers: Record<string, string> = { origin }) {
+const reviewer = { "x-screencheck-actor": "reviewer" };
+
+function put(
+  body: unknown,
+  headers: Record<string, string> = { origin, ...reviewer },
+) {
   return fetch(base, {
     method: "PUT",
     headers: { "content-type": "application/json", ...headers },
@@ -101,11 +106,83 @@ describe("screen approvals API", () => {
   it("rejects cross-origin writes and bad input", async () => {
     const foreign = await put(
       { version: "v1", screenId: "landing", approved: true },
-      { origin: "https://evil.example" },
+      { origin: "https://evil.example", ...reviewer },
     );
     expect(foreign.status).toBe(403);
     const bad = await put({ version: "v1", screenId: "", approved: "yes" });
     expect(bad.status).toBe(400);
     expect((await (await fetch(base)).json()).approvals).toEqual([]);
+  });
+
+  it("lets only the reviewer approve (be-5)", async () => {
+    const agent = await put(
+      { version: "v1", screenId: "landing", approved: true },
+      { origin },
+    );
+    expect(agent.status).toBe(403);
+    expect((await agent.json()).error).toMatch(/Only a reviewer/);
+    const spoofed = await put(
+      { version: "v1", screenId: "landing", approved: true },
+      { origin, "x-screencheck-actor": "agent" },
+    );
+    expect(spoofed.status).toBe(403);
+    expect((await (await fetch(base)).json()).approvals).toEqual([]);
+  });
+
+  it("refuses to approve over unverified fixes unless told to override (be-5)", async () => {
+    const feedback = `${origin}/api/projects/demo/feedback`;
+    const created = await fetch(feedback, {
+      method: "POST",
+      headers: { "content-type": "application/json", origin },
+      body: JSON.stringify({
+        clientMutationId: "33333333-3333-4333-8333-333333333333",
+        screenId: "landing",
+        version: "v1",
+        x: 0.5,
+        y: 0.5,
+        note: "Fix the hero.",
+        tags: [],
+      }),
+    });
+    const record = (await created.json()).feedback;
+    const fixed = await fetch(`${feedback}/${record.id}`, {
+      method: "PATCH",
+      headers: { "content-type": "application/json", origin },
+      body: JSON.stringify({
+        expectedUpdatedAt: record.updatedAt,
+        patch: {
+          status: "RESOLVED",
+          reply: { note: "Done.", author: "Agent" },
+        },
+      }),
+    });
+
+    expect(fixed.status).toBe(200);
+
+    const refused = await put({
+      version: "v1",
+      screenId: "landing",
+      approved: true,
+    });
+    expect(refused.status).toBe(409);
+    const body = await refused.json();
+    expect(body.unverified).toBe(1);
+    expect(body.error).toMatch(/1 fix is not verified/);
+    expect((await (await fetch(base)).json()).approvals).toEqual([]);
+
+    // Other screens and versions are unaffected.
+    expect(
+      (await put({ version: "v2", screenId: "landing", approved: true }))
+        .status,
+    ).toBe(200);
+
+    const forced = await put({
+      version: "v1",
+      screenId: "landing",
+      approved: true,
+      override: true,
+    });
+    expect(forced.status).toBe(200);
+    expect((await forced.json()).approvals).toHaveLength(2);
   });
 });

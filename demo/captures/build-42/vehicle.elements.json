@@ -1,0 +1,669 @@
+{
+  "version": 1,
+  "capture": {
+    "width": 1440,
+    "height": 1000
+  },
+  "elements": [
+    {
+      "box": {
+        "x": 0,
+        "y": 0,
+        "w": 1,
+        "h": 0.064
+      },
+      "tag": "header",
+      "selector": "header",
+      "role": "banner"
+    },
+    {
+      "box": {
+        "x": 0.03333,
+        "y": 0.017,
+        "w": 0.05998,
+        "h": 0.03
+      },
+      "tag": "div",
+      "selector": "header > div:nth-of-type(1)",
+      "name": "tidewater"
+    },
+    {
+      "box": {
+        "x": 0.11554,
+        "y": 0.0215,
+        "w": 0.17572,
+        "h": 0.021
+      },
+      "tag": "nav",
+      "selector": "header > nav",
+      "role": "navigation"
+    },
+    {
+      "box": {
+        "x": 0.11554,
+        "y": 0.0215,
+        "w": 0.02287,
+        "h": 0.021
+      },
+      "tag": "span",
+      "selector": "header > nav > span:nth-of-type(1)",
+      "name": "Book"
+    },
+    {
+      "box": {
+        "x": 0.15508,
+        "y": 0.0215,
+        "w": 0.03512,
+        "h": 0.021
+      },
+      "tag": "span",
+      "selector": "header > nav > span:nth-of-type(2)",
+      "name": "My trips"
+    },
+    {
+      "box": {
+        "x": 0.20687,
+        "y": 0.0215,
+        "w": 0.04755,
+        "h": 0.021
+      },
+      "tag": "span",
+      "selector": "header > nav > span:nth-of-type(3)",
+      "name": "Timetables"
+    },
+    {
+      "box": {
+        "x": 0.27108,
+        "y": 0.0215,
+        "w": 0.02017,
+        "h": 0.021
+      },
+      "tag": "span",
+      "selector": "header > nav > span:nth-of-type(4)",
+      "name": "Help"
+    },
+    {
+      "box": {
+        "x": 0.88167,
+        "y": 0.016,
+        "w": 0.08499,
+        "h": 0.032
+      },
+      "tag": "div",
+      "selector": "header > div:nth-of-type(2)",
+      "name": "Maya Okafor MO"
+    },
+    {
+      "box": {
+        "x": 0.94444,
+        "y": 0.016,
+        "w": 0.02222,
+        "h": 0.032
+      },
+      "tag": "div",
+      "selector": "header > div:nth-of-type(2) > div",
+      "name": "MO"
+    },
+    {
+      "box": {
+        "x": 0.11111,
+        "y": 0.064,
+        "w": 0.77778,
+        "h": 0.7365
+      },
+      "tag": "main",
+      "selector": "main",
+      "role": "main"
+    },
+    {
+      "box": {
+        "x": 0.14444,
+        "y": 0.104,
+        "w": 0.71111,
+        "h": 0.0395
+      },
+      "tag": "div",
+      "selector": "main > div:nth-of-type(1)",
+      "source": {
+        "file": "src/booking/Steps.tsx",
+        "line": 12
+      }
+    },
+    {
+      "box": {
+        "x": 0.14444,
+        "y": 0.104,
+        "w": 0.17361,
+        "h": 0.0395
+      },
+      "tag": "div",
+      "selector": "main > div:nth-of-type(1) > div:nth-of-type(1)",
+      "name": "1. Route",
+      "source": {
+        "file": "src/booking/Steps.tsx",
+        "line": 12
+      }
+    },
+    {
+      "box": {
+        "x": 0.32361,
+        "y": 0.104,
+        "w": 0.17361,
+        "h": 0.0395
+      },
+      "tag": "div",
+      "selector": "main > div:nth-of-type(1) > div:nth-of-type(2)",
+      "name": "2. Sailing",
+      "source": {
+        "file": "src/booking/Steps.tsx",
+        "line": 12
+      }
+    },
+    {
+      "box": {
+        "x": 0.50278,
+        "y": 0.104,
+        "w": 0.17361,
+        "h": 0.0395
+      },
+      "tag": "div",
+      "selector": "main > div:nth-of-type(1) > div:nth-of-type(3)",
+      "name": "3. Vehicle & passengers",
+      "source": {
+        "file": "src/booking/Steps.tsx",
+        "line": 12
+      }
+    },
+    {
+      "box": {
+        "x": 0.68194,
+        "y": 0.104,
+        "w": 0.17361,
+        "h": 0.0395
+      },
+      "tag": "div",
+      "selector": "main > div:nth-of-type(1) > div:nth-of-type(4)",
+      "name": "4. Review & pay",
+      "source": {
+        "file": "src/booking/Steps.tsx",
+        "line": 12
+      }
+    },
+    {
+      "box": {
+        "x": 0.14444,
+        "y": 0.1715,
+        "w": 0.71111,
+        "h": 0.048
+      },
+      "tag": "h1",
+      "selector": "main > h1",
+      "role": "heading",
+      "name": "Who's travelling?"
+    },
+    {
+      "box": {
+        "x": 0.14444,
+        "y": 0.2275,
+        "w": 0.71111,
+        "h": 0.0225
+      },
+      "tag": "p",
+      "selector": "main > p",
+      "name": "Enter your vehicle details. We use the length to reserve deck space."
+    },
+    {
+      "box": {
+        "x": 0.14444,
+        "y": 0.278,
+        "w": 0.46481,
+        "h": 0.4825
+      },
+      "tag": "div",
+      "selector": "main > div:nth-of-type(2) > div:nth-of-type(1)",
+      "source": {
+        "file": "src/booking/VehicleForm.tsx",
+        "line": 31
+      }
+    },
+    {
+      "box": {
+        "x": 0.16111,
+        "y": 0.302,
+        "w": 0.43148,
+        "h": 0.027
+      },
+      "tag": "h2",
+      "selector": "main > div:nth-of-type(2) > div:nth-of-type(1) > h2:nth-of-type(1)",
+      "role": "heading",
+      "name": "Vehicle",
+      "source": {
+        "file": "src/booking/VehicleForm.tsx",
+        "line": 31
+      }
+    },
+    {
+      "box": {
+        "x": 0.16111,
+        "y": 0.341,
+        "w": 0.20879,
+        "h": 0.0695
+      },
+      "tag": "div",
+      "selector": "div:nth-of-type(2) > div:nth-of-type(1) > div:nth-of-type(1) > div:nth-of-type(1)",
+      "name": "Registration KX21 RTA",
+      "source": {
+        "file": "src/booking/VehicleForm.tsx",
+        "line": 31
+      }
+    },
+    {
+      "box": {
+        "x": 0.16111,
+        "y": 0.3665,
+        "w": 0.20879,
+        "h": 0.044
+      },
+      "tag": "div",
+      "selector": "div:nth-of-type(1) > div:nth-of-type(1) > div:nth-of-type(1) > div",
+      "name": "KX21 RTA",
+      "source": {
+        "file": "src/booking/VehicleForm.tsx",
+        "line": 31
+      }
+    },
+    {
+      "box": {
+        "x": 0.38379,
+        "y": 0.341,
+        "w": 0.2088,
+        "h": 0.0695
+      },
+      "tag": "div",
+      "selector": "div:nth-of-type(2) > div:nth-of-type(1) > div:nth-of-type(1) > div:nth-of-type(2)",
+      "name": "Type Car",
+      "source": {
+        "file": "src/booking/VehicleForm.tsx",
+        "line": 31
+      }
+    },
+    {
+      "box": {
+        "x": 0.38379,
+        "y": 0.3665,
+        "w": 0.2088,
+        "h": 0.044
+      },
+      "tag": "div",
+      "selector": "div:nth-of-type(1) > div:nth-of-type(1) > div:nth-of-type(2) > div",
+      "name": "Car",
+      "source": {
+        "file": "src/booking/VehicleForm.tsx",
+        "line": 31
+      }
+    },
+    {
+      "box": {
+        "x": 0.16111,
+        "y": 0.4465,
+        "w": 0.20879,
+        "h": 0.0695
+      },
+      "tag": "div",
+      "selector": "div:nth-of-type(2) > div:nth-of-type(1) > div:nth-of-type(1) > div:nth-of-type(3)",
+      "name": "Length (m) 4.6",
+      "source": {
+        "file": "src/booking/VehicleForm.tsx",
+        "line": 31
+      }
+    },
+    {
+      "box": {
+        "x": 0.16111,
+        "y": 0.472,
+        "w": 0.20879,
+        "h": 0.044
+      },
+      "tag": "div",
+      "selector": "div:nth-of-type(1) > div:nth-of-type(1) > div:nth-of-type(3) > div",
+      "name": "4.6",
+      "source": {
+        "file": "src/booking/VehicleForm.tsx",
+        "line": 31
+      }
+    },
+    {
+      "box": {
+        "x": 0.38379,
+        "y": 0.4465,
+        "w": 0.2088,
+        "h": 0.0695
+      },
+      "tag": "div",
+      "selector": "div:nth-of-type(2) > div:nth-of-type(1) > div:nth-of-type(1) > div:nth-of-type(4)",
+      "name": "Height (m) 1.5",
+      "source": {
+        "file": "src/booking/VehicleForm.tsx",
+        "line": 31
+      }
+    },
+    {
+      "box": {
+        "x": 0.38379,
+        "y": 0.472,
+        "w": 0.2088,
+        "h": 0.044
+      },
+      "tag": "div",
+      "selector": "div:nth-of-type(1) > div:nth-of-type(1) > div:nth-of-type(4) > div",
+      "name": "1.5",
+      "source": {
+        "file": "src/booking/VehicleForm.tsx",
+        "line": 31
+      }
+    },
+    {
+      "box": {
+        "x": 0.16111,
+        "y": 0.544,
+        "w": 0.43148,
+        "h": 0.027
+      },
+      "tag": "h2",
+      "selector": "main > div:nth-of-type(2) > div:nth-of-type(1) > h2:nth-of-type(2)",
+      "role": "heading",
+      "name": "Passengers",
+      "source": {
+        "file": "src/booking/VehicleForm.tsx",
+        "line": 31
+      }
+    },
+    {
+      "box": {
+        "x": 0.16111,
+        "y": 0.597,
+        "w": 0.02952,
+        "h": 0.0225
+      },
+      "tag": "span",
+      "selector": "div:nth-of-type(2) > div:nth-of-type(1) > div:nth-of-type(2) > span",
+      "name": "Adults",
+      "source": {
+        "file": "src/booking/VehicleForm.tsx",
+        "line": 31
+      }
+    },
+    {
+      "box": {
+        "x": 0.58679,
+        "y": 0.597,
+        "w": 0.00579,
+        "h": 0.0225
+      },
+      "tag": "b",
+      "selector": "div:nth-of-type(2) > div:nth-of-type(1) > div:nth-of-type(2) > b",
+      "name": "2",
+      "source": {
+        "file": "src/booking/VehicleForm.tsx",
+        "line": 31
+      }
+    },
+    {
+      "box": {
+        "x": 0.16111,
+        "y": 0.6485,
+        "w": 0.0685,
+        "h": 0.0225
+      },
+      "tag": "span",
+      "selector": "div:nth-of-type(2) > div:nth-of-type(1) > div:nth-of-type(3) > span",
+      "name": "Children (5-15)",
+      "source": {
+        "file": "src/booking/VehicleForm.tsx",
+        "line": 31
+      }
+    },
+    {
+      "box": {
+        "x": 0.58679,
+        "y": 0.6485,
+        "w": 0.00579,
+        "h": 0.0225
+      },
+      "tag": "b",
+      "selector": "div:nth-of-type(2) > div:nth-of-type(1) > div:nth-of-type(3) > b",
+      "name": "0",
+      "source": {
+        "file": "src/booking/VehicleForm.tsx",
+        "line": 31
+      }
+    },
+    {
+      "box": {
+        "x": 0.16111,
+        "y": 0.7,
+        "w": 0.0245,
+        "h": 0.0225
+      },
+      "tag": "span",
+      "selector": "div:nth-of-type(2) > div:nth-of-type(1) > div:nth-of-type(4) > span",
+      "name": "Dogs",
+      "source": {
+        "file": "src/booking/VehicleForm.tsx",
+        "line": 31
+      }
+    },
+    {
+      "box": {
+        "x": 0.58679,
+        "y": 0.7,
+        "w": 0.00579,
+        "h": 0.0225
+      },
+      "tag": "b",
+      "selector": "div:nth-of-type(2) > div:nth-of-type(1) > div:nth-of-type(4) > b",
+      "name": "1",
+      "source": {
+        "file": "src/booking/VehicleForm.tsx",
+        "line": 31
+      }
+    },
+    {
+      "box": {
+        "x": 0.62314,
+        "y": 0.278,
+        "w": 0.2324,
+        "h": 0.4825
+      },
+      "tag": "div",
+      "selector": "[data-testid=\"price-summary\"]",
+      "testId": "price-summary",
+      "source": {
+        "file": "src/booking/PriceSummary.tsx",
+        "line": 40
+      }
+    },
+    {
+      "box": {
+        "x": 0.63981,
+        "y": 0.302,
+        "w": 0.19907,
+        "h": 0.027
+      },
+      "tag": "h2",
+      "selector": "[data-testid=\"price-summary\"] > h2",
+      "role": "heading",
+      "name": "Summary",
+      "source": {
+        "file": "src/booking/PriceSummary.tsx",
+        "line": 40
+      }
+    },
+    {
+      "box": {
+        "x": 0.63981,
+        "y": 0.355,
+        "w": 0.07587,
+        "h": 0.0225
+      },
+      "tag": "span",
+      "selector": "[data-testid=\"price-summary\"] > div:nth-of-type(1) > span",
+      "name": "Outbound 08:40",
+      "source": {
+        "file": "src/booking/PriceSummary.tsx",
+        "line": 40
+      }
+    },
+    {
+      "box": {
+        "x": 0.8215,
+        "y": 0.355,
+        "w": 0.01738,
+        "h": 0.0225
+      },
+      "tag": "b",
+      "selector": "[data-testid=\"price-summary\"] > div:nth-of-type(1) > b",
+      "name": "£62",
+      "source": {
+        "file": "src/booking/PriceSummary.tsx",
+        "line": 40
+      }
+    },
+    {
+      "box": {
+        "x": 0.63981,
+        "y": 0.4065,
+        "w": 0.06021,
+        "h": 0.0225
+      },
+      "tag": "span",
+      "selector": "[data-testid=\"price-summary\"] > div:nth-of-type(2) > span",
+      "name": "Return 17:10",
+      "source": {
+        "file": "src/booking/PriceSummary.tsx",
+        "line": 40
+      }
+    },
+    {
+      "box": {
+        "x": 0.8215,
+        "y": 0.4065,
+        "w": 0.01738,
+        "h": 0.0225
+      },
+      "tag": "b",
+      "selector": "[data-testid=\"price-summary\"] > div:nth-of-type(2) > b",
+      "name": "£70",
+      "source": {
+        "file": "src/booking/PriceSummary.tsx",
+        "line": 40
+      }
+    },
+    {
+      "box": {
+        "x": 0.63981,
+        "y": 0.458,
+        "w": 0.01929,
+        "h": 0.0225
+      },
+      "tag": "span",
+      "selector": "[data-testid=\"price-summary\"] > div:nth-of-type(3) > span",
+      "name": "Dog",
+      "source": {
+        "file": "src/booking/PriceSummary.tsx",
+        "line": 40
+      }
+    },
+    {
+      "box": {
+        "x": 0.82729,
+        "y": 0.458,
+        "w": 0.01159,
+        "h": 0.0225
+      },
+      "tag": "b",
+      "selector": "[data-testid=\"price-summary\"] > div:nth-of-type(3) > b",
+      "name": "£6",
+      "source": {
+        "file": "src/booking/PriceSummary.tsx",
+        "line": 40
+      }
+    },
+    {
+      "box": {
+        "x": 0.63981,
+        "y": 0.5095,
+        "w": 0.07428,
+        "h": 0.0225
+      },
+      "tag": "span",
+      "selector": "[data-testid=\"price-summary\"] > div:nth-of-type(4) > span",
+      "name": "Return discount",
+      "source": {
+        "file": "src/booking/PriceSummary.tsx",
+        "line": 40
+      }
+    },
+    {
+      "box": {
+        "x": 0.81525,
+        "y": 0.5095,
+        "w": 0.02363,
+        "h": 0.0225
+      },
+      "tag": "b",
+      "selector": "[data-testid=\"price-summary\"] > div:nth-of-type(4) > b",
+      "name": "−£13",
+      "source": {
+        "file": "src/booking/PriceSummary.tsx",
+        "line": 40
+      }
+    },
+    {
+      "box": {
+        "x": 0.63981,
+        "y": 0.561,
+        "w": 0.02391,
+        "h": 0.0225
+      },
+      "tag": "b",
+      "selector": "[data-testid=\"price-summary\"] > div:nth-of-type(5) > b:nth-of-type(1)",
+      "name": "Total",
+      "source": {
+        "file": "src/booking/PriceSummary.tsx",
+        "line": 40
+      }
+    },
+    {
+      "box": {
+        "x": 0.8157,
+        "y": 0.561,
+        "w": 0.02318,
+        "h": 0.0225
+      },
+      "tag": "b",
+      "selector": "[data-testid=\"price-summary\"] > div:nth-of-type(5) > b:nth-of-type(2)",
+      "name": "£125",
+      "source": {
+        "file": "src/booking/PriceSummary.tsx",
+        "line": 40
+      }
+    },
+    {
+      "box": {
+        "x": 0.63981,
+        "y": 0.6105,
+        "w": 0.07551,
+        "h": 0.0465
+      },
+      "tag": "span",
+      "selector": "[data-testid=\"price-summary\"] > span",
+      "role": "button",
+      "name": "Continue",
+      "source": {
+        "file": "src/booking/PriceSummary.tsx",
+        "line": 40
+      }
+    }
+  ]
+}

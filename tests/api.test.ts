@@ -165,3 +165,37 @@ describe("loopback host header", () => {
     expect(isLoopbackHostHeader(undefined, 4173)).toBe(false);
   });
 });
+
+describe("feedback API with an invalid record", () => {
+  it("lists the valid records with a problem and refuses writes with 409", async () => {
+    await mkdir(join(root, "demo"), { recursive: true });
+    const good = {
+      id: "good",
+      projectId: "demo",
+      screenId: "landing",
+      version: "live",
+      x: 0.5,
+      y: 0.5,
+      note: "Fine",
+      tags: [],
+      status: "OPEN",
+      createdAt: "2026-10-05T20:00:00.000Z",
+      updatedAt: "2026-10-05T20:00:00.000Z",
+    };
+    await writeFile(
+      join(root, "demo", "feedback.json"),
+      JSON.stringify({
+        version: 1,
+        feedback: [good, { ...good, id: "bad", status: "NOPE" }],
+      }),
+    );
+    const listed = await (await fetch(base)).json();
+    expect(listed.feedback.map((item: { id: string }) => item.id)).toEqual([
+      "good",
+    ]);
+    expect(listed.problems[0]).toMatch(/feedback\[1\] \(id bad\): status/);
+    const created = await send("POST", base, input);
+    expect(created.status).toBe(409);
+    expect((await created.json()).error).toMatch(/--quarantine/);
+  });
+});

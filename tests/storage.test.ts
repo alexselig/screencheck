@@ -77,14 +77,17 @@ describe("feedback storage", () => {
     expect(await storage.listFeedback("demo")).toEqual([first]);
   });
 
-  it("writes and syncs feedback.json.next before atomically renaming it", async () => {
+  it("writes and syncs a temp file before atomically renaming it", async () => {
     const root = await dataRoot();
     let inspectedNextFile = false;
+    let temp = "";
     const storage = createFeedbackStorage({
       dataRoot: root,
       fileSystem: {
         rename: async (from, to) => {
-          expect(from).toBe(join(root, "demo", "feedback.json.next"));
+          temp = String(from);
+          expect(from).toMatch(/feedback\.json\.\d+\.[0-9a-f-]+\.next$/);
+          expect(String(from).startsWith(join(root, "demo"))).toBe(true);
           expect(to).toBe(join(root, "demo", "feedback.json"));
           expect(
             JSON.parse(await readFile(from, "utf8")).feedback,
@@ -98,9 +101,9 @@ describe("feedback storage", () => {
     await storage.createFeedback("demo", createInput);
 
     expect(inspectedNextFile).toBe(true);
-    await expect(
-      readFile(join(root, "demo", "feedback.json.next"), "utf8"),
-    ).rejects.toMatchObject({ code: "ENOENT" });
+    await expect(readFile(temp, "utf8")).rejects.toMatchObject({
+      code: "ENOENT",
+    });
   });
 
   it("rejects stale updates and returns the current record", async () => {

@@ -1,0 +1,143 @@
+{
+  "version": 1,
+  "capture": {
+    "width": 1440,
+    "height": 1000
+  },
+  "elements": [
+    {
+      "box": {
+        "x": 0,
+        "y": 0,
+        "w": 1,
+        "h": 0.064
+      },
+      "tag": "header",
+      "selector": "header",
+      "role": "banner"
+    },
+    {
+      "box": {
+        "x": 0.03333,
+        "y": 0.017,
+        "w": 0.05998,
+        "h": 0.03
+      },
+      "tag": "div",
+      "selector": "header > div",
+      "name": "tidewater"
+    },
+    {
+      "box": {
+        "x": 0.11111,
+        "y": 0.064,
+        "w": 0.77778,
+        "h": 0.84
+      },
+      "tag": "main",
+      "selector": "main",
+      "role": "main"
+    },
+    {
+      "box": {
+        "x": 0.14444,
+        "y": 0.38875,
+        "w": 0.34861,
+        "h": 0.132
+      },
+      "tag": "h1",
+      "selector": "main > div > div:nth-of-type(1) > h1",
+      "role": "heading",
+      "name": "Cross the water, skip the queue."
+    },
+    {
+      "box": {
+        "x": 0.14444,
+        "y": 0.52875,
+        "w": 0.34861,
+        "h": 0.0225
+      },
+      "tag": "p",
+      "selector": "main > div > div:nth-of-type(1) > p",
+      "name": "Book sailings, add a vehicle, and keep every ticket on your phone."
+    },
+    {
+      "box": {
+        "x": 0.52361,
+        "y": 0.35575,
+        "w": 0.31528,
+        "h": 0.027
+      },
+      "tag": "h2",
+      "selector": "main > div > div:nth-of-type(2) > h2",
+      "role": "heading",
+      "name": "Sign in"
+    },
+    {
+      "box": {
+        "x": 0.52361,
+        "y": 0.39475,
+        "w": 0.31528,
+        "h": 0.0695
+      },
+      "tag": "div",
+      "selector": "main > div > div:nth-of-type(2) > div:nth-of-type(1)",
+      "name": "Email maya.okafor@example.com"
+    },
+    {
+      "box": {
+        "x": 0.52361,
+        "y": 0.42025,
+        "w": 0.31528,
+        "h": 0.044
+      },
+      "tag": "div",
+      "selector": "div > div:nth-of-type(2) > div:nth-of-type(1) > div",
+      "name": "maya.okafor@example.com"
+    },
+    {
+      "box": {
+        "x": 0.52361,
+        "y": 0.48025,
+        "w": 0.31528,
+        "h": 0.0695
+      },
+      "tag": "div",
+      "selector": "main > div > div:nth-of-type(2) > div:nth-of-type(2)",
+      "name": "Password ••••••••••"
+    },
+    {
+      "box": {
+        "x": 0.52361,
+        "y": 0.50575,
+        "w": 0.31528,
+        "h": 0.044
+      },
+      "tag": "div",
+      "selector": "div > div:nth-of-type(2) > div:nth-of-type(2) > div",
+      "name": "••••••••••"
+    },
+    {
+      "box": {
+        "x": 0.52361,
+        "y": 0.56575,
+        "w": 0.06431,
+        "h": 0.0465
+      },
+      "tag": "span",
+      "selector": "div > div:nth-of-type(2) > div:nth-of-type(3) > span:nth-of-type(1)",
+      "name": "Sign in"
+    },
+    {
+      "box": {
+        "x": 0.59626,
+        "y": 0.57925,
+        "w": 0.07331,
+        "h": 0.0195
+      },
+      "tag": "span",
+      "selector": "div > div:nth-of-type(2) > div:nth-of-type(3) > span:nth-of-type(2)",
+      "name": "Forgot password?"
+    }
+  ]
+}

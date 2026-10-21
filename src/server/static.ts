@@ -5,6 +5,7 @@ import path from "node:path";
 
 import { sendJson } from "./api";
 import { isLoopbackHostHeader } from "./origin";
+import { PAGE_HEADERS, streamFile } from "./send-file";
 
 const CONTENT_TYPES: Record<string, string> = {
   ".html": "text/html; charset=utf-8",
@@ -46,7 +47,7 @@ export async function createStaticHandler(clientRoot: string) {
   const root = await realpath(clientRoot);
   const indexFile = path.join(root, "index.html");
 
-  function send(
+  async function send(
     request: IncomingMessage,
     response: ServerResponse,
     file: string,
@@ -55,15 +56,20 @@ export async function createStaticHandler(clientRoot: string) {
     const type =
       CONTENT_TYPES[path.extname(file).toLowerCase()] ??
       "application/octet-stream";
-    response.writeHead(200, {
-      "cache-control": immutable
-        ? "public, max-age=31536000, immutable"
-        : "no-cache",
-      "content-type": type,
-      "x-content-type-options": "nosniff",
-    });
-    if (request.method === "HEAD") response.end();
-    else createReadStream(file).pipe(response);
+    const sent = await streamFile(
+      response,
+      createReadStream(file),
+      {
+        "cache-control": immutable
+          ? "public, max-age=31536000, immutable"
+          : "no-cache",
+        "content-type": type,
+        "x-content-type-options": "nosniff",
+        ...PAGE_HEADERS,
+      },
+      { head: request.method === "HEAD" },
+    );
+    if (!sent) sendJson(response, 404, { error: "not found" });
   }
 
   return async function serveStatic(
@@ -99,7 +105,7 @@ export async function createStaticHandler(clientRoot: string) {
     }
     const file = pathname === "/" ? null : await fileIn(root, pathname);
     if (file) {
-      send(request, response, file, pathname.startsWith("/assets/"));
+      await send(request, response, file, pathname.startsWith("/assets/"));
       return;
     }
     // Missing fingerprinted files are real 404s; anything else is a client
@@ -108,6 +114,6 @@ export async function createStaticHandler(clientRoot: string) {
       sendJson(response, 404, { error: "not found" });
       return;
     }
-    send(request, response, indexFile, false);
+    await send(request, response, indexFile, false);
   };
 }

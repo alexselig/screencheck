@@ -120,7 +120,9 @@ export async function fetchApprovals(projectId: string) {
 export async function putApproval(projectId: string, input: SetApprovalInput) {
   const { approvals } = await request<{ approvals: unknown }>(
     approvalsUrl(projectId),
-    { method: "PUT", body: input },
+    // The inspector asks before approving over unverified fixes, so by the
+    // time this is called the reviewer has already chosen to override.
+    { method: "PUT", body: { ...input, override: true } },
   );
   return screenApprovalSchema.array().parse(approvals);
 }

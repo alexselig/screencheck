@@ -1,0 +1,391 @@
+{
+  "version": 1,
+  "capture": {
+    "width": 1440,
+    "height": 1000
+  },
+  "elements": [
+    {
+      "box": {
+        "x": 0,
+        "y": 0,
+        "w": 1,
+        "h": 0.064
+      },
+      "tag": "header",
+      "selector": "header",
+      "role": "banner"
+    },
+    {
+      "box": {
+        "x": 0.03333,
+        "y": 0.017,
+        "w": 0.05998,
+        "h": 0.03
+      },
+      "tag": "div",
+      "selector": "header > div:nth-of-type(1)",
+      "name": "tidewater"
+    },
+    {
+      "box": {
+        "x": 0.11554,
+        "y": 0.0215,
+        "w": 0.17572,
+        "h": 0.021
+      },
+      "tag": "nav",
+      "selector": "header > nav",
+      "role": "navigation"
+    },
+    {
+      "box": {
+        "x": 0.11554,
+        "y": 0.0215,
+        "w": 0.02287,
+        "h": 0.021
+      },
+      "tag": "span",
+      "selector": "header > nav > span:nth-of-type(1)",
+      "name": "Book"
+    },
+    {
+      "box": {
+        "x": 0.15508,
+        "y": 0.0215,
+        "w": 0.03512,
+        "h": 0.021
+      },
+      "tag": "span",
+      "selector": "header > nav > span:nth-of-type(2)",
+      "name": "My trips"
+    },
+    {
+      "box": {
+        "x": 0.20687,
+        "y": 0.0215,
+        "w": 0.04755,
+        "h": 0.021
+      },
+      "tag": "span",
+      "selector": "header > nav > span:nth-of-type(3)",
+      "name": "Timetables"
+    },
+    {
+      "box": {
+        "x": 0.27108,
+        "y": 0.0215,
+        "w": 0.02017,
+        "h": 0.021
+      },
+      "tag": "span",
+      "selector": "header > nav > span:nth-of-type(4)",
+      "name": "Help"
+    },
+    {
+      "box": {
+        "x": 0.88167,
+        "y": 0.016,
+        "w": 0.08499,
+        "h": 0.032
+      },
+      "tag": "div",
+      "selector": "header > div:nth-of-type(2)",
+      "name": "Maya Okafor MO"
+    },
+    {
+      "box": {
+        "x": 0.94444,
+        "y": 0.016,
+        "w": 0.02222,
+        "h": 0.032
+      },
+      "tag": "div",
+      "selector": "header > div:nth-of-type(2) > div",
+      "name": "MO"
+    },
+    {
+      "box": {
+        "x": 0.11111,
+        "y": 0.064,
+        "w": 0.77778,
+        "h": 0.6725
+      },
+      "tag": "main",
+      "selector": "main",
+      "role": "main"
+    },
+    {
+      "box": {
+        "x": 0.14444,
+        "y": 0.104,
+        "w": 0.71111,
+        "h": 0.26
+      },
+      "tag": "div",
+      "selector": "main > div:nth-of-type(1)",
+      "source": {
+        "file": "src/home/Greeting.tsx",
+        "line": 15
+      }
+    },
+    {
+      "box": {
+        "x": 0.17222,
+        "y": 0.2335,
+        "w": 0.65556,
+        "h": 0.06
+      },
+      "tag": "h1",
+      "selector": "main > div:nth-of-type(1) > h1",
+      "role": "heading",
+      "name": "Good morning, Maya",
+      "source": {
+        "file": "src/home/Greeting.tsx",
+        "line": 15
+      }
+    },
+    {
+      "box": {
+        "x": 0.17222,
+        "y": 0.3015,
+        "w": 0.65556,
+        "h": 0.0225
+      },
+      "tag": "div",
+      "selector": "main > div:nth-of-type(1) > div",
+      "name": "Your next sailing leaves in 3 days.",
+      "source": {
+        "file": "src/home/Greeting.tsx",
+        "line": 15
+      }
+    },
+    {
+      "box": {
+        "x": 0.14444,
+        "y": 0.392,
+        "w": 0.46481,
+        "h": 0.3045
+      },
+      "tag": "div",
+      "selector": "[data-testid=\"upcoming\"]",
+      "testId": "upcoming",
+      "source": {
+        "file": "src/home/UpcomingTrips.tsx",
+        "line": 22
+      }
+    },
+    {
+      "box": {
+        "x": 0.16111,
+        "y": 0.416,
+        "w": 0.43148,
+        "h": 0.027
+      },
+      "tag": "h2",
+      "selector": "[data-testid=\"upcoming\"] > h2",
+      "role": "heading",
+      "name": "Upcoming",
+      "source": {
+        "file": "src/home/UpcomingTrips.tsx",
+        "line": 22
+      }
+    },
+    {
+      "box": {
+        "x": 0.16111,
+        "y": 0.471,
+        "w": 0.10915,
+        "h": 0.018
+      },
+      "tag": "b",
+      "selector": "[data-testid=\"upcoming\"] > div:nth-of-type(1) > div > b",
+      "name": "Harbour → Gull Island",
+      "source": {
+        "file": "src/home/UpcomingTrips.tsx",
+        "line": 22
+      }
+    },
+    {
+      "box": {
+        "x": 0.16111,
+        "y": 0.4925,
+        "w": 0.13604,
+        "h": 0.0195
+      },
+      "tag": "div",
+      "selector": "[data-testid=\"upcoming\"] > div:nth-of-type(1) > div > div",
+      "name": "Fri 14 Nov · 08:40 · Car + 2 adults",
+      "source": {
+        "file": "src/home/UpcomingTrips.tsx",
+        "line": 22
+      }
+    },
+    {
+      "box": {
+        "x": 0.53673,
+        "y": 0.4785,
+        "w": 0.05586,
+        "h": 0.024
+      },
+      "tag": "span",
+      "selector": "[data-testid=\"upcoming\"] > div:nth-of-type(1) > span",
+      "name": "Confirmed",
+      "source": {
+        "file": "src/home/UpcomingTrips.tsx",
+        "line": 22
+      }
+    },
+    {
+      "box": {
+        "x": 0.16111,
+        "y": 0.543,
+        "w": 0.10915,
+        "h": 0.018
+      },
+      "tag": "b",
+      "selector": "[data-testid=\"upcoming\"] > div:nth-of-type(2) > div > b",
+      "name": "Gull Island → Harbour",
+      "source": {
+        "file": "src/home/UpcomingTrips.tsx",
+        "line": 22
+      }
+    },
+    {
+      "box": {
+        "x": 0.16111,
+        "y": 0.5645,
+        "w": 0.14173,
+        "h": 0.0195
+      },
+      "tag": "div",
+      "selector": "[data-testid=\"upcoming\"] > div:nth-of-type(2) > div > div",
+      "name": "Sun 16 Nov · 17:10 · Car + 2 adults",
+      "source": {
+        "file": "src/home/UpcomingTrips.tsx",
+        "line": 22
+      }
+    },
+    {
+      "box": {
+        "x": 0.54957,
+        "y": 0.5505,
+        "w": 0.04302,
+        "h": 0.024
+      },
+      "tag": "span",
+      "selector": "[data-testid=\"upcoming\"] > div:nth-of-type(2) > span",
+      "name": "Waitlist",
+      "source": {
+        "file": "src/home/UpcomingTrips.tsx",
+        "line": 22
+      }
+    },
+    {
+      "box": {
+        "x": 0.62314,
+        "y": 0.392,
+        "w": 0.2324,
+        "h": 0.3045
+      },
+      "tag": "div",
+      "selector": "[data-testid=\"quick-book\"]",
+      "testId": "quick-book",
+      "source": {
+        "file": "src/home/QuickBook.tsx",
+        "line": 21
+      }
+    },
+    {
+      "box": {
+        "x": 0.63981,
+        "y": 0.416,
+        "w": 0.19907,
+        "h": 0.027
+      },
+      "tag": "h2",
+      "selector": "[data-testid=\"quick-book\"] > h2",
+      "role": "heading",
+      "name": "Quick book",
+      "source": {
+        "file": "src/home/QuickBook.tsx",
+        "line": 21
+      }
+    },
+    {
+      "box": {
+        "x": 0.63981,
+        "y": 0.455,
+        "w": 0.19907,
+        "h": 0.0695
+      },
+      "tag": "div",
+      "selector": "[data-testid=\"quick-book\"] > div:nth-of-type(1)",
+      "name": "From Harbour",
+      "source": {
+        "file": "src/home/QuickBook.tsx",
+        "line": 21
+      }
+    },
+    {
+      "box": {
+        "x": 0.63981,
+        "y": 0.4805,
+        "w": 0.19907,
+        "h": 0.044
+      },
+      "tag": "div",
+      "selector": "[data-testid=\"quick-book\"] > div:nth-of-type(1) > div",
+      "name": "Harbour",
+      "source": {
+        "file": "src/home/QuickBook.tsx",
+        "line": 21
+      }
+    },
+    {
+      "box": {
+        "x": 0.63981,
+        "y": 0.5405,
+        "w": 0.19907,
+        "h": 0.0695
+      },
+      "tag": "div",
+      "selector": "[data-testid=\"quick-book\"] > div:nth-of-type(2)",
+      "name": "To Gull Island",
+      "source": {
+        "file": "src/home/QuickBook.tsx",
+        "line": 21
+      }
+    },
+    {
+      "box": {
+        "x": 0.63981,
+        "y": 0.566,
+        "w": 0.19907,
+        "h": 0.044
+      },
+      "tag": "div",
+      "selector": "[data-testid=\"quick-book\"] > div:nth-of-type(2) > div",
+      "name": "Gull Island",
+      "source": {
+        "file": "src/home/QuickBook.tsx",
+        "line": 21
+      }
+    },
+    {
+      "box": {
+        "x": 0.63981,
+        "y": 0.626,
+        "w": 0.09263,
+        "h": 0.0465
+      },
+      "tag": "span",
+      "selector": "[data-testid=\"quick-book\"] > span",
+      "name": "Find sailings",
+      "source": {
+        "file": "src/home/QuickBook.tsx",
+        "line": 21
+      }
+    }
+  ]
+}

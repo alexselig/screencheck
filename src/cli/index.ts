@@ -3,8 +3,12 @@ import { parseArgs } from "node:util";
 
 import { version } from "../../package.json";
 import { serve } from "../server/index";
+import { DataRootInUseError } from "../server/lock";
 import { readRuntimeInfo, type RuntimeInfo } from "../server/runtime";
 import { CAPTURE_USAGE, parseCaptureArgs, runCapture } from "./capture";
+import { DOCTOR_USAGE, runDoctor } from "./doctor";
+import { DEMO_USAGE, type DemoHandle, startDemo } from "./demo";
+import { ADD_USAGE, INIT_USAGE, runAdd, runInit } from "./init";
 import { REPLY_USAGE, runReply } from "./reply";
 
 export const VERSION = version;
@@ -15,20 +19,27 @@ Usage: screencheck <command> [options]
 
 Commands:
   serve     Start the review server (default port 4173)
+  demo      Try ScreenCheck on a seeded sample project
+  init      Register a project from a folder of captures
+  add       Add a folder of captures as a new version of a project
   status    Show whether a server is running and where
   reply     List open comments or reply to one
   mcp       Run the MCP server on stdio for coding agents
   capture   Take a full-page screenshot without mid-page footers
+  doctor    Check stored feedback and restore damaged files from backup
 
 Run "screencheck <command> --help" for a command's options.
-Data lives in ~/.screencheck (override with SCREENCHECK_DATA and
-SCREENCHECK_PROJECTS).`;
+Data lives in ~/.screencheck. SCREENCHECK_HOME moves all of it (feedback,
+projects and server.json); SCREENCHECK_DATA and SCREENCHECK_PROJECTS move
+one folder each.`;
 
 const SERVE_USAGE = `Usage:
   screencheck serve [--port 4173] [--open]
 
 Starts ScreenCheck on http://127.0.0.1:<port> (default $PORT, else 4173) and
-records it in ~/.screencheck/server.json so other commands find it.
+records it in ~/.screencheck/server.json so other commands find it. If
+ScreenCheck is already running, prints where and exits 0.
+  --port 0  Use any free port
   --open    Open the review page in your browser`;
 
 const STATUS_USAGE = `Usage:
@@ -74,7 +85,18 @@ export type CliIo = {
   loadMcp?: () => Promise<McpModule>;
   readRuntime?: () => RuntimeInfo | null;
   open?: (url: string) => void;
+  serve?: typeof serve;
+  // Receives the running demo so tests can stop it.
+  onDemo?: (demo: DemoHandle) => void;
 };
+
+function portOf(origin: string) {
+  try {
+    return Number(new URL(origin).port);
+  } catch {
+    return NaN;
+  }
+}
 
 function wantsHelp(argv: string[]) {
   return argv.includes("--help") || argv.includes("-h");
@@ -118,11 +140,54 @@ export async function main(
         if (!Number.isInteger(port) || port < 0 || port > 65535) {
           throw new Error(`Invalid port: ${values.port ?? env.PORT}`);
         }
-        const running = await serve({
-          port,
+        const open = (url: string) => (io.open ?? openBrowser)(url);
+        try {
+          const running = await (io.serve ?? serve)({
+            port,
+            ...(io.clientRoot ? { clientRoot: io.clientRoot } : {}),
+          });
+          if (values.open) open(running.origin);
+          return "running";
+        } catch (caught) {
+          const inUse = (caught as NodeJS.ErrnoException).code === "EADDRINUSE";
+          if (!inUse && !(caught instanceof DataRootInUseError)) throw caught;
+          const info = readRuntime();
+          const live =
+            info && (!inUse || portOf(info.origin) === port)
+              ? { origin: info.origin, pid: info.pid }
+              : caught instanceof DataRootInUseError && caught.holder.origin
+                ? { origin: caught.holder.origin, pid: caught.holder.pid }
+                : null;
+          if (live) {
+            log(
+              `ScreenCheck is already running at ${live.origin} (pid ${live.pid}).`,
+            );
+            if (values.open) open(live.origin);
+            return 0;
+          }
+          if (inUse) {
+            error(
+              `Port ${port} is in use by another program. Try --port 0 for any free port.`,
+            );
+            return 1;
+          }
+          throw caught;
+        }
+      }
+      case "demo": {
+        if (wantsHelp(rest)) return (log(DEMO_USAGE), 0);
+        const demo = await startDemo(rest, {
+          log,
+          env,
+          open: (url) => (io.open ?? openBrowser)(url),
           ...(io.clientRoot ? { clientRoot: io.clientRoot } : {}),
         });
-        if (values.open) (io.open ?? openBrowser)(running.origin);
+        io.onDemo?.(demo);
+        if (!io.onDemo) {
+          for (const signal of ["SIGINT", "SIGTERM"] as const) {
+            process.once(signal, () => process.exit(0));
+          }
+        }
         return "running";
       }
       case "status": {
@@ -163,6 +228,15 @@ export async function main(
         await runCapture(job, { log });
         return 0;
       }
+      case "init":
+        if (wantsHelp(rest)) return (log(INIT_USAGE), 0);
+        return await runInit(rest, { log, env });
+      case "add":
+        if (wantsHelp(rest)) return (log(ADD_USAGE), 0);
+        return await runAdd(rest, { log, env });
+      case "doctor":
+        if (wantsHelp(rest)) return (log(DOCTOR_USAGE), 0);
+        return await runDoctor(rest, { log });
       default:
         error(`Unknown command: ${command}\n`);
         error(HELP);

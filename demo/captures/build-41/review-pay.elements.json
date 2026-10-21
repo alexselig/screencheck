@@ -1,0 +1,716 @@
+{
+  "version": 1,
+  "capture": {
+    "width": 1440,
+    "height": 1570
+  },
+  "elements": [
+    {
+      "box": {
+        "x": 0,
+        "y": 0,
+        "w": 1,
+        "h": 0.04076
+      },
+      "tag": "header",
+      "selector": "header",
+      "role": "banner"
+    },
+    {
+      "box": {
+        "x": 0.03333,
+        "y": 0.01083,
+        "w": 0.05998,
+        "h": 0.01911
+      },
+      "tag": "div",
+      "selector": "header > div:nth-of-type(1)",
+      "name": "tidewater"
+    },
+    {
+      "box": {
+        "x": 0.11554,
+        "y": 0.01369,
+        "w": 0.17572,
+        "h": 0.01338
+      },
+      "tag": "nav",
+      "selector": "header > nav",
+      "role": "navigation"
+    },
+    {
+      "box": {
+        "x": 0.11554,
+        "y": 0.01369,
+        "w": 0.02287,
+        "h": 0.01338
+      },
+      "tag": "span",
+      "selector": "header > nav > span:nth-of-type(1)",
+      "name": "Book"
+    },
+    {
+      "box": {
+        "x": 0.15508,
+        "y": 0.01369,
+        "w": 0.03512,
+        "h": 0.01338
+      },
+      "tag": "span",
+      "selector": "header > nav > span:nth-of-type(2)",
+      "name": "My trips"
+    },
+    {
+      "box": {
+        "x": 0.20687,
+        "y": 0.01369,
+        "w": 0.04755,
+        "h": 0.01338
+      },
+      "tag": "span",
+      "selector": "header > nav > span:nth-of-type(3)",
+      "name": "Timetables"
+    },
+    {
+      "box": {
+        "x": 0.27108,
+        "y": 0.01369,
+        "w": 0.02017,
+        "h": 0.01338
+      },
+      "tag": "span",
+      "selector": "header > nav > span:nth-of-type(4)",
+      "name": "Help"
+    },
+    {
+      "box": {
+        "x": 0.88167,
+        "y": 0.01019,
+        "w": 0.08499,
+        "h": 0.02038
+      },
+      "tag": "div",
+      "selector": "header > div:nth-of-type(2)",
+      "name": "Maya Okafor MO"
+    },
+    {
+      "box": {
+        "x": 0.94444,
+        "y": 0.01019,
+        "w": 0.02222,
+        "h": 0.02038
+      },
+      "tag": "div",
+      "selector": "header > div:nth-of-type(2) > div",
+      "name": "MO"
+    },
+    {
+      "box": {
+        "x": 0.11111,
+        "y": 0.04076,
+        "w": 0.77778,
+        "h": 0.8535
+      },
+      "tag": "main",
+      "selector": "main",
+      "role": "main"
+    },
+    {
+      "box": {
+        "x": 0.14444,
+        "y": 0.06624,
+        "w": 0.71111,
+        "h": 0.02516
+      },
+      "tag": "div",
+      "selector": "main > div:nth-of-type(1)",
+      "source": {
+        "file": "src/booking/Steps.tsx",
+        "line": 12
+      }
+    },
+    {
+      "box": {
+        "x": 0.14444,
+        "y": 0.06624,
+        "w": 0.17361,
+        "h": 0.02516
+      },
+      "tag": "div",
+      "selector": "main > div:nth-of-type(1) > div:nth-of-type(1)",
+      "name": "1. Route",
+      "source": {
+        "file": "src/booking/Steps.tsx",
+        "line": 12
+      }
+    },
+    {
+      "box": {
+        "x": 0.32361,
+        "y": 0.06624,
+        "w": 0.17361,
+        "h": 0.02516
+      },
+      "tag": "div",
+      "selector": "main > div:nth-of-type(1) > div:nth-of-type(2)",
+      "name": "2. Sailing",
+      "source": {
+        "file": "src/booking/Steps.tsx",
+        "line": 12
+      }
+    },
+    {
+      "box": {
+        "x": 0.50278,
+        "y": 0.06624,
+        "w": 0.17361,
+        "h": 0.02516
+      },
+      "tag": "div",
+      "selector": "main > div:nth-of-type(1) > div:nth-of-type(3)",
+      "name": "3. Vehicle & passengers",
+      "source": {
+        "file": "src/booking/Steps.tsx",
+        "line": 12
+      }
+    },
+    {
+      "box": {
+        "x": 0.68194,
+        "y": 0.06624,
+        "w": 0.17361,
+        "h": 0.02516
+      },
+      "tag": "div",
+      "selector": "main > div:nth-of-type(1) > div:nth-of-type(4)",
+      "name": "4. Review & pay",
+      "source": {
+        "file": "src/booking/Steps.tsx",
+        "line": 12
+      }
+    },
+    {
+      "box": {
+        "x": 0.14444,
+        "y": 0.10924,
+        "w": 0.71111,
+        "h": 0.03057
+      },
+      "tag": "h1",
+      "selector": "main > h1",
+      "role": "heading",
+      "name": "Review and pay"
+    },
+    {
+      "box": {
+        "x": 0.14444,
+        "y": 0.1449,
+        "w": 0.71111,
+        "h": 0.01433
+      },
+      "tag": "p",
+      "selector": "main > p",
+      "name": "Check everything before you pay. Changes are free until 24 hours before sailing."
+    },
+    {
+      "box": {
+        "x": 0.14444,
+        "y": 0.17707,
+        "w": 0.71111,
+        "h": 0.03121
+      },
+      "tag": "div",
+      "selector": "main > div:nth-of-type(2)",
+      "role": "status",
+      "name": "Your return sailing is waitlisted. We'll move you to a confirmed seat or refund that leg in full.",
+      "source": {
+        "file": "src/booking/WaitlistNotice.tsx",
+        "line": 9
+      }
+    },
+    {
+      "box": {
+        "x": 0.16111,
+        "y": 0.23631,
+        "w": 0.43148,
+        "h": 0.0172
+      },
+      "tag": "h2",
+      "selector": "div:nth-of-type(3) > div:nth-of-type(1) > div:nth-of-type(1) > h2",
+      "role": "heading",
+      "name": "Trips"
+    },
+    {
+      "box": {
+        "x": 0.16111,
+        "y": 0.27134,
+        "w": 0.13684,
+        "h": 0.01146
+      },
+      "tag": "b",
+      "selector": "div:nth-of-type(1) > div:nth-of-type(1) > div > b",
+      "name": "Outbound · Fri 14 Nov 08:40"
+    },
+    {
+      "box": {
+        "x": 0.16111,
+        "y": 0.28503,
+        "w": 0.15617,
+        "h": 0.01242
+      },
+      "tag": "div",
+      "selector": "div:nth-of-type(1) > div:nth-of-type(1) > div > div",
+      "name": "MV Cormorant · Harbour → Gull Island"
+    },
+    {
+      "box": {
+        "x": 0.53673,
+        "y": 0.27611,
+        "w": 0.05586,
+        "h": 0.01529
+      },
+      "tag": "span",
+      "selector": "div:nth-of-type(1) > div:nth-of-type(1) > div:nth-of-type(1) > span",
+      "name": "Confirmed"
+    },
+    {
+      "box": {
+        "x": 0.16111,
+        "y": 0.3172,
+        "w": 0.1274,
+        "h": 0.01146
+      },
+      "tag": "b",
+      "selector": "div:nth-of-type(1) > div:nth-of-type(2) > div > b",
+      "name": "Return · Sun 16 Nov 17:10"
+    },
+    {
+      "box": {
+        "x": 0.16111,
+        "y": 0.33089,
+        "w": 0.13611,
+        "h": 0.01242
+      },
+      "tag": "div",
+      "selector": "div:nth-of-type(1) > div:nth-of-type(2) > div > div",
+      "name": "MV Petrel · Gull Island → Harbour"
+    },
+    {
+      "box": {
+        "x": 0.54957,
+        "y": 0.32197,
+        "w": 0.04302,
+        "h": 0.01529
+      },
+      "tag": "span",
+      "selector": "div:nth-of-type(1) > div:nth-of-type(1) > div:nth-of-type(2) > span",
+      "name": "Waitlist"
+    },
+    {
+      "box": {
+        "x": 0.16111,
+        "y": 0.39554,
+        "w": 0.43148,
+        "h": 0.0172
+      },
+      "tag": "h2",
+      "selector": "div:nth-of-type(3) > div:nth-of-type(1) > div:nth-of-type(2) > h2",
+      "role": "heading",
+      "name": "Travellers"
+    },
+    {
+      "box": {
+        "x": 0.16111,
+        "y": 0.4293,
+        "w": 0.05982,
+        "h": 0.01433
+      },
+      "tag": "span",
+      "selector": "div:nth-of-type(1) > div:nth-of-type(2) > div:nth-of-type(1) > span:nth-of-type(1)",
+      "name": "Maya Okafor"
+    },
+    {
+      "box": {
+        "x": 0.57252,
+        "y": 0.43025,
+        "w": 0.02007,
+        "h": 0.01242
+      },
+      "tag": "span",
+      "selector": "div:nth-of-type(1) > div:nth-of-type(2) > div:nth-of-type(1) > span:nth-of-type(2)",
+      "name": "Lead"
+    },
+    {
+      "box": {
+        "x": 0.16111,
+        "y": 0.4621,
+        "w": 0.05404,
+        "h": 0.01433
+      },
+      "tag": "span",
+      "selector": "div:nth-of-type(1) > div:nth-of-type(2) > div:nth-of-type(2) > span:nth-of-type(1)",
+      "name": "Tom Okafor"
+    },
+    {
+      "box": {
+        "x": 0.57152,
+        "y": 0.46306,
+        "w": 0.02107,
+        "h": 0.01242
+      },
+      "tag": "span",
+      "selector": "div:nth-of-type(1) > div:nth-of-type(2) > div:nth-of-type(2) > span:nth-of-type(2)",
+      "name": "Adult"
+    },
+    {
+      "box": {
+        "x": 0.16111,
+        "y": 0.4949,
+        "w": 0.03164,
+        "h": 0.01433
+      },
+      "tag": "span",
+      "selector": "div:nth-of-type(1) > div:nth-of-type(2) > div:nth-of-type(3) > span:nth-of-type(1)",
+      "name": "Biscuit"
+    },
+    {
+      "box": {
+        "x": 0.57587,
+        "y": 0.49586,
+        "w": 0.01672,
+        "h": 0.01242
+      },
+      "tag": "span",
+      "selector": "div:nth-of-type(1) > div:nth-of-type(2) > div:nth-of-type(3) > span:nth-of-type(2)",
+      "name": "Dog"
+    },
+    {
+      "box": {
+        "x": 0.16111,
+        "y": 0.56146,
+        "w": 0.43148,
+        "h": 0.0172
+      },
+      "tag": "h2",
+      "selector": "div:nth-of-type(3) > div:nth-of-type(1) > div:nth-of-type(3) > h2",
+      "role": "heading",
+      "name": "Vehicle"
+    },
+    {
+      "box": {
+        "x": 0.16111,
+        "y": 0.59522,
+        "w": 0.07179,
+        "h": 0.01433
+      },
+      "tag": "span",
+      "selector": "div:nth-of-type(1) > div:nth-of-type(3) > div > span:nth-of-type(1)",
+      "name": "KX21 RTA · Car"
+    },
+    {
+      "box": {
+        "x": 0.53663,
+        "y": 0.59618,
+        "w": 0.05596,
+        "h": 0.01242
+      },
+      "tag": "span",
+      "selector": "div:nth-of-type(1) > div:nth-of-type(3) > div > span:nth-of-type(2)",
+      "name": "4.6 m × 1.5 m"
+    },
+    {
+      "box": {
+        "x": 0.16111,
+        "y": 0.66178,
+        "w": 0.43148,
+        "h": 0.0172
+      },
+      "tag": "h2",
+      "selector": "div:nth-of-type(3) > div:nth-of-type(1) > div:nth-of-type(4) > h2",
+      "role": "heading",
+      "name": "Payment"
+    },
+    {
+      "box": {
+        "x": 0.16111,
+        "y": 0.69554,
+        "w": 0.0799,
+        "h": 0.01433
+      },
+      "tag": "span",
+      "selector": "div:nth-of-type(1) > div:nth-of-type(4) > div:nth-of-type(1) > span:nth-of-type(1)",
+      "name": "Visa ending 4421"
+    },
+    {
+      "box": {
+        "x": 0.53724,
+        "y": 0.6965,
+        "w": 0.05535,
+        "h": 0.01242
+      },
+      "tag": "span",
+      "selector": "div:nth-of-type(1) > div:nth-of-type(4) > div:nth-of-type(1) > span:nth-of-type(2)",
+      "name": "Expires 08/28"
+    },
+    {
+      "box": {
+        "x": 0.16111,
+        "y": 0.72834,
+        "w": 0.07504,
+        "h": 0.01433
+      },
+      "tag": "span",
+      "selector": "div:nth-of-type(1) > div:nth-of-type(4) > div:nth-of-type(2) > span:nth-of-type(1)",
+      "name": "Billing postcode"
+    },
+    {
+      "box": {
+        "x": 0.55195,
+        "y": 0.7293,
+        "w": 0.04064,
+        "h": 0.01242
+      },
+      "tag": "span",
+      "selector": "div:nth-of-type(1) > div:nth-of-type(4) > div:nth-of-type(2) > span:nth-of-type(2)",
+      "name": "TR19 7AA"
+    },
+    {
+      "box": {
+        "x": 0.16111,
+        "y": 0.7949,
+        "w": 0.43148,
+        "h": 0.0172
+      },
+      "tag": "h2",
+      "selector": "div:nth-of-type(3) > div:nth-of-type(1) > div:nth-of-type(5) > h2",
+      "role": "heading",
+      "name": "Terms"
+    },
+    {
+      "box": {
+        "x": 0.16111,
+        "y": 0.82038,
+        "w": 0.43148,
+        "h": 0.02484
+      },
+      "tag": "p",
+      "selector": "div:nth-of-type(3) > div:nth-of-type(1) > div:nth-of-type(5) > p",
+      "name": "By paying you agree to the conditions of carriage. Vehicles must check in 30 minutes before departure. Dogs travel on t…"
+    },
+    {
+      "box": {
+        "x": 0.63981,
+        "y": 0.23631,
+        "w": 0.19907,
+        "h": 0.0172
+      },
+      "tag": "h2",
+      "selector": "main > div:nth-of-type(3) > div:nth-of-type(2) > h2",
+      "role": "heading",
+      "name": "Total"
+    },
+    {
+      "box": {
+        "x": 0.63981,
+        "y": 0.27006,
+        "w": 0.02566,
+        "h": 0.01433
+      },
+      "tag": "span",
+      "selector": "div:nth-of-type(3) > div:nth-of-type(2) > div:nth-of-type(1) > span",
+      "name": "Fares"
+    },
+    {
+      "box": {
+        "x": 0.8157,
+        "y": 0.27006,
+        "w": 0.02318,
+        "h": 0.01433
+      },
+      "tag": "b",
+      "selector": "div:nth-of-type(3) > div:nth-of-type(2) > div:nth-of-type(1) > b",
+      "name": "£132"
+    },
+    {
+      "box": {
+        "x": 0.63981,
+        "y": 0.30287,
+        "w": 0.02932,
+        "h": 0.01433
+      },
+      "tag": "span",
+      "selector": "div:nth-of-type(3) > div:nth-of-type(2) > div:nth-of-type(2) > span",
+      "name": "Extras"
+    },
+    {
+      "box": {
+        "x": 0.82729,
+        "y": 0.30287,
+        "w": 0.01159,
+        "h": 0.01433
+      },
+      "tag": "b",
+      "selector": "div:nth-of-type(3) > div:nth-of-type(2) > div:nth-of-type(2) > b",
+      "name": "£6"
+    },
+    {
+      "box": {
+        "x": 0.63981,
+        "y": 0.33567,
+        "w": 0.0413,
+        "h": 0.01433
+      },
+      "tag": "span",
+      "selector": "div:nth-of-type(3) > div:nth-of-type(2) > div:nth-of-type(3) > span",
+      "name": "Discount"
+    },
+    {
+      "box": {
+        "x": 0.81525,
+        "y": 0.33567,
+        "w": 0.02363,
+        "h": 0.01433
+      },
+      "tag": "b",
+      "selector": "div:nth-of-type(3) > div:nth-of-type(2) > div:nth-of-type(3) > b",
+      "name": "−£13"
+    },
+    {
+      "box": {
+        "x": 0.63981,
+        "y": 0.36847,
+        "w": 0.04225,
+        "h": 0.01433
+      },
+      "tag": "b",
+      "selector": "div:nth-of-type(3) > div:nth-of-type(2) > div:nth-of-type(4) > b:nth-of-type(1)",
+      "name": "Pay now"
+    },
+    {
+      "box": {
+        "x": 0.8157,
+        "y": 0.36847,
+        "w": 0.02318,
+        "h": 0.01433
+      },
+      "tag": "b",
+      "selector": "div:nth-of-type(3) > div:nth-of-type(2) > div:nth-of-type(4) > b:nth-of-type(2)",
+      "name": "£125"
+    },
+    {
+      "box": {
+        "x": 0.63981,
+        "y": 0.4,
+        "w": 0.19907,
+        "h": 0.02962
+      },
+      "tag": "span",
+      "selector": "main > div:nth-of-type(3) > div:nth-of-type(2) > span",
+      "role": "button",
+      "name": "Pay £125",
+      "source": {
+        "file": "src/booking/PayButton.tsx",
+        "line": 27
+      }
+    },
+    {
+      "box": {
+        "x": 0,
+        "y": 0.89427,
+        "w": 1,
+        "h": 0.10573
+      },
+      "tag": "footer",
+      "selector": "footer",
+      "role": "contentinfo"
+    },
+    {
+      "box": {
+        "x": 0.03333,
+        "y": 0.91975,
+        "w": 0.22083,
+        "h": 0.05478
+      },
+      "tag": "div",
+      "selector": "footer > div:nth-of-type(1)",
+      "name": "Tidewater Ferries Pier 4, Harbour Road"
+    },
+    {
+      "box": {
+        "x": 0.03333,
+        "y": 0.91975,
+        "w": 0.22083,
+        "h": 0.01242
+      },
+      "tag": "b",
+      "selector": "footer > div:nth-of-type(1) > b",
+      "name": "Tidewater Ferries"
+    },
+    {
+      "box": {
+        "x": 0.27083,
+        "y": 0.91975,
+        "w": 0.22083,
+        "h": 0.05478
+      },
+      "tag": "div",
+      "selector": "footer > div:nth-of-type(2)",
+      "name": "Travel Routes Timetables Accessibility"
+    },
+    {
+      "box": {
+        "x": 0.27083,
+        "y": 0.91975,
+        "w": 0.22083,
+        "h": 0.01242
+      },
+      "tag": "b",
+      "selector": "footer > div:nth-of-type(2) > b",
+      "name": "Travel"
+    },
+    {
+      "box": {
+        "x": 0.50833,
+        "y": 0.91975,
+        "w": 0.22083,
+        "h": 0.05478
+      },
+      "tag": "div",
+      "selector": "footer > div:nth-of-type(3)",
+      "name": "Account My trips Passes Settings"
+    },
+    {
+      "box": {
+        "x": 0.50833,
+        "y": 0.91975,
+        "w": 0.22083,
+        "h": 0.01242
+      },
+      "tag": "b",
+      "selector": "footer > div:nth-of-type(3) > b",
+      "name": "Account"
+    },
+    {
+      "box": {
+        "x": 0.74583,
+        "y": 0.91975,
+        "w": 0.22083,
+        "h": 0.05478
+      },
+      "tag": "div",
+      "selector": "footer > div:nth-of-type(4)",
+      "name": "Help Contact us Refunds Travel alerts"
+    },
+    {
+      "box": {
+        "x": 0.74583,
+        "y": 0.91975,
+        "w": 0.22083,
+        "h": 0.01242
+      },
+      "tag": "b",
+      "selector": "footer > div:nth-of-type(4) > b",
+      "name": "Help"
+    }
+  ]
+}

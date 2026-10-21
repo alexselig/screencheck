@@ -203,11 +203,113 @@ describe("feedback replies", () => {
     const item = await create("Note");
     await expect(cli("--id", item.id)).rejects.toThrow("--note is required");
     await expect(
-      cli("--id", item.id, "--note", "x", "--status", "done"),
-    ).rejects.toThrow("Unknown status: done");
+      cli("--id", item.id, "--note", "x", "--status", "shipped"),
+    ).rejects.toThrow("Unknown status: shipped");
     await expect(cli("--id", "missing", "--note", "x")).rejects.toThrow(
       "No feedback with id missing",
     );
+  });
+
+  it("accepts the same status names as the MCP server", async () => {
+    const item = await create("Note");
+    expect(
+      (await cli("--id", item.id, "--note", "Done.", "--status", "done")).out,
+    ).toBe(`Replied to ${item.id} (Fixed).`);
+  });
+
+  it("filters the list and prints JSON", async () => {
+    const first = await create("Footer floats.");
+    const second = await create("Header overlaps.");
+    await send("PATCH", `${base}/${second.id}`, {
+      expectedUpdatedAt: second.updatedAt,
+      patch: { tags: ["P0"] },
+    });
+    const tagged = await cli("--list", "--tag", "p0");
+    expect(tagged.out).toContain(second.id);
+    expect(tagged.out).not.toContain(first.id);
+    expect((await cli("--list", "--screen", "nowhere")).out).toBe(
+      "No matching feedback.",
+    );
+    expect((await cli("--list", "--status", "fixed,wont-fix")).out).toBe(
+      "No matching feedback.",
+    );
+    const json = JSON.parse((await cli("--list", "--json")).out);
+    expect(json.count).toBe(2);
+    expect(json.feedback[0]).toMatchObject({
+      id: first.id,
+      pin: 1,
+      statusLabel: "Backlog",
+      awaitingAgent: false,
+    });
+  });
+
+  it("shows one comment with its whole thread", async () => {
+    const item = await create("Footer floats.");
+    await send("PATCH", `${base}/${item.id}`, {
+      expectedUpdatedAt: item.updatedAt,
+      patch: {
+        status: "RESOLVED",
+        reply: { note: "Pinned it.", author: "Copilot" },
+      },
+    });
+    const shown = await cli("--show", "--id", item.id);
+    expect(shown.code).toBe(0);
+    expect(shown.out).toContain("Note: Footer floats.");
+    expect(shown.out).toMatch(/Agent \(Copilot, .*\) -> Fixed: Pinned it\./);
+    const json = JSON.parse(
+      (await cli("--show", "--id", item.id, "--json")).out,
+    );
+    expect(json.comment).toMatchObject({ id: item.id, statusLabel: "Fixed" });
+  });
+
+  it("keeps a reviewer's Verified when the agent's reply races it", async () => {
+    const item = await create("Header overlaps.");
+    const fixed = await (
+      await send("PATCH", `${base}/${item.id}`, {
+        expectedUpdatedAt: item.updatedAt,
+        patch: { status: "RESOLVED", reply: { note: "Fixed the z-index." } },
+      })
+    ).json();
+    let patches = 0;
+    const racing: typeof fetch = async (input, init) => {
+      if (init?.method === "PATCH" && patches++ === 0) {
+        await fetch(`${base}/${item.id}`, {
+          method: "PATCH",
+          headers: {
+            "content-type": "application/json",
+            origin,
+            "x-screencheck-actor": "reviewer",
+          },
+          body: JSON.stringify({
+            expectedUpdatedAt: fixed.feedback.updatedAt,
+            patch: { status: "VERIFIED" },
+          }),
+        });
+      }
+      return fetch(input, init);
+    };
+    await expect(
+      run(
+        [
+          "--project",
+          "demo",
+          "--url",
+          origin,
+          "--id",
+          item.id,
+          "--status",
+          "in-progress",
+          "--note",
+          "Reopening to check mobile.",
+        ],
+        { fetch: racing, log: () => {} },
+      ),
+    ).rejects.toThrow(/from Fixed to Verified.*Your note was added/);
+    const record = (await list()).find(
+      (entry: { id: string }) => entry.id === item.id,
+    );
+    expect(record.status).toBe("VERIFIED");
+    expect(JSON.stringify(record)).toContain("Reopening to check mobile.");
   });
 
   it("puts ids and replies in the Markdown export", () => {

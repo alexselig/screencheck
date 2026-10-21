@@ -57,8 +57,9 @@ export const MESSAGE_ROLES = ["reviewer", "agent"] as const;
 export const messageRoleSchema = z.enum(MESSAGE_ROLES);
 
 // One entry in a comment's conversation. `status` is the status change the
-// message was sent with, if any.
-export const feedbackMessageSchema = z.object({
+// message was sent with, if any. Loose, like the record: fields a newer build
+// added survive a rewrite by this one.
+export const feedbackMessageSchema = z.looseObject({
   id: z.string().min(1),
   author: z.string().trim().min(1).max(64),
   role: messageRoleSchema,
@@ -147,7 +148,10 @@ function migrateLegacyRecord(value: unknown): unknown {
   return migrateLegacyThread(migrateLegacyTags(value));
 }
 
-const feedbackRecordObjectSchema = z.object({
+// The on-disk record. Unknown keys pass through, so a field added by a newer
+// build (a box pin, a viewport, an anchor) survives when this build rewrites
+// the file. API input schemas stay strict.
+const feedbackRecordObjectSchema = z.looseObject({
   id: z.string().min(1),
   projectId: z.string().min(1),
   screenId: z.string().min(1),

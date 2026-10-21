@@ -29,7 +29,14 @@ describe("screencheck CLI", () => {
     const help = io();
     expect(await main(["--help"], help.io)).toBe(0);
     expect(help.out.join("\n")).toBe(HELP);
-    for (const command of ["serve", "status", "reply", "mcp", "capture"]) {
+    for (const command of [
+      "serve",
+      "demo",
+      "status",
+      "reply",
+      "mcp",
+      "capture",
+    ]) {
       expect(HELP).toContain(command);
     }
 
@@ -56,6 +63,9 @@ describe("screencheck CLI", () => {
       ["reply", "--project <id> --list"],
       ["mcp", "--author <name>"],
       ["capture", "--wait-for <selector>"],
+      ["init", "--captures <dir>"],
+      ["add", "--version <id>"],
+      ["demo", "--reset"],
     ]) {
       const run = io();
       expect(await main([command!, "--help"], run.io)).toBe(0);
@@ -112,6 +122,55 @@ describe("screencheck CLI", () => {
     const run = io();
     expect(await main(["serve", "--port", "nope"], run.io)).toBe(1);
     expect(run.err.join("\n")).toContain("Invalid port");
+  });
+
+  it("explains a busy port instead of printing EADDRINUSE (be-17, pr-20)", async () => {
+    const busy = Object.assign(new Error("listen EADDRINUSE"), {
+      code: "EADDRINUSE",
+    });
+    const serve = vi.fn(async () => {
+      throw busy;
+    });
+    const opened: string[] = [];
+    const ours = io({
+      serve,
+      open: (url: string) => opened.push(url),
+      readRuntime: () => ({
+        origin: "http://127.0.0.1:4173",
+        pid: 77,
+        startedAt: "",
+        dataRoot: "/d",
+        projectsRoot: "/p",
+      }),
+    });
+    expect(await main(["serve", "--open"], ours.io)).toBe(0);
+    expect(ours.out).toEqual([
+      "ScreenCheck is already running at http://127.0.0.1:4173 (pid 77).",
+    ]);
+    expect(opened).toEqual(["http://127.0.0.1:4173"]);
+
+    const other = io({ serve });
+    expect(await main(["serve", "--port", "4401"], other.io)).toBe(1);
+    expect(other.err.join("\n")).toBe(
+      "Port 4401 is in use by another program. Try --port 0 for any free port.",
+    );
+  });
+
+  it("points at the server that already holds the data root (be-2)", async () => {
+    const { DataRootInUseError } = await import("../src/server/lock");
+    const run = io({
+      serve: async () => {
+        throw new DataRootInUseError("/d", {
+          pid: 9,
+          startedAt: "",
+          origin: "http://127.0.0.1:4500",
+        });
+      },
+    });
+    expect(await main(["serve", "--port", "0"], run.io)).toBe(0);
+    expect(run.out).toEqual([
+      "ScreenCheck is already running at http://127.0.0.1:4500 (pid 9).",
+    ]);
   });
 
   it("picks a browser opener per platform", () => {
