@@ -50,9 +50,21 @@ so they don't take that slot from your real one. Node 22 or later.
 ```bash
 npm install
 npm run dev     # Vite with HMR on http://127.0.0.1:4173
-npm test
+npm test        # vitest, only the suites under tests/
 npm run build   # dist/client plus the bundled CLI in dist/cli.js
+npm run smoke   # after build: pack the tarball, run its CLI, type-check screencheck/capture
 ```
+
+CI (`.github/workflows/ci.yml`) runs typecheck, tests, build and the smoke
+test on every push to main and every pull request, on Node 22 and 24 across
+Linux, macOS and Windows. `package-lock.json` must resolve from
+`https://registry.npmjs.org/`; a test fails if another registry appears in it,
+so regenerate it with `--registry=https://registry.npmjs.org/` if you install
+through a mirror.
+
+Releases are tag-driven: bump `version` in `package.json`, add a
+`CHANGELOG.md` entry, then push a `v<version>` tag. `publish.yml` refuses a tag
+that doesn't match `package.json` and publishes with provenance.
 
 ### Playground
 
@@ -141,13 +153,16 @@ through each feature, from dropping a pin to an agent replying over MCP.
 
 ### Keyboard
 
-| Keys              | Action                                                    |
-| ----------------- | --------------------------------------------------------- |
-| ⌘F / Ctrl+F       | Add feedback (replaces the browser's find in this app)    |
-| ← / → or [ / ]    | Previous / next screen (ignored while typing)             |
-| ↑ / ↓, Home / End | In the screen index: previous / next, first / last screen |
-| ⌘A / Ctrl+A       | Approve / unapprove the screen (ignored while typing)     |
-| Esc               | Cancel placing a pin                                      |
+| Keys              | Action                                                          |
+| ----------------- | --------------------------------------------------------------- |
+| ⌘F / Ctrl+F       | Add feedback (replaces the browser's find in this app)          |
+| ← / → or [ / ]    | Previous / next screen (ignored while typing)                   |
+| ↑ / ↓, Home / End | In the screen index: previous / next, first / last screen       |
+| ⌘A / Ctrl+A       | Approve / unapprove the screen (ignored while typing)           |
+| Enter / Esc       | In the Showing caption: save / cancel the edit                  |
+| Enter or ,        | In Add tag: add the tag (Backspace when empty removes the last) |
+| Esc               | Cancel placing a pin; close the Export dialog                   |
+| Esc (fullscreen)  | Close an open edge panel, then leave fullscreen                 |
 
 - Atomic file storage with serialized mutations, conflict checks, and restart
   recovery.
@@ -165,6 +180,7 @@ server prints the folder it is using on startup.
 
 | Route                                                      | Purpose                                                                                                                          |
 | ---------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------- |
+| `GET /healthz`                                             | `{"ok": true}` once the server is up; scripts and the playground poll it                                                         |
 | `GET /api/projects/:projectId/feedback`                    | List feedback                                                                                                                    |
 | `POST /api/projects/:projectId/feedback`                   | Create (idempotent on `clientMutationId`)                                                                                        |
 | `PATCH /api/projects/:projectId/feedback/:id`              | Update; `409` with the current record if `expectedUpdatedAt` is stale. See below for replies, messages and Verified              |
@@ -328,6 +344,32 @@ A capture must sit inside its version's `captureRoot`. To register a project
 from its own manifests, keep a small importer script beside the registrations
 rather than in this repository.
 
+## Versions, revisions and resolutions
+
+Each registered version is one set of captures. ScreenCheck reads a revision
+and a resolution from each version id: an id that ends in `-<number>`, or
+`-<word>-<number>`, is `<revision>-<resolution>`. So `abc1234-desktop-1440`
+and `abc1234-mobile-390` are revision `abc1234` at resolutions `desktop-1440`
+and `mobile-390`. An id without that ending is a revision of its own.
+
+- **Revision** (top right, shown once there are two or more revisions) lists
+  the newest first, meaning the last one registered, and opens on it. A
+  `local-` prefix is left off the label. Switching revision keeps your
+  resolution when the new revision has it.
+- **Resolution** (shown when a revision has two or more versions) is **All**
+  or one version. With All, the screen index lists every screen at every
+  resolution of the revision, ordered by the trailing number and numbered
+  straight through: `01 Checkout · 390`, `02 Checkout · 1440`,
+  `03 Payment · 390`. Prev/Next, ← / → and ↑ / ↓ move one row at a time.
+  Picking one resolution narrows the index to it. With a single version the
+  header shows its id instead.
+- Feedback, approvals and captions belong to one version, so every row is
+  reviewed and approved on its own.
+
+Any trailing number counts as a resolution: `build-41` and `build-42` are read
+as resolutions `41` and `42` of revision `build` (the playground shows this).
+To keep builds apart, add a resolution, as in `build-42-desktop-1440`.
+
 ## Capturing long pages
 
 Playwright's `fullPage` screenshot grows the capture, not the viewport, so a
@@ -398,7 +440,9 @@ that stamps JSX with a source attribute: for example
 
 ## Project site
 
-`docs/` is the GitHub Pages site. Its screenshots come from a made-up ferry app
+`docs/` is the GitHub Pages site, so everything in it is public; a test keeps
+it to `index.html`, `CNAME`, `PLAYGROUND.md` and `assets/` images (working
+notes such as plans live in `.github/plans/`). Its screenshots come from a made-up ferry app
 ("Tidewater") so no real project appears in them. To regenerate them:
 
 ```bash
