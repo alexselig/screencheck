@@ -88,8 +88,24 @@ export async function loadPlaywright(
   }
 }
 
-async function toWebp(png: Uint8Array) {
-  const { default: sharp } = await import("sharp");
+export const SHARP_HINT =
+  'Saving WebP needs the optional "sharp" package: run "npm i -g sharp" (or "npm i -D sharp" in your project), or save a PNG with --out <file>.png.';
+
+export async function toWebp(
+  png: Uint8Array,
+  load: () => Promise<{ default: typeof import("sharp").default }> = () =>
+    import("sharp"),
+) {
+  let sharp: typeof import("sharp").default;
+  try {
+    sharp = (await load()).default;
+  } catch (error) {
+    const code = (error as NodeJS.ErrnoException).code;
+    if (code === "ERR_MODULE_NOT_FOUND" || code === "MODULE_NOT_FOUND") {
+      throw new Error(SHARP_HINT);
+    }
+    throw error;
+  }
   return sharp(png).webp({ quality: 90 }).toBuffer();
 }
 

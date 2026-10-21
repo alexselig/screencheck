@@ -408,7 +408,11 @@ export function createMcpServer(options: McpServerOptions = {}): McpServer {
       } else if (comment.latestReply) {
         lines.push(latestLine(comment.latestReply, true));
       }
-      if (image) {
+      if (image && !image.marked) {
+        lines.push(
+          `Image: the whole ${image.capture.width}x${image.capture.height} capture as stored, without the pin drawn (install sharp for a crop with the pin circled); the pin is at (${image.pin.x}, ${image.pin.y}).`,
+        );
+      } else if (image) {
         lines.push(
           args.fullCapture
             ? `Image: whole ${image.capture.width}x${image.capture.height} capture at ${image.width}x${image.height}; the pin is circled at (${image.pin.x}, ${image.pin.y}).`
@@ -433,6 +437,7 @@ export function createMcpServer(options: McpServerOptions = {}): McpServer {
         image: image
           ? {
               mimeType: image.mimeType,
+              marked: image.marked,
               width: image.width,
               height: image.height,
               region: image.region,

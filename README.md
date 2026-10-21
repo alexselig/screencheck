@@ -305,9 +305,19 @@ Each comment's latest message says who wrote it (`Reviewer (Alex): …` or
 `Agent (Copilot): …`), and `awaitingAgent: true` marks comments where the
 reviewer spoke last, such as a fix reopened with a reason.
 
-The command is `npx -y screencheck mcp` (or `screencheck mcp` if it's
-installed globally). From a clone, use
+For MCP, install ScreenCheck once with `npm i -g screencheck` and use the
+command `screencheck mcp`. The configs below use `npx -y screencheck mcp`,
+which works without an install, but the first launch downloads the package
+and can outlast an agent's MCP startup timeout, so ScreenCheck shows as failed
+until the next session. From a clone, use
 `npx tsx /path/to/screencheck/src/mcp/main.ts` instead.
+
+Image processing uses [sharp](https://sharp.pixelplumbing.com/) when it's
+installed (`npm i -g sharp` next to a global install). It is an optional
+dependency, which keeps the install small: without it, `get_comment` crops PNG
+captures with a built-in encoder and returns other formats (WebP, JPEG) whole,
+without the pin drawn; `screencheck capture --out shot.webp` asks you to
+install sharp or save a PNG.
 
 **Copilot CLI** (`~/.copilot/mcp-config.json`):
 
