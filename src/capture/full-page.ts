@@ -19,7 +19,7 @@
 import { mkdir, writeFile } from "node:fs/promises";
 import path from "node:path";
 
-import type { ElementMap } from "../shared/elements";
+import { elementMapPathFor, type ElementMap } from "../shared/elements";
 
 export type PinnedChromeReport = {
   // Bars moved for the capture, described as "tag.class" for logs.
@@ -647,10 +647,9 @@ export type CaptureResult = PinnedChromeReport & {
   elements: ElementMap | null;
 };
 
-// `shots/checkout.png` -> `shots/checkout.elements.json`.
-export function elementMapPath(capturePath: string) {
-  return `${capturePath.replace(/\.[^./\\]*$/, "")}.elements.json`;
-}
+// `shots/checkout.png` -> `shots/checkout.elements.json`. The same rule the
+// server uses to find a capture's map, so the two can't drift.
+export const elementMapPath = elementMapPathFor;
 
 export async function captureFullPage(
   page: CapturePage,

@@ -392,7 +392,9 @@ scroller) are not covered; capture those by scrolling the container instead.
 ## Element map
 
 When `captureFullPage` is given a `path`, it also writes an element map beside
-the capture: `checkout.png` gets `checkout.elements.json`. It records the
+the capture: `checkout.png` gets `checkout.elements.json`. `screencheck capture`
+writes one the same way, and swaps the image into place whole, so a re-capture
+is never served half-written. It records the
 visible, meaningful elements after the footer adjustments, so the boxes line up
 with the full-page shot:
 

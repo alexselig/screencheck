@@ -1,11 +1,13 @@
 // `screencheck capture <url> --out <file>`: one full-page shot through the
 // bottom-bar-safe helper. Options are parsed into a plain object so a config
 // file of many shots can feed runCapture later.
-import { mkdir, writeFile } from "node:fs/promises";
+import { randomUUID } from "node:crypto";
+import { mkdir, rename, rm, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { parseArgs } from "node:util";
 
 import { captureFullPage } from "../capture/full-page";
+import { elementMapPathFor } from "../shared/elements";
 
 export type CaptureJob = {
   url: string;
@@ -91,6 +93,19 @@ async function toWebp(png: Uint8Array) {
   return sharp(png).webp({ quality: 90 }).toBuffer();
 }
 
+// A re-capture over an existing file is swapped in whole, so the server
+// never streams (or a browser caches) a half-written image.
+async function writeAtomically(file: string, bytes: Uint8Array) {
+  const temp = `${file}.${process.pid}.${randomUUID()}.tmp`;
+  try {
+    await writeFile(temp, bytes, { flag: "wx" });
+    await rename(temp, file);
+  } catch (error) {
+    await rm(temp, { force: true });
+    throw error;
+  }
+}
+
 export async function runCapture(
   job: CaptureJob,
   {
@@ -110,12 +125,15 @@ export async function runCapture(
     });
     await page.goto(job.url, { waitUntil: "networkidle" });
     if (job.waitFor) await page.waitForSelector(job.waitFor);
+    await mkdir(path.dirname(path.resolve(job.out)), { recursive: true });
+    // The element map goes beside the capture, where the server and the
+    // inspector look for it.
     const { image, pinned } = await captureFullPage(page, {
       type: type === "jpeg" ? "jpeg" : "png",
+      elements: { path: elementMapPathFor(job.out) },
     });
     const bytes = type === "webp" ? await toWebp(image) : image;
-    await mkdir(path.dirname(path.resolve(job.out)), { recursive: true });
-    await writeFile(job.out, bytes);
+    await writeAtomically(job.out, bytes);
     log(
       `Captured ${job.url} -> ${job.out}${pinned.length ? ` (pinned ${pinned.join(", ")})` : ""}`,
     );
