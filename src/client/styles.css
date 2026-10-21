@@ -542,7 +542,7 @@ h1 {
   list-style: none;
 }
 
-.screen-rail ol h2 {
+.screen-rail ol h3 {
   margin: 8px -16px 0;
   padding: 6px 16px;
   border-top: 1px solid var(--ink);
@@ -556,12 +556,12 @@ h1 {
 
 /* Compact mode keeps section rules at full height so rows never move when the
    rail expands on hover; only the label swaps to a short form. */
-.screen-rail[data-mode="compact"] ol h2 {
+.screen-rail[data-mode="compact"] ol h3 {
   margin: 8px -4px 0;
   padding: 6px 8px;
 }
 
-.screen-rail[data-mode="compact"]:not([data-expanded="true"]) ol h2 {
+.screen-rail[data-mode="compact"]:not([data-expanded="true"]) ol h3 {
   text-align: center;
   text-overflow: clip;
 }
@@ -575,19 +575,19 @@ h1 {
 }
 
 /* Each section gets a quiet tint so sections read apart, even collapsed. */
-.screen-rail ol h2[data-tone="0"] {
+.screen-rail ol h3[data-tone="0"] {
   background: #e3e9fd;
 }
 
-.screen-rail ol h2[data-tone="1"] {
+.screen-rail ol h3[data-tone="1"] {
   background: #fde6d8;
 }
 
-.screen-rail ol h2[data-tone="2"] {
+.screen-rail ol h3[data-tone="2"] {
   background: #fbefcc;
 }
 
-.screen-rail ol h2[data-tone="3"] {
+.screen-rail ol h3[data-tone="3"] {
   background: #e3e5e9;
 }
 
@@ -1738,6 +1738,10 @@ button.tag-chip:hover {
   gap: 10px;
 }
 
+.feedback-section-pins[aria-pressed="true"] {
+  color: var(--ink);
+}
+
 .feedback-section-pins:hover,
 .feedback-section-pins:focus-visible {
   color: var(--ink);
@@ -1958,7 +1962,8 @@ button.tag-chip:hover {
 
   .rail-toolbar,
   .rail-filter-button,
-  .screen-rail h2 {
+  .screen-rail h2,
+  .screen-rail h3 {
     display: none;
   }
 

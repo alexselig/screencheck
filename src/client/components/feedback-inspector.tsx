@@ -1571,17 +1571,13 @@ export function FeedbackInspector({
       ref={asideRef}
       tabIndex={-1}
     >
-      <header
-        aria-label="Feedback summary"
-        className="feedback-inspector-header"
-        role="banner"
-      >
+      <div className="feedback-inspector-header">
         <strong>Feedback</strong>
         <span className="feedback-inspector-count">
           {visibleFeedback.length} comment
           {visibleFeedback.length === 1 ? "" : "s"}
         </span>
-      </header>
+      </div>
 
       {visibleFeedback.length === 0 ? (
         <p className="feedback-empty">
@@ -1629,13 +1625,15 @@ export function FeedbackInspector({
               </button>
               {onTogglePinStatus ? (
                 <button
-                  aria-label={`${pinsHidden ? "Show" : "Hide"} ${section.label} pins`}
-                  aria-pressed={pinsHidden}
+                  // A fixed name with a pressed state: "Show Fixed pins,
+                  // pressed" means they are shown.
+                  aria-label={`Show ${section.label} pins`}
+                  aria-pressed={!pinsHidden}
                   className="feedback-section-pins"
                   onClick={() => onTogglePinStatus(section.status)}
                   type="button"
                 >
-                  {pinsHidden ? "Show pins" : "Hide pins"}
+                  Show pins
                 </button>
               ) : null}
             </div>
@@ -1654,14 +1652,14 @@ export function FeedbackInspector({
                       key={priority}
                       role="group"
                     >
-                      <h4
+                      <h3
                         className={`feedback-group-title tag-${priority.toLowerCase()}`}
                       >
                         {priority}
                         <span className="feedback-count">
                           {counted(group).length}
                         </span>
-                      </h4>
+                      </h3>
                       <ol className="feedback-list">
                         {[
                           ...group.map(renderItem),

@@ -110,3 +110,32 @@ describe("keyboard pin placement (ux-8)", () => {
     );
   });
 });
+
+describe("panel semantics (ux-22)", () => {
+  it("has no nested banner and nests rail group headings under the index", async () => {
+    await ready();
+    expect(
+      within(
+        screen.getByRole("complementary", { name: "Feedback inspector" }),
+      ).queryByRole("banner"),
+    ).toBeNull();
+    const rail = screen.getByRole("navigation", { name: "Screen navigation" });
+    expect(
+      within(rail).getByRole("heading", { level: 2, name: "Screen index" }),
+    ).toBeInTheDocument();
+    expect(within(rail).getAllByRole("heading", { level: 3 }).length).toBe(
+      within(rail).queryAllByRole("heading").length - 1,
+    );
+  });
+
+  it("names the fullscreen handle once and reports state with aria-expanded", async () => {
+    await ready();
+    fireEvent.click(screen.getByRole("button", { name: "View fullscreen" }));
+    const handle = screen.getByRole("button", { name: "Feedback panel" });
+    expect(handle).toHaveAttribute("aria-expanded", "false");
+    fireEvent.click(handle);
+    expect(
+      screen.getByRole("button", { name: "Feedback panel" }),
+    ).toHaveAttribute("aria-expanded", "true");
+  });
+});

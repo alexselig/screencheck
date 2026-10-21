@@ -35,7 +35,7 @@ export function FullscreenReview({
       >
         <button
           aria-expanded={drawer.open}
-          aria-label="Open feedback panel"
+          aria-label="Feedback panel"
           className="fullscreen-edge-handle"
           onClick={() => {
             const pinned = !drawer.pinned;

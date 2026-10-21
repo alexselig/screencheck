@@ -54,7 +54,7 @@ describe("Escape in fullscreen (ux-6)", () => {
     expect(
       screen.queryByRole("button", { name: "Open navigation panel" }),
     ).toBeNull();
-    const handle = screen.getByRole("button", { name: "Open feedback panel" });
+    const handle = screen.getByRole("button", { name: "Feedback panel" });
     fireEvent.mouseEnter(handle.parentElement!);
     expect(handle).toHaveAttribute("aria-expanded", "true");
     expect(escape().defaultPrevented).toBe(true);
@@ -82,7 +82,7 @@ describe("Escape in fullscreen (ux-6)", () => {
     fireEvent.click(frame, { clientX: 500, clientY: 350 });
     const note = screen.getByRole("textbox", { name: "Feedback note" });
     note.focus();
-    const handle = screen.getByRole("button", { name: "Open feedback panel" });
+    const handle = screen.getByRole("button", { name: "Feedback panel" });
     expect(handle).toHaveAttribute("aria-expanded", "true");
     escape(note);
     expect(handle).toHaveAttribute("aria-expanded", "true");

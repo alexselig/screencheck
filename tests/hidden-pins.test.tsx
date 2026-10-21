@@ -62,6 +62,9 @@ describe("hiding pins by section", () => {
     await waitFor(() => expect(pinLabels()).toEqual(["Pin 1: Still open."]));
     expect(
       screen.getByRole("button", { name: "Show Fixed pins" }),
+    ).toHaveAttribute("aria-pressed", "false");
+    expect(
+      screen.getByRole("button", { name: "Show Backlog pins" }),
     ).toHaveAttribute("aria-pressed", "true");
   });
 
@@ -72,7 +75,7 @@ describe("hiding pins by section", () => {
     fireEvent.click(screen.getByRole("button", { name: "Show Fixed pins" }));
     await waitFor(() => expect(pinLabels()).toHaveLength(2));
 
-    fireEvent.click(screen.getByRole("button", { name: "Hide Backlog pins" }));
+    fireEvent.click(screen.getByRole("button", { name: "Show Backlog pins" }));
     await waitFor(() =>
       expect(pinLabels()).toEqual(["Pin 2 (fixed): Already fixed."]),
     );

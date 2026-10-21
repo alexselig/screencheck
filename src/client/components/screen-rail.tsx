@@ -231,9 +231,9 @@ export function ScreenRail({
           return (
             <li key={screen.id}>
               {showGroup ? (
-                <h2 data-tone={groupIndex % 4} title={screen.group}>
+                <h3 data-tone={groupIndex % 4} title={screen.group}>
                   <span className="group-full">{screen.group}</span>
-                </h2>
+                </h3>
               ) : null}
               <button
                 aria-current={screen.id === selectedId ? "page" : undefined}

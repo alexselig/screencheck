@@ -361,7 +361,7 @@ describe("FeedbackInspector", () => {
     expect(toggle).toHaveAttribute("aria-expanded", "false");
     expect(screen.queryByText("Clarify the primary action.")).toBeNull();
 
-    fireEvent.click(screen.getByRole("button", { name: "Hide Backlog pins" }));
+    fireEvent.click(screen.getByRole("button", { name: "Show Backlog pins" }));
     expect(onTogglePinStatus).toHaveBeenCalledWith("OPEN");
     expect(toggle).toHaveAttribute("aria-expanded", "false");
 
@@ -426,7 +426,10 @@ describe("FeedbackInspector", () => {
       ],
     });
 
-    const header = screen.getByRole("banner", { name: "Feedback summary" });
+    // A plain div, not a second banner landmark (ux-22).
+    const header = document.querySelector<HTMLElement>(
+      ".feedback-inspector-header",
+    )!;
     expect(within(header).getByText("Feedback")).toBeInTheDocument();
     expect(within(header).getByText("2 comments")).toHaveClass(
       "feedback-inspector-count",
