@@ -33,10 +33,18 @@ const packed = JSON.parse(
     { cwd: ROOT, encoding: "utf8", shell: windows },
   ),
 );
-const tarball = path.join(SCRATCH, packed[0].filename);
-execFileSync("tar", ["-xzf", tarball, "-C", PKG_DIR, "--strip-components=1"], {
-  cwd: SCRATCH,
-});
+// Relative paths: on Windows, GNU tar reads "C:" in an absolute path as a host.
+execFileSync(
+  "tar",
+  [
+    "-xzf",
+    packed[0].filename,
+    "-C",
+    "app/node_modules/screencheck",
+    "--strip-components=1",
+  ],
+  { cwd: SCRATCH },
+);
 
 const cli = path.join(PKG_DIR, "dist", "cli.js");
 const env = { ...process.env, HOME, USERPROFILE: HOME };
