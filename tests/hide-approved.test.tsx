@@ -5,7 +5,10 @@ import {
   screen,
   within,
 } from "@testing-library/react";
-import { describe, expect, it, vi, afterEach } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+
+import { App } from "../src/client/app";
+import { installFakeFeedbackApi } from "./helpers/fake-feedback-api";
 
 import { ScreenRail } from "../src/client/components/screen-rail";
 import type { ReviewScreen } from "../src/shared/manifest";
@@ -106,5 +109,48 @@ describe("hide approved screens", () => {
     expect(
       screen.queryByRole("button", { name: /approved screens/ }),
     ).not.toBeInTheDocument();
+  });
+});
+
+describe("hide approved screens with Prev/Next", () => {
+  let api: Awaited<ReturnType<typeof installFakeFeedbackApi>>;
+
+  beforeEach(async () => {
+    window.history.replaceState(null, "", "#");
+    api = await installFakeFeedbackApi();
+    await api.storage.setApproval("example", {
+      version: "live",
+      screenId: "bootstrap",
+      approved: true,
+    });
+    localStorage.setItem("screencheck:hide-approved-screens", "1");
+  });
+
+  afterEach(async () => {
+    window.history.replaceState(null, "", "#");
+    await api.dispose();
+  });
+
+  it("skips hidden approved screens with Next and the arrow keys", async () => {
+    render(<App />);
+    const rail = screen.getByRole("navigation", { name: "Screen navigation" });
+    await within(rail).findByRole("button", { name: /Show approved screens/ });
+    expect(
+      within(rail).queryByRole("button", { name: /Session bootstrap/ }),
+    ).toBeNull();
+
+    fireEvent.click(screen.getByRole("button", { name: "Next screen" }));
+    expect(
+      within(rail).getByRole("button", { name: /Populated dashboard/ }),
+    ).toHaveAttribute("aria-current", "page");
+    expect(
+      within(rail).queryByRole("button", { name: /Session bootstrap/ }),
+    ).toBeNull();
+    expect(screen.getByRole("button", { name: "Next screen" })).toBeDisabled();
+
+    fireEvent.keyDown(window, { key: "ArrowLeft" });
+    expect(
+      within(rail).getByRole("button", { name: /Public landing/ }),
+    ).toHaveAttribute("aria-current", "page");
   });
 });

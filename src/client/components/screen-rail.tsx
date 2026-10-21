@@ -6,6 +6,37 @@ export type RailMode = "wide" | "compact";
 
 const HIDE_APPROVED_KEY = "screencheck:hide-approved-screens";
 
+export function readHideApproved() {
+  try {
+    return localStorage.getItem(HIDE_APPROVED_KEY) === "1";
+  } catch {
+    return false;
+  }
+}
+
+export function writeHideApproved(hide: boolean) {
+  try {
+    localStorage.setItem(HIDE_APPROVED_KEY, hide ? "1" : "0");
+  } catch {
+    // Storage can be unavailable; the toggle still works for this session.
+  }
+}
+
+// The rows the rail lists. The current screen stays listed even when
+// approved, so you never lose it; Prev/Next walk this same list.
+export function visibleRailScreens<T extends { id: string }>(
+  screens: readonly T[],
+  selectedId: string,
+  approvedIds: ReadonlySet<string> | undefined,
+  hideApproved: boolean,
+) {
+  return hideApproved
+    ? screens.filter(
+        (screen) => screen.id === selectedId || !approvedIds?.has(screen.id),
+      )
+    : [...screens];
+}
+
 export function ScreenRail({
   screens,
   selectedId,
@@ -14,6 +45,8 @@ export function ScreenRail({
   mode,
   onModeChange,
   onSelect,
+  hideApproved: hideApprovedProp,
+  onHideApprovedChange,
 }: {
   screens: ReviewScreen[];
   selectedId: string;
@@ -23,32 +56,31 @@ export function ScreenRail({
   // Omitted where the container controls collapse (the fullscreen drawer).
   onModeChange?: (mode: RailMode) => void;
   onSelect: (id: string) => void;
+  // Controlled by the app so Prev/Next skip the same rows; standalone, the
+  // rail keeps the choice itself.
+  hideApproved?: boolean;
+  onHideApprovedChange?: (hide: boolean) => void;
 }) {
   const [temporaryExpanded, setTemporaryExpanded] = useState(false);
   const [pinned, setPinned] = useState(false);
-  const [hideApproved, setHideApproved] = useState(() => {
-    try {
-      return localStorage.getItem(HIDE_APPROVED_KEY) === "1";
-    } catch {
-      return false;
-    }
-  });
+  const [hideApprovedState, setHideApproved] = useState(readHideApproved);
+  const hideApproved = hideApprovedProp ?? hideApprovedState;
   const approvedCount = screens.filter((screen) =>
     approvedIds?.has(screen.id),
   ).length;
-  // The current screen stays listed even when approved, so you never lose it.
-  const visibleScreens = hideApproved
-    ? screens.filter(
-        (screen) => screen.id === selectedId || !approvedIds?.has(screen.id),
-      )
-    : screens;
+  const visibleScreens = visibleRailScreens(
+    screens,
+    selectedId,
+    approvedIds,
+    hideApproved,
+  );
   function toggleHideApproved() {
     const next = !hideApproved;
-    setHideApproved(next);
-    try {
-      localStorage.setItem(HIDE_APPROVED_KEY, next ? "1" : "0");
-    } catch {
-      // Storage can be unavailable; the toggle still works for this session.
+    if (onHideApprovedChange) {
+      onHideApprovedChange(next);
+    } else {
+      setHideApproved(next);
+      writeHideApproved(next);
     }
   }
   const expanded = mode === "wide" || temporaryExpanded || pinned;

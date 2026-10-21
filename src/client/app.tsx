@@ -16,7 +16,13 @@ import {
 import { ExportDialog } from "./components/export-dialog";
 import { FullscreenReview } from "./components/fullscreen-review";
 import { ScreenCaption } from "./components/screen-caption";
-import { ScreenRail, type RailMode } from "./components/screen-rail";
+import {
+  ScreenRail,
+  readHideApproved,
+  visibleRailScreens,
+  writeHideApproved,
+  type RailMode,
+} from "./components/screen-rail";
 import { isApproved, type ScreenApproval } from "../shared/approvals";
 import { captionFor, type ScreenCaption as Caption } from "../shared/captions";
 import { createPinNumbers } from "../shared/export";
@@ -91,6 +97,10 @@ function readPlace(): Place {
     version: params.get("version") ?? undefined,
     screen: params.get("screen") ?? undefined,
   };
+}
+
+function revisionName(revision: string) {
+  return revision.replace(/^local-/, "");
 }
 
 function isTyping(target: EventTarget | null) {
@@ -190,9 +200,12 @@ export function App() {
   const [projects, setProjects] = useState<PublicProject[] | null>(null);
   const [projectProblems, setProjectProblems] = useState<string[]>([]);
   const [projectId, setProjectId] = useState(initialPlace.project ?? "");
-  // A reload opens the newest capture; the version in the URL only follows
-  // in-page navigation (hashchange), not a fresh page load.
-  const [versionChoice, setVersionChoice] = useState("");
+  // A shared link or reload opens the version in the URL; when a newer
+  // build exists the header offers to switch rather than switching silently.
+  const [versionChoice, setVersionChoice] = useState(
+    initialPlace.version ?? "",
+  );
+  const [newerDismissed, setNewerDismissed] = useState(false);
   const [selectedChoice, setSelectedId] = useState(initialPlace.screen ?? "");
   // "all" lists every resolution in the rail; a version narrows it to one.
   const [resolutionChoice, setResolutionChoice] = useState("all");
@@ -209,9 +222,20 @@ export function App() {
   const { revisionOf, labelOf, revisions } = versions;
   const versionsRef = useRef(versions);
   versionsRef.current = versions;
+  const newestRevision = revisions.at(-1)!;
   const revision = revisions.includes(revisionChoice)
     ? revisionChoice
-    : revisions.at(-1)!;
+    : !revisionChoice && project.versions.includes(versionChoice)
+      ? revisionOf(versionChoice)
+      : newestRevision;
+  const newerBuild =
+    projects !== null &&
+    !newerDismissed &&
+    (!initialPlace.project || project.id === initialPlace.project) &&
+    initialPlace.version !== undefined &&
+    project.versions.includes(initialPlace.version) &&
+    revision === revisionOf(initialPlace.version) &&
+    revision !== newestRevision;
   const revisionVersions = useMemo(
     () => versions.versionsOf(revision),
     [versions, revision],
@@ -252,7 +276,6 @@ export function App() {
     null,
   );
   const selected = screens.find((item) => item.id === selectedId)!;
-  const selectedIndex = screens.indexOf(selected);
   const [captureFailed, setCaptureFailed] = useState(false);
   // A full-page capture can be taller than the registered viewport, so the
   // frame takes the loaded image's own proportions rather than stretching it.
@@ -545,9 +568,6 @@ export function App() {
     );
   }, [revisionVersions, resolution, screens, labelOf]);
   const flatMode = revisionVersions.length > 1;
-  const flatIndex = flatItems.findIndex(
-    (item) => item.screenId === selectedId && item.version === version,
-  );
   const flatOpenCounts = useMemo(() => {
     const counts = new Map<string, number>();
     for (const item of feedbackRecords) {
@@ -567,6 +587,34 @@ export function App() {
       ),
     [approvals],
   );
+  const [hideApproved, setHideApproved] = useState(readHideApproved);
+  const changeHideApproved = useCallback((hide: boolean) => {
+    setHideApproved(hide);
+    writeHideApproved(hide);
+  }, []);
+  const railSelectedId = flatMode ? `${selectedId}@@${version}` : selectedId;
+  const railApprovedIds = flatMode ? flatApprovedIds : approvedIds;
+  // The rows the rail shows; Prev/Next and ← / → walk the same list.
+  const railItems = useMemo(
+    () =>
+      visibleRailScreens<{ id: string; screenId: string; version?: string }>(
+        flatMode
+          ? flatItems
+          : screens.map((item) => ({ id: item.id, screenId: item.id })),
+        railSelectedId,
+        railApprovedIds,
+        hideApproved,
+      ),
+    [
+      flatMode,
+      flatItems,
+      screens,
+      railSelectedId,
+      railApprovedIds,
+      hideApproved,
+    ],
+  );
+  const railIndex = railItems.findIndex((item) => item.id === railSelectedId);
   const screenApproved = approvals
     ? isApproved(approvals, version, selectedId)
     : false;
@@ -664,20 +712,20 @@ export function App() {
     }
   }, []);
 
+  const selectRailItem = useCallback(
+    (item: { screenId: string; version?: string }) => {
+      if (item.version) setVersionChoice(item.version);
+      selectScreen(item.screenId);
+    },
+    [selectScreen],
+  );
+
   const stepScreen = useCallback(
     (delta: number) => {
-      if (flatMode) {
-        const next = flatItems[flatIndex + delta];
-        if (next) {
-          setVersionChoice(next.version);
-          selectScreen(next.screenId);
-        }
-        return;
-      }
-      const next = screens[selectedIndex + delta];
-      if (next) selectScreen(next.id);
+      const next = railIndex < 0 ? undefined : railItems[railIndex + delta];
+      if (next) selectRailItem(next);
     },
-    [flatMode, flatItems, flatIndex, screens, selectedIndex, selectScreen],
+    [railIndex, railItems, selectRailItem],
   );
 
   const startPin = useCallback(() => {
@@ -738,21 +786,18 @@ export function App() {
     <ScreenRail
       mode={fullscreen ? "compact" : railMode}
       onModeChange={fullscreen ? undefined : setRailMode}
-      approvedIds={flatMode ? flatApprovedIds : approvedIds}
+      approvedIds={railApprovedIds}
+      hideApproved={hideApproved}
+      onHideApprovedChange={changeHideApproved}
       onSelect={(id) => {
         const item = flatMode
           ? flatItems.find((entry) => entry.id === id)
           : undefined;
-        if (item) {
-          setVersionChoice(item.version);
-          selectScreen(item.screenId);
-        } else {
-          selectScreen(id);
-        }
+        selectRailItem(item ?? { screenId: id });
       }}
       openCounts={flatMode ? flatOpenCounts : openCounts}
       screens={flatMode ? flatItems : screens}
-      selectedId={flatMode ? `${selectedId}@@${version}` : selectedId}
+      selectedId={railSelectedId}
     />
   );
   const feedback = (
@@ -967,7 +1012,7 @@ export function App() {
       <div className="action-bar-nav">
         <button
           aria-label="Previous screen"
-          disabled={(flatMode ? flatIndex : selectedIndex) <= 0}
+          disabled={railIndex <= 0}
           onClick={() => stepScreen(-1)}
           title="Previous screen (←)"
           type="button"
@@ -982,10 +1027,7 @@ export function App() {
         </span>
         <button
           aria-label="Next screen"
-          disabled={
-            (flatMode ? flatIndex : selectedIndex) >=
-            (flatMode ? flatItems.length : screens.length) - 1
-          }
+          disabled={railIndex < 0 || railIndex >= railItems.length - 1}
           onClick={() => stepScreen(1)}
           title="Next screen (→)"
           type="button"
@@ -1079,6 +1121,7 @@ export function App() {
                       revisionOf(item) === next &&
                       labelOf(item) === labelOf(version),
                   );
+                  setNewerDismissed(true);
                   setRevisionChoice(next);
                   setVersionChoice(sameResolution ?? "");
                   setResolutionChoice(
@@ -1091,7 +1134,7 @@ export function App() {
               >
                 {[...revisions].reverse().map((item) => (
                   <option key={item} value={item}>
-                    {item.replace(/^local-/, "")}
+                    {revisionName(item)}
                   </option>
                 ))}
               </select>
@@ -1121,6 +1164,28 @@ export function App() {
           )}
         </div>
       </header>
+      {newerBuild ? (
+        <div className="workbench-banner" role="status">
+          <span>
+            Showing {revisionName(revision)} from the link. A newer build,{" "}
+            {revisionName(newestRevision)}, is available.
+          </span>
+          <button
+            onClick={() => {
+              setNewerDismissed(true);
+              setRevisionChoice(newestRevision);
+              setVersionChoice("");
+              setResolutionChoice("all");
+            }}
+            type="button"
+          >
+            Switch to {revisionName(newestRevision)}
+          </button>
+          <button onClick={() => setNewerDismissed(true)} type="button">
+            Stay
+          </button>
+        </div>
+      ) : null}
       {projectProblems.map((problem) => (
         <p
           className="workbench-banner workbench-banner-error"

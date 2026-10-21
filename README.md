@@ -118,8 +118,8 @@ through each feature, from dropping a pin to an agent replying over MCP.
   above the count so both fit the collapsed rail.
 - **Hide approved screens**, a text button at the top of the screen index,
   drops approved screens from the list (the current screen always stays) so
-  only what's left to review remains. ↑ / ↓ skip the hidden rows; the choice
-  is remembered.
+  only what's left to review remains. ↑ / ↓, ← / → and Prev / Next all skip
+  the hidden rows; the choice is remembered.
 - A **Showing** strip above each capture says exactly what it shows (for
   example "Step 3 of 5, manual path selected"). Click it to edit; Enter saves,
   Esc cancels. Text is saved per version and screen in `captions.json`; a
@@ -141,7 +141,8 @@ through each feature, from dropping a pin to an agent replying over MCP.
 - A fixed action bar keeps the fullscreen toggle (left), Prev/Next and the
   current screen (centre), and **Export** and **Add feedback** (right) in reach at the bottom
   of the window. The address bar records the project,
-  version, and screen, so a reload or shared link opens the same place.
+  version, and screen, so a reload or shared link opens the same place. A link
+  to an older build opens that build, with a notice offering the newest one.
 
 ### Keyboard
 
