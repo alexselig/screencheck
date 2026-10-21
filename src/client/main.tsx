@@ -3,6 +3,8 @@ import { createRoot } from "react-dom/client";
 
 import { App } from "./app";
 import { migrateLegacyStorage } from "./storage-migration";
+import "./fonts.css";
+import "./bauhausian-tokens.css";
 import "./styles.css";
 
 try {

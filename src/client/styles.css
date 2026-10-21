@@ -1,26 +1,5 @@
-@import url("https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600;700&family=League+Spartan:wght@600;700&display=swap");
-
-:root {
-  --surface: #ffffff;
-  --surface-alt: #f5f3ee;
-  --line: #e3e5e9;
-  --line-strong: #7d828b;
-  --ink: #141414;
-  --ink-muted: #5b5f66;
-  --bauhaus-orange: #f26522;
-  --bauhaus-blue: #2f5bea;
-  --on-blue: #ffffff;
-  --blue-soft: #edf1ff;
-  --warning: #9a4b18;
-  --warning-soft: #fff0e5;
-  --destructive: #b42318;
-  --destructive-soft: #fff0ee;
-  --fixed-teal: #1d7a6e;
-  --on-teal: #ffffff;
-  --font-display:
-    "League Spartan", Futura, "Avenir Next", system-ui, sans-serif;
-  --font-sans: "Figtree", "Avenir Next", system-ui, sans-serif;
-}
+/* Palette, spacing, motion and type tokens come from bauhausian-tokens.css,
+   a verbatim copy of the Bauhausian spec. Never redeclare them here. */
 
 * {
   box-sizing: border-box;
@@ -77,7 +56,7 @@ select {
 }
 
 .workbench-header .eyebrow {
-  color: #c9ccd2;
+  color: var(--line);
 }
 
 .workbench-header .status-pill {
@@ -124,7 +103,7 @@ h1 {
 }
 
 :root {
-  --action-bar-height: 64px;
+  --action-bar-height: var(--size-footer);
 }
 
 .workbench-grid {
@@ -133,7 +112,7 @@ h1 {
      end of the screen list is never stranded below the window. */
   min-height: calc(100vh - var(--action-bar-height));
   grid-template-columns: 280px minmax(0, 1fr) 320px;
-  transition: grid-template-columns 160ms ease;
+  transition: grid-template-columns var(--fast) ease;
 }
 
 .workbench-grid[data-rail-mode="compact"] {
@@ -348,7 +327,7 @@ h1 {
   display: grid;
   place-items: center;
   padding: 16px;
-  background: rgb(20 20 20 / 0.4);
+  background: color-mix(in srgb, var(--ink) 40%, transparent);
 }
 
 .export-dialog {
@@ -480,7 +459,7 @@ h1 {
   position: relative;
   z-index: 5;
   border-right: 1px solid var(--ink);
-  transition: width 160ms ease;
+  transition: width var(--fast) ease;
 }
 
 .screen-rail {
@@ -595,21 +574,11 @@ h1 {
   opacity: 0.75;
 }
 
-/* Each section gets a quiet tint so sections read apart, even collapsed. */
-.screen-rail ol h3[data-tone="0"] {
-  background: #e3e9fd;
-}
-
-.screen-rail ol h3[data-tone="1"] {
-  background: #fde6d8;
-}
-
-.screen-rail ol h3[data-tone="2"] {
-  background: #fbefcc;
-}
-
-.screen-rail ol h3[data-tone="3"] {
-  background: #e3e5e9;
+/* Section bands are neutral: blue means selected and orange means a loud
+   action, so a tinted band would read as state. A 4px ink tick marks each. */
+.screen-rail ol h3 {
+  background: var(--surface);
+  box-shadow: inset 4px 0 0 var(--ink);
 }
 
 /* Rows bleed to the rail edges like the section bands; the padding adds the
@@ -676,6 +645,7 @@ h1 {
   min-width: 20px;
   font-family: var(--font-display);
   font-size: 16px;
+  font-weight: 600;
   line-height: 1;
   text-align: center;
   text-box: trim-both cap alphabetic;
@@ -709,14 +679,14 @@ h1 {
 }
 
 .screen-approved-mark circle {
-  fill: var(--fixed-teal);
+  fill: var(--success);
   stroke: var(--surface);
   stroke-width: 1.5px;
 }
 
 .screen-approved-mark path {
   fill: none;
-  stroke: var(--on-teal);
+  stroke: var(--surface);
   stroke-linecap: round;
   stroke-linejoin: round;
   stroke-width: 1.6px;
@@ -1062,13 +1032,13 @@ h1 {
 
 /* Collapsed handles stay grey so they don't compete with the screen. */
 .fullscreen-edge:not([data-open="true"]) .fullscreen-edge-handle {
-  background: #dcdee2;
-  color: #4a4d55;
-  border-color: #b9bcc3;
+  background: var(--surface-alt);
+  color: var(--ink-muted);
+  border-color: var(--line-strong);
 }
 
 .fullscreen-edge:not([data-open="true"]) .fullscreen-edge-handle:hover {
-  background: #c9ccd2;
+  background: var(--surface-hover);
   color: var(--ink);
 }
 
@@ -1076,7 +1046,7 @@ h1 {
   width: 0;
   overflow: hidden;
   background: var(--surface-alt);
-  transition: width 160ms ease;
+  transition: width var(--fast) ease;
 }
 
 .fullscreen-edge[data-open="true"] .fullscreen-edge-panel {
@@ -1572,13 +1542,13 @@ button.tag-chip:hover {
 }
 
 .feedback-status-chip.status-resolved {
-  color: var(--fixed-teal);
+  color: var(--success);
 }
 
 .feedback-status-chip.status-verified {
-  border-color: var(--fixed-teal);
-  background: var(--fixed-teal);
-  color: var(--on-teal);
+  border-color: var(--success);
+  background: var(--success);
+  color: var(--surface);
 }
 
 /* The whole thread in the editor, oldest first. */
@@ -1680,13 +1650,13 @@ button.tag-chip:hover {
 }
 
 .feedback-verify-buttons .feedback-verify-button {
-  border-color: var(--fixed-teal);
-  background: var(--fixed-teal);
-  color: var(--on-teal);
+  border-color: var(--success);
+  background: var(--success);
+  color: var(--surface);
 }
 
 .feedback-verify-buttons .feedback-verify-button:hover {
-  background: var(--fixed-teal);
+  background: var(--success);
   filter: brightness(0.92);
 }
 
@@ -1877,8 +1847,8 @@ button.tag-chip:hover {
 
 /* Fixed reads apart from every open stage: teal fill plus a check badge. */
 .pin-dot.is-fixed {
-  background: var(--fixed-teal);
-  color: var(--on-teal);
+  background: var(--success);
+  color: var(--surface);
 }
 
 /* Canvas pins are already absolutely positioned; card dots need an anchor. */
@@ -1895,10 +1865,10 @@ button.tag-chip:hover {
   width: 15px;
   height: 15px;
   place-items: center;
-  border: 1.5px solid var(--fixed-teal);
+  border: 1.5px solid var(--success);
   border-radius: 50%;
   background: var(--surface);
-  color: var(--fixed-teal);
+  color: var(--success);
   font-size: 9px;
   font-weight: 700;
   line-height: 1;
@@ -1907,8 +1877,8 @@ button.tag-chip:hover {
 /* Verified: same teal, but the badge is solid, so a glance tells a fix the
    reviewer has checked from one only the agent vouches for. */
 .pin-dot.is-verified {
-  background: var(--fixed-teal);
-  color: var(--on-teal);
+  background: var(--success);
+  color: var(--surface);
 }
 
 .pin-dot.is-verified:not(.feedback-pin) {
@@ -1926,9 +1896,9 @@ button.tag-chip:hover {
   place-items: center;
   border: 1.5px solid var(--surface);
   border-radius: 50%;
-  background: var(--fixed-teal);
-  outline: 1px solid var(--fixed-teal);
-  color: var(--on-teal);
+  background: var(--success);
+  outline: 1px solid var(--success);
+  color: var(--surface);
   font-size: 9px;
   font-weight: 700;
   line-height: 1;
@@ -2217,9 +2187,9 @@ button.tag-chip:hover {
 }
 
 .screen-approval-toggle[aria-pressed="true"] {
-  border-color: var(--fixed-teal);
-  background: var(--fixed-teal);
-  color: var(--on-teal);
+  border-color: var(--success);
+  background: var(--success);
+  color: var(--surface);
 }
 
 .screen-approval-toggle[aria-pressed="true"]:hover {
@@ -2277,9 +2247,9 @@ button.tag-chip:hover {
 }
 
 .screen-approval-confirm .screen-approval-anyway {
-  border-color: var(--fixed-teal);
-  background: var(--fixed-teal);
-  color: var(--on-teal);
+  border-color: var(--success);
+  background: var(--success);
+  color: var(--surface);
 }
 
 /* Hidden until a keyboard user tabs onto them. */
