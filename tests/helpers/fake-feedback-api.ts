@@ -160,7 +160,13 @@ export async function installFakeFeedbackApi(
     },
     async dispose() {
       vi.unstubAllGlobals();
-      await rm(root, { recursive: true, force: true });
+      // A late write can land while removing; retry instead of failing on ENOTEMPTY.
+      await rm(root, {
+        recursive: true,
+        force: true,
+        maxRetries: 5,
+        retryDelay: 50,
+      });
     },
   };
 }

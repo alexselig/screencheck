@@ -7,6 +7,7 @@ import {
   writeFileSync,
 } from "node:fs";
 import { join } from "node:path";
+import { pathToFileURL } from "node:url";
 
 import { afterEach, describe, expect, it } from "vitest";
 
@@ -35,7 +36,7 @@ afterEach(() => {
 // Starts a real server in another process and resolves once it is listening.
 function serveElsewhere(dataRoot: string, projectsRoot: string) {
   const script = `
-    const { startServer } = await import(${JSON.stringify(join(process.cwd(), "src/server/index.ts"))});
+    const { startServer } = await import(${JSON.stringify(pathToFileURL(join(process.cwd(), "src/server/index.ts")).href)});
     const running = await startServer({ port: 0, dataRoot: ${JSON.stringify(dataRoot)}, projectsRoot: ${JSON.stringify(projectsRoot)}, clientRoot: ${JSON.stringify(process.cwd())} });
     console.log(running.origin);
     setInterval(() => {}, 1000);

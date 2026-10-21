@@ -12,7 +12,7 @@ const SITE = new DOMParser().parseFromString(
 );
 
 function readmeKeyboardRows() {
-  const lines = README.slice(README.indexOf("### Keyboard")).split("\n");
+  const lines = README.slice(README.indexOf("### Keyboard")).split(/\r?\n/);
   const header = lines.findIndex((line) => line.startsWith("|"));
   const rows: string[][] = [];
   for (const line of lines.slice(header + 2)) {
