@@ -47,6 +47,7 @@ import {
   putCaption,
   removeFeedback,
 } from "./feedback-api";
+import { versionModel } from "./versions";
 
 // Shown only when the server cannot list projects, so feedback still works.
 const FALLBACK_PROJECT: PublicProject = {
@@ -82,18 +83,6 @@ const FALLBACK_PROJECT: PublicProject = {
 };
 
 type Place = { project?: string; version?: string; screen?: string };
-
-// A version id is "<revision>-<resolution>", e.g. "local-abc1234-r4-desktop-1440".
-// Versions without a recognisable resolution suffix are their own revision.
-const RESOLUTION_SUFFIX = /(-[a-z]+)?-\d+$/;
-
-function revisionOf(version: string) {
-  return version.replace(RESOLUTION_SUFFIX, "");
-}
-
-function resolutionOf(version: string) {
-  return RESOLUTION_SUFFIX.exec(version)?.[0].slice(1) ?? version;
-}
 
 function readPlace(): Place {
   const params = new URLSearchParams(window.location.hash.slice(1));
@@ -140,9 +129,7 @@ function useFollowPage(ref: RefObject<HTMLElement | null>, gap = 0) {
 }
 
 type LoadState =
-  | { kind: "loading" }
-  | { kind: "ready" }
-  | { kind: "error"; message: string };
+  { kind: "loading" } | { kind: "ready" } | { kind: "error"; message: string };
 
 const HIDDEN_PINS_KEY = "screencheck:hidden-pin-statuses";
 
@@ -215,16 +202,19 @@ export function App() {
     FALLBACK_PROJECT;
   const screens: PublicScreen[] = project.screens;
   const [revisionChoice, setRevisionChoice] = useState("");
-  const revisions = useMemo(
-    () => [...new Set(project.versions.map(revisionOf))],
-    [project.versions],
+  const versions = useMemo(
+    () => versionModel(project),
+    [project.versions, project.versionDetails],
   );
+  const { revisionOf, labelOf, revisions } = versions;
+  const versionsRef = useRef(versions);
+  versionsRef.current = versions;
   const revision = revisions.includes(revisionChoice)
     ? revisionChoice
     : revisions.at(-1)!;
   const revisionVersions = useMemo(
-    () => project.versions.filter((item) => revisionOf(item) === revision),
-    [project.versions, revision],
+    () => versions.versionsOf(revision),
+    [versions, revision],
   );
   const resolution = revisionVersions.includes(resolutionChoice)
     ? resolutionChoice
@@ -316,7 +306,7 @@ export function App() {
       if (place.project) setProjectId(place.project);
       if (place.version) {
         setVersionChoice(place.version);
-        setRevisionChoice(revisionOf(place.version));
+        setRevisionChoice(versionsRef.current.revisionOf(place.version));
       }
       if (place.screen) setSelectedId(place.screen);
     };
@@ -534,26 +524,26 @@ export function App() {
       ),
     [approvals, version],
   );
-  // With several versions (viewport widths), the rail lists every screen at
-  // every version so review is one scroll rather than a dropdown per screen.
+  // When a revision has several versions (one per viewport), the rail lists
+  // every screen at each of them so review is one scroll rather than a
+  // dropdown per screen.
   const flatItems = useMemo(() => {
-    const label = (name: string) => /-(\d+)$/.exec(name)?.[1] ?? name;
-    const width = (name: string) => Number(/-(\d+)$/.exec(name)?.[1] ?? NaN);
-    const versions = [...revisionVersions]
-      .filter((item) => resolution === "all" || item === resolution)
-      .sort((a, b) => (width(a) || 0) - (width(b) || 0));
+    const shown = revisionVersions.filter(
+      (item) => resolution === "all" || item === resolution,
+    );
     let ordinal = 0;
     return screens.flatMap((screen) =>
-      versions.map((item) => ({
+      shown.map((item) => ({
         ...screen,
         id: `${screen.id}@@${item}`,
         screenId: screen.id,
         version: item,
+        versionLabel: labelOf(item),
         ordinal: ++ordinal,
-        title: `${screen.title} · ${label(item)}`,
+        title: `${screen.title} · ${labelOf(item)}`,
       })),
     );
-  }, [revisionVersions, resolution, screens]);
+  }, [revisionVersions, resolution, screens, labelOf]);
   const flatMode = revisionVersions.length > 1;
   const flatIndex = flatItems.findIndex(
     (item) => item.screenId === selectedId && item.version === version,
@@ -1087,7 +1077,7 @@ export function App() {
                   const sameResolution = project.versions.find(
                     (item) =>
                       revisionOf(item) === next &&
-                      resolutionOf(item) === resolutionOf(version),
+                      labelOf(item) === labelOf(version),
                   );
                   setRevisionChoice(next);
                   setVersionChoice(sameResolution ?? "");
@@ -1109,7 +1099,7 @@ export function App() {
           ) : null}
           {revisionVersions.length > 1 ? (
             <label>
-              Resolution
+              Viewport
               <select
                 onChange={(event) => {
                   const next = event.target.value;
@@ -1121,7 +1111,7 @@ export function App() {
                 <option value="all">All</option>
                 {revisionVersions.map((item) => (
                   <option key={item} value={item}>
-                    {resolutionOf(item)}
+                    {labelOf(item)}
                   </option>
                 ))}
               </select>

@@ -47,6 +47,32 @@ describe("project catalog", () => {
     ]);
   });
 
+  it("passes a version's explicit revision and label to the browser", async () => {
+    await register("demo.json", {
+      id: "demo",
+      name: "Demo",
+      versions: [
+        {
+          id: "r1-wide",
+          revision: "r1",
+          label: "1440",
+          captureRoot: join(root, "captures", "v1"),
+        },
+        { id: "r1-narrow", revision: "r1", label: "390", captureRoot: root },
+      ],
+      screens: [{ ...screenBase, id: "home" }],
+    });
+    const body = await (await fetch(`${server.origin}/api/projects`)).json();
+    const demo = body.projects.find(
+      (item: { id: string }) => item.id === "demo",
+    );
+    expect(demo.versions).toEqual(["r1-wide", "r1-narrow"]);
+    expect(demo.versionDetails).toEqual([
+      { id: "r1-wide", revision: "r1", label: "1440" },
+      { id: "r1-narrow", revision: "r1", label: "390" },
+    ]);
+  });
+
   it("lists registered screens without exposing local paths and serves captures", async () => {
     await register("demo.json", {
       id: "demo",

@@ -50,7 +50,14 @@ const registrationSchema = z.object({
   id: z.string().regex(/^[a-z0-9][a-z0-9-]{0,63}$/),
   name: z.string().min(1),
   versions: z
-    .array(z.object({ id: z.string().min(1), captureRoot: z.string().min(1) }))
+    .array(
+      z.object({
+        id: z.string().min(1),
+        captureRoot: z.string().min(1),
+        revision: z.string().min(1).optional(),
+        label: z.string().min(1).optional(),
+      }),
+    )
     .min(1),
   screens: z.unknown(),
 });
@@ -58,7 +65,12 @@ const registrationSchema = z.object({
 type Registration = {
   id: string;
   name: string;
-  versions: { id: string; captureRoot: string }[];
+  versions: {
+    id: string;
+    captureRoot: string;
+    revision?: string;
+    label?: string;
+  }[];
   screens: ReviewScreen[];
 };
 
@@ -140,6 +152,17 @@ export function createProjectCatalog({
           id: registration.id,
           name: registration.name,
           versions: registration.versions.map((version) => version.id),
+          ...(registration.versions.some((item) => item.revision || item.label)
+            ? {
+                versionDetails: registration.versions.map(
+                  ({ id, revision, label }) => ({
+                    id,
+                    ...(revision ? { revision } : {}),
+                    ...(label ? { label } : {}),
+                  }),
+                ),
+              }
+            : {}),
           screens: await Promise.all(
             registration.screens.map(async (screen) => ({
               id: screen.id,

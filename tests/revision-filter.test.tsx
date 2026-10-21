@@ -1,4 +1,10 @@
-import { cleanup, fireEvent, render, screen, within } from "@testing-library/react";
+import {
+  cleanup,
+  fireEvent,
+  render,
+  screen,
+  within,
+} from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
 import { App } from "../src/client/app";
@@ -16,6 +22,11 @@ beforeEach(async () => {
       "build-r1-mobile-390",
       "build-r2-desktop-1440",
     ],
+    versionDetails: [
+      { id: "build-r1-desktop-1440", revision: "build-r1", label: "1440" },
+      { id: "build-r1-mobile-390", revision: "build-r1", label: "390" },
+      { id: "build-r2-desktop-1440", revision: "build-r2", label: "1440" },
+    ],
   });
 });
 
@@ -31,12 +42,12 @@ describe("revision filter", () => {
     const revision = await screen.findByRole("combobox", { name: "Revision" });
     expect(revision).toHaveValue("build-r2");
     expect(
-      screen.queryByRole("combobox", { name: "Resolution" }),
+      screen.queryByRole("combobox", { name: "Viewport" }),
     ).not.toBeInTheDocument();
 
     fireEvent.change(revision, { target: { value: "build-r1" } });
     const resolution = await screen.findByRole("combobox", {
-      name: "Resolution",
+      name: "Viewport",
     });
     const options = within(resolution)
       .getAllByRole("option")
