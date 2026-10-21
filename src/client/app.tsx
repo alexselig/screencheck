@@ -286,6 +286,9 @@ function Workbench({
   projectProblems: string[];
 }) {
   const [railMode, setRailMode] = useState<RailMode>(defaultRailMode);
+  // Fullscreen keeps its own rail choice; it opens as numbers on the edge.
+  const [fullscreenRailMode, setFullscreenRailMode] =
+    useState<RailMode>("compact");
   useEffect(() => {
     if (typeof window.matchMedia !== "function") return;
     const tablet = window.matchMedia(TABLET_QUERY);
@@ -806,8 +809,8 @@ function Workbench({
 
   const navigation = (
     <ScreenRail
-      mode={fullscreen ? "compact" : railMode}
-      onModeChange={fullscreen ? undefined : setRailMode}
+      mode={fullscreen ? fullscreenRailMode : railMode}
+      onModeChange={fullscreen ? setFullscreenRailMode : setRailMode}
       approvedIds={railApprovedIds}
       hideApproved={hideApproved}
       onHideApprovedChange={changeHideApproved}
@@ -1194,6 +1197,9 @@ function Workbench({
           navigation={navigation}
           drawer={drawer}
           onDrawerChange={setDrawer}
+          openCount={
+            (flatMode ? flatOpenCounts : openCounts).get(railSelectedId) ?? 0
+          }
         >
           {canvas}
         </FullscreenReview>

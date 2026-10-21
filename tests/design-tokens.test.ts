@@ -321,6 +321,19 @@ describe("panel layout", () => {
     );
   });
 
+  it("makes the fullscreen feedback handle a 44px tab with a count (ds-28)", () => {
+    const handle = ruleBody(".fullscreen-edge-handle");
+    expect(handle).toMatch(/width: var\(--size-touch\);/);
+    expect(handle).toMatch(/font-size: 11px;/);
+    expect(ruleBody(".fullscreen-edge-count")).toMatch(
+      /background: var\(--bauhaus-orange\);/,
+    );
+    expect(
+      ruleBody(".fullscreen-edge-feedback .fullscreen-edge-handle"),
+    ).toMatch(/background: var\(--ink\);[\s\S]*color: var\(--surface\);/);
+    expect(styles).not.toMatch(/right: 28px;/);
+  });
+
   it("gives the empty panel a blue-soft field with a blue rule (ds-30)", () => {
     const empty = ruleBody(".feedback-empty");
     expect(empty).toMatch(/border-left: 4px solid var\(--bauhaus-blue\);/);

@@ -92,3 +92,44 @@ describe("Escape in fullscreen (ux-6)", () => {
     expect(note).toBeInTheDocument();
   });
 });
+
+describe("fullscreen handles (ds-28)", () => {
+  it("shows the open count on the feedback handle", async () => {
+    await api.storage.importFeedback("example", [
+      {
+        id: "11111111-1111-4111-8111-111111111111",
+        projectId: "example",
+        screenId: "landing",
+        version: "live",
+        tags: [],
+        status: "OPEN",
+        x: 0.5,
+        y: 0.5,
+        note: "One",
+        createdAt: "2026-10-05T19:00:00.000Z",
+        updatedAt: "2026-10-05T19:00:00.000Z",
+      },
+    ] as never);
+    window.history.replaceState(null, "", "#screen=landing");
+    await enterFullscreen();
+    const handle = screen.getByRole("button", { name: "Feedback panel" });
+    await waitFor(() => expect(handle).toHaveAccessibleDescription("1 open"));
+    expect(handle.querySelector(".fullscreen-edge-count")).toHaveTextContent(
+      "1",
+    );
+  });
+
+  it("gives the fullscreen rail an expand control in its corner", async () => {
+    await enterFullscreen();
+    const nav = screen.getByRole("navigation", { name: "Screen navigation" });
+    const expand = within(nav).getByRole("button", {
+      name: "Expand screen index",
+    });
+    fireEvent.click(expand);
+    expect(nav).toHaveAttribute("data-mode", "wide");
+    fireEvent.click(
+      within(nav).getByRole("button", { name: "Collapse screen index" }),
+    );
+    expect(nav).toHaveAttribute("data-mode", "compact");
+  });
+});

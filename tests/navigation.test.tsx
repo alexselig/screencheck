@@ -77,7 +77,12 @@ describe("action bar", () => {
     const rail = document.querySelector(".fullscreen-rail .screen-rail")!;
     expect(rail).toHaveAttribute("data-mode", "compact");
     expect(rail).toHaveAttribute("data-expanded", "false");
-    expect(screen.queryByRole("button", { name: /screen index/ })).toBeNull();
+    // ds-28: the corner cell holds the expand control instead of sitting empty.
+    expect(
+      within(rail as HTMLElement).getByRole("button", {
+        name: "Expand screen index",
+      }),
+    ).toBeInTheDocument();
     fireEvent.mouseEnter(rail);
     expect(rail).toHaveAttribute("data-expanded", "true");
     fireEvent.mouseLeave(rail);

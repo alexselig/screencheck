@@ -1,4 +1,4 @@
-import type { ReactNode } from "react";
+import { useId, type ReactNode } from "react";
 
 export type FullscreenDrawer = { open: boolean; pinned: boolean };
 
@@ -10,13 +10,17 @@ export function FullscreenReview({
   feedback,
   drawer,
   onDrawerChange,
+  openCount = 0,
 }: {
   children: ReactNode;
   navigation: ReactNode;
   feedback: ReactNode;
   drawer: FullscreenDrawer;
   onDrawerChange: (drawer: FullscreenDrawer) => void;
+  // Open feedback on the current screen, badged on the collapsed handle.
+  openCount?: number;
 }) {
+  const countId = useId();
   return (
     <div className="fullscreen-review" data-testid="fullscreen-review">
       {/* The screen rail sits on the edge in its compact form and expands on hover. */}
@@ -34,6 +38,7 @@ export function FullscreenReview({
         }}
       >
         <button
+          aria-describedby={openCount ? countId : undefined}
           aria-expanded={drawer.open}
           aria-label="Feedback panel"
           className="fullscreen-edge-handle"
@@ -43,7 +48,13 @@ export function FullscreenReview({
           }}
           type="button"
         >
-          Feedback
+          {openCount ? (
+            <span className="fullscreen-edge-count" id={countId}>
+              {openCount}
+              <span className="visually-hidden"> open</span>
+            </span>
+          ) : null}
+          <span className="fullscreen-edge-label">Feedback</span>
         </button>
         <section className="fullscreen-edge-panel">{feedback}</section>
       </div>

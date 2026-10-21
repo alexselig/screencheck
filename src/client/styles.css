@@ -1095,12 +1095,16 @@ h1 {
   border-right-color: var(--ink);
 }
 
+.fullscreen-rail .screen-rail[data-mode="wide"] {
+  width: 320px;
+}
+
 /* Fullscreen: the collapsed strip hugs the numbers to give the screen room. */
 @media (min-width: 901px) {
   .fullscreen-rail
     .screen-rail[data-mode="compact"]:not([data-expanded="true"]) {
     width: 64px;
-    padding: var(--space-1) var(--space-1);
+    padding: 0 var(--space-1) var(--space-1);
   }
 
   .fullscreen-rail
@@ -1128,7 +1132,12 @@ h1 {
 }
 
 .fullscreen-edge-handle {
-  width: 28px;
+  display: flex;
+  width: var(--size-touch);
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-2) 0;
   border: 0;
   border-right: 1px solid var(--ink);
   background: var(--bauhaus-blue);
@@ -1137,7 +1146,34 @@ h1 {
   font-weight: 700;
   letter-spacing: 0.12em;
   text-transform: uppercase;
+}
+
+.fullscreen-edge-label {
   writing-mode: vertical-rl;
+}
+
+/* The open count, so a closed drawer still says there is work in it. */
+.fullscreen-edge-count {
+  display: grid;
+  min-width: 22px;
+  height: 22px;
+  place-items: center;
+  padding: 0 var(--space-1);
+  border-radius: var(--radius-pill);
+  background: var(--bauhaus-orange);
+  color: var(--ink);
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0;
+}
+
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
 }
 
 .fullscreen-edge-feedback .fullscreen-edge-handle {
@@ -2333,7 +2369,7 @@ button.tag-chip:hover {
 
   /* The fullscreen rail becomes the same numbered strip as the stacked layout. */
   .fullscreen-rail {
-    right: 28px;
+    right: var(--size-touch);
     bottom: auto;
   }
 
