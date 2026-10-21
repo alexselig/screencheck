@@ -2152,7 +2152,8 @@ button.tag-chip:hover {
   color: var(--destructive);
 }
 
-.workbench-banner button {
+.workbench-banner button,
+.no-projects button {
   min-height: 44px;
   padding: 0 16px;
   border: 1px solid var(--ink);
