@@ -131,3 +131,13 @@ describe("element map route", () => {
     expect(response.status).toBe(405);
   });
 });
+
+describe("dev mode (Vite) page headers (be-6)", () => {
+  it("forbids framing the app", async () => {
+    const page = await fetch(`${server.origin}/`);
+    expect(page.headers.get("content-security-policy")).toBe(
+      "frame-ancestors 'none'",
+    );
+    expect(page.headers.get("x-frame-options")).toBe("DENY");
+  });
+});

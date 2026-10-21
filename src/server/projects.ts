@@ -179,7 +179,14 @@ export function createProjectCatalog({
         realpath(version.captureRoot),
       ]);
       if (!realFile.startsWith(`${realRoot}${path.sep}`)) return null;
-      return { type, open: () => createReadStream(realFile) };
+      const info = await stat(realFile);
+      return {
+        type,
+        // Changes whenever the file is re-captured, so browsers revalidate
+        // instead of showing a stale image.
+        etag: `"${info.size.toString(16)}-${Math.floor(info.mtimeMs).toString(16)}"`,
+        open: () => createReadStream(realFile),
+      };
     },
     // The element map stored beside a screen's capture, as raw text, or null
     // when there is none (or it would sit outside the captureRoot).

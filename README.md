@@ -173,6 +173,11 @@ using on startup. Only one server process may use a data folder at a time: it
 holds `server.lock` there while it runs, and a second one refuses to start and
 names the first (a lock left by a crashed process is taken over).
 
+API responses carry `Cross-Origin-Resource-Policy: same-origin`, and the app
+page forbids framing (`frame-ancestors 'none'`, `X-Frame-Options: DENY`). A
+malformed path or project id gets `400`; storage failures get a `500` whose
+details (including file paths) go only to the server log.
+
 | Route                                                      | Purpose                                                                                                                          |
 | ---------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------- |
 | `GET /api/projects/:projectId/feedback`                    | List feedback                                                                                                                    |
@@ -180,7 +185,7 @@ names the first (a lock left by a crashed process is taken over).
 | `PATCH /api/projects/:projectId/feedback/:id`              | Update; `409` with the current record if `expectedUpdatedAt` is stale. See below for replies, messages and Verified              |
 | `DELETE /api/projects/:projectId/feedback/:id`             | Delete the expected revision                                                                                                     |
 | `GET /api/projects`                                        | Registered projects and screens (no local paths or proxy settings)                                                               |
-| `GET /api/projects/:projectId/captures/:version/:screenId` | A screen's capture image, only from inside that version's `captureRoot`                                                          |
+| `GET /api/projects/:projectId/captures/:version/:screenId` | A screen's capture image, only from inside that version's `captureRoot`; revalidated by `ETag`, so a re-capture shows at once    |
 | `GET /api/projects/:projectId/elements/:version/:screenId` | A screen's element map (`<capture>.elements.json`), only from inside `captureRoot`; `404` when there is none, `500` if malformed |
 | `POST /api/projects/:projectId/feedback/import`            | Merge records saved elsewhere, keeping ids                                                                                       |
 | `GET /api/projects/:projectId/approvals`                   | Approved screens (stored beside `feedback.json` in `approvals.json`)                                                             |

@@ -16,6 +16,7 @@ import {
   shouldRecordRuntime,
   writeRuntimeInfo,
 } from "./runtime";
+import { PAGE_HEADERS } from "./send-file";
 import { createStaticHandler } from "./static";
 import { sharedFeedbackStorage } from "./storage";
 
@@ -47,10 +48,14 @@ async function createFallback(
     server: { middlewareMode: true },
     appType: "spa",
   });
-  const handle: Fallback = (request, response) =>
+  const handle: Fallback = (request, response) => {
+    for (const [name, value] of Object.entries(PAGE_HEADERS)) {
+      response.setHeader(name, value);
+    }
     vite.middlewares(request, response, () => {
       json(response, 404, { error: "not found" });
     });
+  };
   return { handle, close: () => vite.close() };
 }
 

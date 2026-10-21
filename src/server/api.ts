@@ -10,10 +10,13 @@ import {
 } from "./origin";
 import type { ProjectCatalog } from "./projects";
 import { ACTOR_HEADER, REVIEWER_ACTOR } from "../shared/feedback";
+import { API_HEADERS, streamFile } from "./send-file";
 import {
   FeedbackConflictError,
   FeedbackNotFoundError,
   FeedbackQuarantineError,
+  InvalidProjectIdError,
+  StoreError,
   type FeedbackStorage,
 } from "./storage";
 
@@ -40,8 +43,19 @@ export function sendJson(
     "cache-control": "no-store",
     "content-type": "application/json; charset=utf-8",
     "x-content-type-options": "nosniff",
+    ...API_HEADERS,
   });
   response.end(`${JSON.stringify(body)}\n`);
+}
+
+// Route parameters are percent-decoded; a malformed escape is the client's
+// mistake, not a server failure.
+function decodePart(part: string) {
+  try {
+    return decodeURIComponent(part);
+  } catch {
+    throw new HttpError(400, "Bad request path.");
+  }
 }
 
 async function readJsonBody(request: IncomingMessage): Promise<unknown> {
@@ -134,15 +148,24 @@ export async function handleApi(
         throw new HttpError(405, "Method not allowed.");
       const [projectId, version, screenId] = capture
         .slice(1)
-        .map((part) => decodeURIComponent(part!));
+        .map((part) => decodePart(part!));
       const file = await catalog.capture(projectId!, version!, screenId!);
       if (!file) throw new HttpError(404, "Capture not found.");
-      response.writeHead(200, {
-        "cache-control": "private, max-age=300",
-        "content-type": file.type,
+      const headers = {
+        "cache-control": "no-cache",
+        etag: file.etag,
         "x-content-type-options": "nosniff",
+        ...API_HEADERS,
+      };
+      if (request.headers["if-none-match"] === file.etag) {
+        response.writeHead(304, headers).end();
+        return true;
+      }
+      const sent = await streamFile(response, file.open(), {
+        ...headers,
+        "content-type": file.type,
       });
-      file.open().pipe(response);
+      if (!sent) throw new HttpError(404, "Capture not found.");
       return true;
     }
     const elements = ELEMENTS_ROUTE.exec(url.pathname);
@@ -151,7 +174,7 @@ export async function handleApi(
         throw new HttpError(405, "Method not allowed.");
       const [projectId, version, screenId] = elements
         .slice(1)
-        .map((part) => decodeURIComponent(part!));
+        .map((part) => decodePart(part!));
       const text = await catalog.elements(projectId!, version!, screenId!);
       if (text === null) throw new HttpError(404, "Element map not found.");
       let parsed: unknown;
@@ -172,7 +195,7 @@ export async function handleApi(
     }
     const approvals = APPROVALS_ROUTE.exec(url.pathname);
     if (approvals) {
-      const projectId = decodeURIComponent(approvals[1]!);
+      const projectId = decodePart(approvals[1]!);
       if (request.method === "GET") {
         sendJson(response, 200, {
           approvals: await storage.listApprovals(projectId),
@@ -196,7 +219,7 @@ export async function handleApi(
     }
     const captions = CAPTIONS_ROUTE.exec(url.pathname);
     if (captions) {
-      const projectId = decodeURIComponent(captions[1]!);
+      const projectId = decodePart(captions[1]!);
       if (request.method === "GET") {
         sendJson(response, 200, {
           captions: await storage.listCaptions(projectId),
@@ -220,9 +243,9 @@ export async function handleApi(
     }
     const match = ROUTE.exec(url.pathname);
     if (!match) throw new HttpError(404, "Not found.");
-    const projectId = decodeURIComponent(match[1]!);
+    const projectId = decodePart(match[1]!);
     const isImport = match[2] === "import";
-    const id = match[3] ? decodeURIComponent(match[3]) : undefined;
+    const id = match[3] ? decodePart(match[3]) : undefined;
     const method = request.method ?? "GET";
 
     if (method !== "GET") {
@@ -292,14 +315,16 @@ export async function handleApi(
       sendJson(response, 409, { error: error.message });
     } else if (error instanceof FeedbackNotFoundError) {
       sendJson(response, 404, { error: error.message });
-    } else if (
-      error instanceof Error &&
-      error.message.startsWith("Invalid project id")
-    ) {
+    } else if (error instanceof InvalidProjectIdError) {
       sendJson(response, 400, { error: error.message });
+    } else if (error instanceof StoreError) {
+      console.error(`ScreenCheck: ${error.message} (${error.file})`);
+      sendJson(response, 500, { error: error.message });
     } else {
+      // Raw errors can carry absolute paths; the details go to the log.
+      console.error("ScreenCheck: request failed:", error);
       sendJson(response, 500, {
-        error: error instanceof Error ? error.message : "Storage failed.",
+        error: "Storage failed; see the ScreenCheck server log.",
       });
     }
   }
