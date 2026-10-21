@@ -275,6 +275,17 @@ describe("panel layout", () => {
     expect(styles).not.toMatch(/\.action-bar-hint/);
   });
 
+  it("scales canvas pins with the frame and keeps a 44px target (ds-17)", () => {
+    expect(ruleBody(".screen-frame")).toMatch(/container-type: inline-size;/);
+    const pin = ruleBody(".feedback-pin");
+    expect(pin).toMatch(/width: clamp\(20px, 2\.2cqi, 30px\);/);
+    expect(pin).toMatch(/height: clamp\(20px, 2\.2cqi, 30px\);/);
+    expect(pin).toMatch(/font-size: clamp\(/);
+    const hit = ruleBody(".feedback-pin::before");
+    expect(hit).toMatch(/width: var\(--size-touch\);/);
+    expect(hit).toMatch(/height: var\(--size-touch\);/);
+  });
+
   it("gives the empty panel a blue-soft field with a blue rule (ds-30)", () => {
     const empty = ruleBody(".feedback-empty");
     expect(empty).toMatch(/border-left: 4px solid var\(--bauhaus-blue\);/);

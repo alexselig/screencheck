@@ -2133,14 +2133,30 @@ button.tag-chip:hover {
   box-shadow: 0 0 0 1px var(--ink);
 }
 
+/* Canvas pins scale with the frame so a small capture isn't buried under
+   them; 2.2% of the frame width, held between 20px and 30px. */
 .feedback-pin {
   position: absolute;
+  width: clamp(20px, 2.2cqi, 30px);
+  height: clamp(20px, 2.2cqi, 30px);
+  font-size: clamp(11px, 1cqi, 13px);
   transform: translate(-50%, -50%);
   pointer-events: auto;
   cursor: pointer;
   transition:
     transform var(--fast),
     box-shadow var(--fast);
+}
+
+/* ::after carries the fixed/verified badge, so the 44px hit area is ::before. */
+.feedback-pin::before {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: var(--size-touch);
+  height: var(--size-touch);
+  transform: translate(-50%, -50%);
 }
 
 .feedback-pin:hover {
