@@ -314,6 +314,13 @@ describe("panel layout", () => {
     );
   });
 
+  it("pads and fades the ends of the screen strip (ds-27)", () => {
+    const strip = rules.slice(rules.indexOf("@media (max-width: 900px)"));
+    expect(strip).toMatch(
+      /\.screen-rail ol \{[^}]*scroll-padding-inline: var\(--space-3\);[^}]*mask-image: linear-gradient\(/,
+    );
+  });
+
   it("gives the empty panel a blue-soft field with a blue rule (ds-30)", () => {
     const empty = ruleBody(".feedback-empty");
     expect(empty).toMatch(/border-left: 4px solid var\(--bauhaus-blue\);/);

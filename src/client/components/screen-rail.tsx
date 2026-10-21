@@ -8,6 +8,18 @@ export type RailMode = "wide" | "compact";
 // the room; it still expands on hover.
 export const TABLET_QUERY = "(min-width: 901px) and (max-width: 1200px)";
 
+// The phone/tablet strip centres the current screen, so the screens either
+// side of it stay in view.
+export function centeredScrollLeft(
+  left: number,
+  width: number,
+  viewport: number,
+  scrollWidth: number,
+) {
+  const centred = left + width / 2 - viewport / 2;
+  return Math.round(Math.min(Math.max(0, centred), scrollWidth - viewport));
+}
+
 export function defaultRailMode(): RailMode {
   return typeof window.matchMedia === "function" &&
     window.matchMedia(TABLET_QUERY).matches
@@ -124,22 +136,34 @@ export function ScreenRail({
     const current = nav?.querySelector<HTMLElement>('[aria-current="page"]');
     if (!nav || !current) return;
     const strip = current.closest("ol");
-    if (strip && strip.scrollWidth > strip.clientWidth) {
-      const left = current.offsetLeft - strip.offsetLeft;
-      if (
-        left < strip.scrollLeft ||
-        left + current.offsetWidth > strip.scrollLeft + strip.clientWidth
-      ) {
-        strip.scrollLeft = Math.max(0, left - 16);
+    let stripObserver: ResizeObserver | undefined;
+    if (strip) {
+      const centre = () => {
+        if (strip.scrollWidth <= strip.clientWidth) return;
+        const box = current.getBoundingClientRect();
+        strip.scrollLeft = centeredScrollLeft(
+          box.left - strip.getBoundingClientRect().left + strip.scrollLeft,
+          box.width,
+          strip.clientWidth,
+          strip.scrollWidth,
+        );
+      };
+      centre();
+      // Counts and fonts arrive after the first paint and widen the items.
+      if (typeof ResizeObserver === "function") {
+        stripObserver = new ResizeObserver(centre);
+        for (const item of strip.children) stripObserver.observe(item);
       }
     }
-    if (nav.scrollHeight <= nav.clientHeight) return;
+    const stop = () => stripObserver?.disconnect();
+    if (nav.scrollHeight <= nav.clientHeight) return stop;
     const top = current.offsetTop - nav.offsetTop;
     if (top < nav.scrollTop + 48) {
       nav.scrollTop = Math.max(0, top - 96);
     } else if (top + current.offsetHeight > nav.scrollTop + nav.clientHeight) {
       nav.scrollTop = top + current.offsetHeight - nav.clientHeight + 48;
     }
+    return stop;
   }, [selectedId]);
 
   // When a screen button has focus, keep focus on the current screen so the

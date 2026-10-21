@@ -2233,10 +2233,19 @@ button.tag-chip:hover {
     display: none;
   }
 
+  /* Faded ends say there is more strip either side. */
   .screen-rail ol {
     display: flex;
     gap: 0;
     overflow-x: auto;
+    scroll-padding-inline: var(--space-3);
+    mask-image: linear-gradient(
+      to right,
+      transparent,
+      black var(--space-3),
+      black calc(100% - var(--space-3)),
+      transparent
+    );
   }
 
   .screen-rail li {

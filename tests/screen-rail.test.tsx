@@ -2,6 +2,7 @@ import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import {
+  centeredScrollLeft,
   groupAbbreviation,
   ScreenRail,
   versionTag,
@@ -216,6 +217,12 @@ describe("ScreenRail", () => {
     expect(keep).toHaveAttribute("aria-pressed", "true");
     fireEvent.mouseLeave(rail);
     expect(rail).toHaveAttribute("data-expanded", "true");
+  });
+
+  it("centres the current screen in the strip, clamped to its ends (ds-27)", () => {
+    expect(centeredScrollLeft(500, 60, 300, 1000)).toBe(380);
+    expect(centeredScrollLeft(20, 60, 300, 1000)).toBe(0);
+    expect(centeredScrollLeft(950, 50, 300, 1000)).toBe(700);
   });
 
   it("keeps the title, mode control and filter in one sticky head (ds-9)", () => {
