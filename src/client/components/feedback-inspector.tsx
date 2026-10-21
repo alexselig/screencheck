@@ -1,4 +1,5 @@
 import {
+  useCallback,
   useEffect,
   useLayoutEffect,
   useMemo,
@@ -311,6 +312,19 @@ export function FeedbackInspector({
     text: string;
   } | null>(null);
   const [confirmingApproval, setConfirmingApproval] = useState(false);
+  const approvalToggleRef = useRef<HTMLButtonElement>(null);
+  const refocusApprovalRef = useRef(false);
+  // Closing the confirm unmounts the focused button; hand focus back to the
+  // toggle that replaces it instead of dropping it on <body>.
+  const closeApprovalConfirm = useCallback(() => {
+    refocusApprovalRef.current = true;
+    setConfirmingApproval(false);
+  }, []);
+  useLayoutEffect(() => {
+    if (confirmingApproval || !refocusApprovalRef.current) return;
+    refocusApprovalRef.current = false;
+    approvalToggleRef.current?.focus();
+  }, [confirmingApproval]);
   const [saveMessage, setSaveMessage] = useState("");
   // Resends the last failed save from the editor, shown as a Retry button.
   const [retrySave, setRetrySave] = useState<{
@@ -1196,7 +1210,7 @@ export function FeedbackInspector({
             unverifiedFixes === 0 ||
             confirmingApproval
           ) {
-            setConfirmingApproval(false);
+            if (confirmingApproval) closeApprovalConfirm();
             approval.onToggle();
           } else {
             setConfirmingApproval(true);
@@ -1522,6 +1536,11 @@ export function FeedbackInspector({
             <div
               aria-label="Confirm approval"
               className="screen-approval-confirm"
+              onKeyDown={(event) => {
+                if (event.key !== "Escape") return;
+                event.preventDefault();
+                closeApprovalConfirm();
+              }}
               role="group"
             >
               <span>
@@ -1531,18 +1550,14 @@ export function FeedbackInspector({
               <button
                 className="screen-approval-anyway"
                 onClick={() => {
-                  setConfirmingApproval(false);
+                  closeApprovalConfirm();
                   approval.onToggle();
                 }}
                 type="button"
               >
                 Approve
               </button>
-              <button
-                autoFocus
-                onClick={() => setConfirmingApproval(false)}
-                type="button"
-              >
+              <button autoFocus onClick={closeApprovalConfirm} type="button">
                 Cancel
               </button>
             </div>
@@ -1550,6 +1565,7 @@ export function FeedbackInspector({
             <button
               aria-pressed={approval.approved}
               className="screen-approval-toggle"
+              ref={approvalToggleRef}
               // Wait for feedback too, so unverified fixes are counted.
               disabled={!approval.ready || !ready}
               onClick={() => {

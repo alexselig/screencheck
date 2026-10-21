@@ -189,6 +189,42 @@ describe("verify step", () => {
   });
 });
 
+describe("approval confirm focus (ux-12)", () => {
+  async function openConfirm() {
+    render(<App />);
+    await screen.findByText("Footer floats mid-page.");
+    const approve = await screen.findByRole("button", {
+      name: "Approve screen",
+    });
+    await waitFor(() => expect(approve).toBeEnabled());
+    fireEvent.click(approve);
+    return screen.getByRole("group", { name: "Confirm approval" });
+  }
+
+  it("cancels on Escape and returns focus to the approval toggle", async () => {
+    const confirm = await openConfirm();
+    const cancel = within(confirm).getByRole("button", { name: "Cancel" });
+    expect(cancel).toHaveFocus();
+    fireEvent.keyDown(cancel, { key: "Escape" });
+    expect(
+      screen.queryByRole("group", { name: "Confirm approval" }),
+    ).toBeNull();
+    expect(
+      screen.getByRole("button", { name: "Approve screen" }),
+    ).toHaveFocus();
+    expect(await api.storage.listApprovals("example")).toEqual([]);
+  });
+
+  it("returns focus to the toggle after approving anyway", async () => {
+    const confirm = await openConfirm();
+    fireEvent.click(within(confirm).getByRole("button", { name: "Approve" }));
+    const toggle = await screen.findByRole("button", {
+      name: "Screen approved",
+    });
+    expect(toggle).toHaveFocus();
+  });
+});
+
 describe("approve shortcut", () => {
   it("asks first on Cmd+A when fixes are unverified; a second press approves", async () => {
     render(<App />);
