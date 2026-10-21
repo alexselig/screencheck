@@ -307,6 +307,13 @@ describe("panel layout", () => {
     );
   });
 
+  it("gives the tablet canvas the room of a compact rail (ds-26)", () => {
+    const tablet = rules.slice(rules.indexOf("@media (max-width: 1200px)"));
+    expect(tablet).toMatch(
+      /\.workbench-grid\[data-rail-mode="compact"\] \{\s*grid-template-columns: 64px minmax\(0, 1fr\) 300px;/,
+    );
+  });
+
   it("gives the empty panel a blue-soft field with a blue rule (ds-30)", () => {
     const empty = ruleBody(".feedback-empty");
     expect(empty).toMatch(/border-left: 4px solid var\(--bauhaus-blue\);/);

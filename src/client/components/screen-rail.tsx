@@ -4,6 +4,17 @@ import type { ReviewScreen } from "../../shared/manifest";
 
 export type RailMode = "wide" | "compact";
 
+// On a tablet-width window the rail starts as numbers so the capture gets
+// the room; it still expands on hover.
+export const TABLET_QUERY = "(min-width: 901px) and (max-width: 1200px)";
+
+export function defaultRailMode(): RailMode {
+  return typeof window.matchMedia === "function" &&
+    window.matchMedia(TABLET_QUERY).matches
+    ? "compact"
+    : "wide";
+}
+
 const HIDE_APPROVED_KEY = "screencheck:hide-approved-screens";
 
 export function readHideApproved() {

@@ -25,6 +25,8 @@ import {
   visibleRailScreens,
   writeHideApproved,
   type RailMode,
+  TABLET_QUERY,
+  defaultRailMode,
 } from "./components/screen-rail";
 import { isApproved, type ScreenApproval } from "../shared/approvals";
 import { captionFor, type ScreenCaption as Caption } from "../shared/captions";
@@ -283,7 +285,14 @@ function Workbench({
   projects: PublicProject[];
   projectProblems: string[];
 }) {
-  const [railMode, setRailMode] = useState<RailMode>("wide");
+  const [railMode, setRailMode] = useState<RailMode>(defaultRailMode);
+  useEffect(() => {
+    if (typeof window.matchMedia !== "function") return;
+    const tablet = window.matchMedia(TABLET_QUERY);
+    const follow = () => setRailMode(defaultRailMode());
+    tablet.addEventListener("change", follow);
+    return () => tablet.removeEventListener("change", follow);
+  }, []);
   const initialPlace = useMemo(readPlace, []);
   const [projectId, setProjectId] = useState(initialPlace.project ?? "");
   // A shared link or reload opens the version in the URL; when a newer

@@ -2199,6 +2199,10 @@ button.tag-chip:hover {
   .workbench-grid {
     grid-template-columns: 232px minmax(0, 1fr) 300px;
   }
+
+  .workbench-grid[data-rail-mode="compact"] {
+    grid-template-columns: 64px minmax(0, 1fr) 300px;
+  }
 }
 
 /* Tablet and phone: stack screens, canvas, then feedback so review still works. */
