@@ -54,6 +54,20 @@ describe("Bauhausian tokens", () => {
     expect(rules).not.toMatch(/\brgba?\(/);
   });
 
+  it("uses the spacing, motion and sizing tokens (ds-4)", () => {
+    expect(rules).not.toMatch(/\b\d+ms\b/);
+    expect(rules).toMatch(/--action-bar-height: var\(--size-footer\);/);
+    const spacing = [
+      ...rules.matchAll(/\b(?:padding|margin|gap)[a-z-]*: ([^;]+);/g),
+    ]
+      // A calc() offsets a token by a fixed part (a dot, the rail strip).
+      .map((match) => match[1]!.replace(/calc\([^;]*\)/g, "calc()"));
+    const offScale = spacing.filter((value) =>
+      /(?<![\w-])(?!0px|1px|2px)\d+px/.test(value),
+    );
+    expect(offScale).toEqual([]);
+  });
+
   it("self-hosts its fonts (ds-35)", () => {
     expect(styles).not.toMatch(/fonts\.googleapis|@import/);
     const fonts = read("fonts.css");

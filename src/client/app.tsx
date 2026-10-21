@@ -82,6 +82,9 @@ function clampUnit(value: number) {
   return Math.min(1, Math.max(0, Math.round(value * 1000) / 1000));
 }
 
+// --action-bar-height, the spec footer size (--size-footer).
+const ACTION_BAR_HEIGHT = 65;
+
 const CLOSED_DRAWER: FullscreenDrawer = { open: false, pinned: false };
 
 function revisionName(revision: string) {
@@ -366,7 +369,7 @@ function Workbench({
   } | null>(null);
   const panelRef = useRef<HTMLDivElement>(null);
   const gridRef = useRef<HTMLElement>(null);
-  useFollowPage(panelRef, 64);
+  useFollowPage(panelRef, ACTION_BAR_HEIGHT);
 
   useEffect(() => {
     const params = new URLSearchParams({

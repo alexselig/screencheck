@@ -29,7 +29,7 @@ textarea {
 /* Native arrows sit flush to the edge; draw one with room to breathe. */
 select {
   appearance: none;
-  padding: 0 32px 0 10px;
+  padding: 0 var(--space-5) 0 var(--space-2);
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' fill='none' stroke='%23141414' stroke-width='1.5'/%3E%3C/svg%3E");
   background-position: right 12px center;
   background-repeat: no-repeat;
@@ -48,7 +48,7 @@ select {
   min-height: 96px;
   align-items: center;
   justify-content: space-between;
-  padding: 16px 24px;
+  padding: var(--space-3) var(--space-4);
   border-bottom: 1px solid var(--ink);
   /* Ink, not orange: orange is reserved for the one loud action (Add feedback). */
   background: var(--ink);
@@ -76,7 +76,7 @@ h2 {
 }
 
 h1 {
-  margin-top: 4px;
+  margin-top: var(--space-1);
   font-size: clamp(28px, 4vw, 52px);
 }
 
@@ -89,7 +89,7 @@ h1 {
 
 .status-pill {
   white-space: nowrap;
-  padding: 5px 10px;
+  padding: var(--space-1) var(--space-2);
   border: 1px solid var(--ink);
   border-radius: 999px;
   font-size: 12px;
@@ -163,13 +163,13 @@ h1 {
 .header-controls {
   display: flex;
   align-items: center;
-  gap: 16px;
+  gap: var(--space-3);
 }
 
 .header-controls label {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--space-2);
   font-size: 12px;
   font-weight: 700;
   letter-spacing: 0.12em;
@@ -201,8 +201,8 @@ h1 {
   height: var(--action-bar-height);
   grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
   align-items: center;
-  gap: 16px;
-  padding: 0 24px;
+  gap: var(--space-3);
+  padding: 0 var(--space-4);
   border-top: 1px solid var(--ink);
   background: var(--surface);
 }
@@ -211,13 +211,13 @@ h1 {
   display: flex;
   min-width: 0;
   align-items: center;
-  gap: 8px;
+  gap: var(--space-2);
 }
 
 .action-bar-nav button {
   min-width: 44px;
   min-height: 44px;
-  padding: 0 12px;
+  padding: 0 var(--space-3);
   border: 1px solid transparent;
   background: var(--surface);
   color: var(--ink);
@@ -249,7 +249,7 @@ h1 {
   width: clamp(96px, 24vw, 320px);
   min-width: 0;
   overflow: hidden;
-  padding: 0 8px;
+  padding: 0 var(--space-2);
   text-align: center;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -265,7 +265,7 @@ h1 {
   overflow: hidden;
   margin: 0;
   text-overflow: ellipsis;
-  padding: 10px 14px;
+  padding: var(--space-2) var(--space-3);
   border: 1px solid var(--bauhaus-blue);
   background: var(--blue-soft);
   color: var(--bauhaus-blue);
@@ -277,7 +277,7 @@ h1 {
   display: flex;
   min-width: 0;
   align-items: center;
-  gap: 12px;
+  gap: var(--space-3);
 }
 
 .action-bar .action-bar-fullscreen {
@@ -292,13 +292,13 @@ h1 {
   min-width: 0;
   justify-content: flex-end;
   align-items: center;
-  gap: 8px;
+  gap: var(--space-2);
 }
 
 /* Secondary to Add feedback: borderless like Prev/Next. */
 .action-bar-export {
   min-height: 44px;
-  padding: 0 14px;
+  padding: 0 var(--space-3);
   border: 1px solid transparent;
   background: var(--surface);
   color: var(--ink);
@@ -326,7 +326,7 @@ h1 {
   inset: 0;
   display: grid;
   place-items: center;
-  padding: 16px;
+  padding: var(--space-3);
   background: color-mix(in srgb, var(--ink) 40%, transparent);
 }
 
@@ -335,8 +335,8 @@ h1 {
   width: min(420px, 100%);
   max-height: calc(100dvh - 32px);
   overflow: auto;
-  gap: 16px;
-  padding: 24px;
+  gap: var(--space-3);
+  padding: var(--space-4);
   border-top: 4px solid var(--bauhaus-orange);
   background: var(--surface);
   color: var(--ink);
@@ -352,7 +352,7 @@ h1 {
 .export-dialog fieldset {
   display: flex;
   flex-wrap: wrap;
-  gap: 4px 16px;
+  gap: var(--space-1) var(--space-3);
   margin: 0;
   padding: 0;
   border: 0;
@@ -360,7 +360,7 @@ h1 {
 
 .export-dialog legend {
   width: 100%;
-  margin-bottom: 6px;
+  margin-bottom: var(--space-2);
   padding: 0;
   font-size: 12px;
   font-weight: 700;
@@ -372,7 +372,7 @@ h1 {
   display: inline-flex;
   min-height: 32px;
   align-items: center;
-  gap: 8px;
+  gap: var(--space-2);
   cursor: pointer;
 }
 
@@ -385,7 +385,7 @@ h1 {
 
 .export-summary {
   margin: 0;
-  padding-top: 12px;
+  padding-top: var(--space-3);
   border-top: 1px solid var(--line);
   color: var(--ink-muted);
   font-size: 13px;
@@ -394,12 +394,12 @@ h1 {
 .export-dialog-actions {
   display: flex;
   justify-content: flex-end;
-  gap: 8px;
+  gap: var(--space-2);
 }
 
 .export-dialog-actions button {
   min-height: 44px;
-  padding: 0 16px;
+  padding: 0 var(--space-3);
   border: 1px solid transparent;
   background: var(--surface);
   color: var(--ink);
@@ -437,13 +437,13 @@ h1 {
   display: inline-flex;
   justify-self: end;
   align-items: center;
-  gap: 10px;
-  padding: 0 16px;
+  gap: var(--space-2);
+  padding: 0 var(--space-3);
 }
 
 .feedback-add-button kbd,
 .screen-approval-toggle kbd {
-  padding: 2px 6px;
+  padding: 2px var(--space-2);
   border: 1px solid currentColor;
   font-family: var(--font-sans);
   font-size: 12px;
@@ -451,7 +451,7 @@ h1 {
 
 .screen-rail,
 .feedback-panel {
-  padding: 24px;
+  padding: var(--space-4);
   background: var(--surface-alt);
 }
 
@@ -463,12 +463,12 @@ h1 {
 }
 
 .screen-rail {
-  padding: 8px 16px 16px;
+  padding: var(--space-2) var(--space-3) var(--space-3);
 }
 
 .screen-rail[data-mode="compact"] {
   width: 64px;
-  padding: 8px 4px;
+  padding: var(--space-2) var(--space-1);
 }
 
 .screen-rail[data-mode="compact"][data-expanded="true"] {
@@ -480,7 +480,7 @@ h1 {
   display: flex;
   min-height: 32px;
   align-items: center;
-  gap: 8px;
+  gap: var(--space-2);
 }
 
 .rail-title {
@@ -504,8 +504,8 @@ h1 {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 8px;
-  padding: 0 8px;
+  gap: var(--space-2);
+  padding: 0 var(--space-2);
   min-width: 32px;
   min-height: 32px;
   border: 0;
@@ -522,8 +522,8 @@ h1 {
 }
 
 .screen-rail ol h3 {
-  margin: 8px -16px 0;
-  padding: 6px 16px;
+  margin: var(--space-2) calc(var(--space-3) * -1) 0;
+  padding: var(--space-2) var(--space-3);
   border-top: 1px solid var(--ink);
   border-bottom: 1px solid var(--line);
   overflow: hidden;
@@ -536,8 +536,8 @@ h1 {
 /* Compact mode keeps section rules at full height so rows never move when the
    rail expands on hover; only the label swaps to a short form. */
 .screen-rail[data-mode="compact"] ol h3 {
-  margin: 8px -4px 0;
-  padding: 6px 8px;
+  margin: var(--space-2) calc(var(--space-1) * -1) 0;
+  padding: var(--space-2) var(--space-2);
 }
 
 .screen-rail[data-mode="compact"]:not([data-expanded="true"]) ol h3 {
@@ -565,7 +565,7 @@ h1 {
 .screen-rail[data-mode="compact"]:not([data-expanded="true"])
   .screen-version-tag {
   display: block;
-  margin-top: 3px;
+  margin-top: var(--space-1);
   font-size: 9px;
   font-weight: 600;
   letter-spacing: 0.02em;
@@ -586,12 +586,12 @@ h1 {
 .screen-rail li button {
   display: grid;
   width: calc(100% + 32px);
-  margin-inline: -16px;
+  margin-inline: calc(var(--space-3) * -1);
   min-height: 40px;
   grid-template-columns: 56px minmax(0, 1fr);
-  gap: 8px;
+  gap: var(--space-2);
   align-items: center;
-  padding: 6px 24px 6px 20px;
+  padding: var(--space-2) var(--space-4) var(--space-2) var(--space-4);
   border: 0;
   border-bottom: 1px solid var(--line);
   background: transparent;
@@ -667,7 +667,7 @@ h1 {
   display: grid;
   min-width: 14px;
   place-items: center;
-  padding: 0 3px;
+  padding: 0 var(--space-1);
   border-radius: 999px;
   background: var(--bauhaus-orange);
   outline: 1.5px solid var(--surface);
@@ -704,9 +704,9 @@ h1 {
    keeps badges clear of the row edge and its inset focus ring. */
 .screen-rail[data-mode="compact"] li button {
   width: calc(100% + 8px);
-  margin-inline: -4px;
+  margin-inline: calc(var(--space-1) * -1);
   grid-template-columns: 56px minmax(0, 1fr);
-  padding-inline: 12px 8px;
+  padding-inline: var(--space-3) var(--space-2);
 }
 
 .screen-rail[data-mode="compact"]:not([data-expanded="true"]) .screen-name,
@@ -716,8 +716,8 @@ h1 {
 
 .rail-filter-button {
   display: block;
-  margin: 4px 0 8px;
-  padding: 4px 0;
+  margin: var(--space-1) 0 var(--space-2);
+  padding: var(--space-1) 0;
   border: 0;
   background: transparent;
   color: var(--bauhaus-blue);
@@ -745,7 +745,7 @@ h1 {
 .review-canvas {
   position: relative;
   min-width: 0;
-  padding: 0 32px 32px;
+  padding: 0 var(--space-5) var(--space-5);
 }
 
 .canvas-header {
@@ -753,25 +753,25 @@ h1 {
   min-height: 72px;
   align-items: center;
   justify-content: space-between;
-  gap: 16px;
+  gap: var(--space-3);
 }
 
 .canvas-header h2 {
-  margin-top: 4px;
+  margin-top: var(--space-1);
   font-size: 22px;
 }
 
 .canvas-header-actions {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: var(--space-3);
 }
 
 .canvas-header-actions a {
   display: inline-flex;
   min-height: 44px;
   align-items: center;
-  padding: 0 4px;
+  padding: 0 var(--space-1);
   color: var(--bauhaus-blue);
   font-weight: 700;
 }
@@ -782,10 +782,10 @@ h1 {
   display: grid;
   grid-template-columns: auto minmax(0, 1fr);
   align-items: center;
-  column-gap: 16px;
+  column-gap: var(--space-3);
   max-width: var(--screen-width, 1440px);
-  margin: 0 auto 12px;
-  padding: 0 0 0 14px;
+  margin: 0 auto var(--space-3);
+  padding: 0 0 0 var(--space-3);
   border: 1px solid var(--line-strong);
   background: var(--surface-alt);
 }
@@ -800,7 +800,7 @@ h1 {
 
 .screen-caption-text {
   min-height: 44px;
-  padding: 10px 14px 10px 0;
+  padding: var(--space-2) var(--space-3) var(--space-2) 0;
   border: 0;
   background: transparent;
   color: var(--ink);
@@ -841,7 +841,7 @@ h1 {
 
 .screen-caption textarea {
   min-height: 44px;
-  padding: 10px 0;
+  padding: var(--space-2) 0;
   border: 0;
   background: transparent;
   color: var(--ink);
@@ -858,7 +858,7 @@ h1 {
 }
 
 .screen-caption-hint {
-  padding-right: 14px;
+  padding-right: var(--space-3);
   color: var(--ink-muted);
   font-size: 12px;
   white-space: nowrap;
@@ -901,7 +901,7 @@ h1 {
 
 .screen-frame-size {
   display: block;
-  margin-top: 8px;
+  margin-top: var(--space-2);
   color: var(--ink-muted);
   font-size: 12px;
   font-variant-numeric: tabular-nums;
@@ -947,7 +947,9 @@ h1 {
   width: 100%;
   height: 100%;
   overflow-y: auto;
-  padding: 0 56px var(--action-bar-height) 92px;
+  /* Clear of the 64px rail strip and the feedback handle. */
+  padding: 0 calc(var(--size-touch) + var(--space-4)) var(--action-bar-height)
+    calc(64px + var(--space-4));
 }
 
 .fullscreen-edge {
@@ -983,15 +985,15 @@ h1 {
   .fullscreen-rail
     .screen-rail[data-mode="compact"]:not([data-expanded="true"]) {
     width: 64px;
-    padding: 4px 3px;
+    padding: var(--space-1) var(--space-1);
   }
 
   .fullscreen-rail
     .screen-rail[data-mode="compact"]:not([data-expanded="true"])
     ol
     h3 {
-    margin-inline: -3px;
-    padding-inline: 3px;
+    margin-inline: calc(var(--space-1) * -1);
+    padding-inline: var(--space-1);
   }
 
   .fullscreen-rail
@@ -999,9 +1001,9 @@ h1 {
     li
     button {
     width: calc(100% + 6px);
-    margin-inline: -3px;
+    margin-inline: calc(var(--space-1) * -1);
     grid-template-columns: minmax(0, 1fr);
-    padding-inline: 13px 3px;
+    padding-inline: var(--space-3) var(--space-1);
   }
 }
 
@@ -1072,14 +1074,14 @@ h1 {
 
 .empty-canvas {
   max-width: min(620px, 80%);
-  padding: 32px;
+  padding: var(--space-5);
   background: var(--surface);
   border: 1px solid var(--line-strong);
   border-left: 12px solid var(--bauhaus-blue);
 }
 
 .empty-canvas h2 {
-  margin-top: 16px;
+  margin-top: var(--space-3);
   font-size: clamp(28px, 5vw, 58px);
 }
 
@@ -1087,7 +1089,7 @@ h1 {
   display: flex;
   min-width: 0;
   flex-direction: column;
-  gap: 16px;
+  gap: var(--space-3);
   border-left: 1px solid var(--ink);
 }
 
@@ -1099,7 +1101,7 @@ h1 {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 12px;
+  gap: var(--space-3);
 }
 
 .feedback-inspector-header > strong {
@@ -1118,7 +1120,7 @@ h1 {
 .feedback-cancel-button,
 .feedback-delete-confirm button {
   min-height: 44px;
-  padding: 0 12px;
+  padding: 0 var(--space-3);
   border: 1px solid var(--ink);
   background: var(--surface);
   color: var(--ink);
@@ -1127,7 +1129,7 @@ h1 {
 }
 
 .feedback-editor .feedback-cancel-button {
-  margin-top: 4px;
+  margin-top: var(--space-1);
 }
 
 .feedback-add-button {
@@ -1151,7 +1153,7 @@ h1 {
 
 .feedback-empty {
   margin: 0;
-  padding: 16px;
+  padding: var(--space-3);
   border: 1px dashed var(--line-strong);
   background: var(--surface);
   font-size: 14px;
@@ -1161,7 +1163,7 @@ h1 {
 .feedback-editor label,
 .feedback-tags legend {
   display: grid;
-  gap: 5px;
+  gap: var(--space-1);
   color: var(--ink-muted);
   font-size: 11px;
   font-weight: 700;
@@ -1185,7 +1187,7 @@ h1 {
 .feedback-editor-header {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: var(--space-3);
 }
 
 .feedback-editor-header:has(.feedback-editor-moves) {
@@ -1206,7 +1208,7 @@ h1 {
 
 /* Editing in place: the card becomes the editor, framed like a selected card. */
 .feedback-list .feedback-editor {
-  padding: 12px;
+  padding: var(--space-3);
   border: 1px solid var(--bauhaus-blue);
   background: var(--surface);
   box-shadow: inset 0 0 0 1px var(--bauhaus-blue);
@@ -1214,7 +1216,7 @@ h1 {
 
 .feedback-list {
   display: grid;
-  gap: 8px;
+  gap: var(--space-2);
   margin: 0;
   padding: 0;
   list-style: none;
@@ -1224,10 +1226,10 @@ h1 {
   display: grid;
   width: 100%;
   grid-template-columns: 30px minmax(0, 1fr);
-  column-gap: 12px;
-  row-gap: 4px;
+  column-gap: var(--space-3);
+  row-gap: var(--space-1);
   align-items: start;
-  padding: 12px;
+  padding: var(--space-3);
   border: 1px solid var(--line);
   background: var(--surface);
   color: var(--ink);
@@ -1241,7 +1243,7 @@ h1 {
 
 /* Keep card text clear of the corner delete button. */
 .feedback-comment {
-  padding-right: 44px;
+  padding-right: var(--size-touch);
 }
 
 .feedback-delete-x {
@@ -1298,7 +1300,7 @@ h1 {
 .feedback-delete-wide {
   width: 100%;
   min-height: 44px;
-  margin-top: 4px;
+  margin-top: var(--space-1);
   border: 1px solid var(--destructive);
   background: var(--surface);
   color: var(--destructive);
@@ -1316,7 +1318,7 @@ h1 {
 }
 
 .feedback-list .feedback-delete-confirm {
-  margin-top: 4px;
+  margin-top: var(--space-1);
 }
 
 .feedback-comment > .pin-dot {
@@ -1336,15 +1338,15 @@ h1 {
 
 .feedback-editor {
   display: grid;
-  gap: 12px;
-  padding-top: 16px;
+  gap: var(--space-3);
+  padding-top: var(--space-3);
   border-top: 1px solid var(--ink);
 }
 
 .feedback-editor textarea {
   min-height: 108px;
   resize: vertical;
-  padding: 10px;
+  padding: var(--space-2);
   font-size: 14px;
   line-height: 1.45;
   text-transform: none;
@@ -1353,7 +1355,7 @@ h1 {
 /* Tags: P0-P2 toggle chips first, then free-text tags, then the input. */
 .feedback-tags {
   display: grid;
-  gap: 5px;
+  gap: var(--space-1);
   min-width: 0;
   margin: 0;
   padding: 0;
@@ -1361,22 +1363,22 @@ h1 {
 }
 
 .feedback-tags legend {
-  padding: 0 0 5px;
+  padding: 0 0 var(--space-1);
 }
 
 .feedback-tag-row {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 6px;
+  gap: var(--space-2);
 }
 
 .tag-chip {
   display: inline-flex;
   align-items: center;
-  gap: 4px;
+  gap: var(--space-1);
   min-height: 28px;
-  padding: 0 8px;
+  padding: 0 var(--space-2);
   border: 1px solid var(--line-strong);
   background: var(--surface);
   color: var(--ink);
@@ -1430,7 +1432,7 @@ button.tag-chip:hover {
   width: 20px;
   height: 20px;
   place-items: center;
-  margin-right: -4px;
+  margin-right: calc(var(--space-1) * -1);
   padding: 0;
   border: 0;
   background: transparent;
@@ -1446,7 +1448,7 @@ button.tag-chip:hover {
   flex: 1 1 96px;
   min-width: 96px;
   min-height: 28px;
-  padding: 0 8px;
+  padding: 0 var(--space-2);
   border: 1px solid var(--line-strong);
   background: var(--surface);
   font-size: 13px;
@@ -1455,12 +1457,12 @@ button.tag-chip:hover {
 .feedback-comment-tags {
   display: flex;
   flex-wrap: wrap;
-  gap: 4px;
+  gap: var(--space-1);
 }
 
 .feedback-comment-tags .tag-chip {
   min-height: 20px;
-  padding: 0 6px;
+  padding: 0 var(--space-2);
   font-size: 11px;
 }
 
@@ -1468,7 +1470,7 @@ button.tag-chip:hover {
   display: grid;
   grid-column: 2;
   gap: 2px;
-  padding: 6px 8px;
+  padding: var(--space-2) var(--space-2);
   border-top: 1px solid var(--line);
   background: var(--surface-alt);
   color: var(--ink);
@@ -1493,7 +1495,7 @@ button.tag-chip:hover {
   display: flex;
   flex-wrap: wrap;
   grid-column: 2;
-  column-gap: 4px;
+  column-gap: var(--space-1);
   min-width: 0;
   color: var(--ink-muted);
   font-size: 12px;
@@ -1533,8 +1535,8 @@ button.tag-chip:hover {
 /* The status change a message made, beside its author and time. */
 .feedback-status-chip {
   display: inline-block;
-  margin-left: 6px;
-  padding: 0 5px;
+  margin-left: var(--space-2);
+  padding: 0 var(--space-1);
   border: 1px solid currentColor;
   font-size: 10px;
   line-height: 14px;
@@ -1562,7 +1564,7 @@ button.tag-chip:hover {
 
 .feedback-reply-compose {
   display: grid;
-  gap: 6px;
+  gap: var(--space-2);
 }
 
 .feedback-editor .feedback-reply-compose textarea {
@@ -1572,7 +1574,7 @@ button.tag-chip:hover {
 .feedback-reply-send {
   justify-self: end;
   min-height: 32px;
-  padding: 0 14px;
+  padding: 0 var(--space-3);
   border: 1px solid var(--ink);
   background: var(--surface);
   color: var(--ink);
@@ -1596,8 +1598,10 @@ button.tag-chip:hover {
 /* Verify / Reopen hang under a Fixed card, inside the same frame. */
 .feedback-verify {
   display: grid;
-  gap: 8px;
-  padding: 8px 12px 10px 54px;
+  gap: var(--space-2);
+  /* Lines up with the note: card padding, the 30px dot, the column gap. */
+  padding: var(--space-2) var(--space-3) var(--space-2)
+    calc(var(--space-3) + 30px + var(--space-2));
   border: 1px solid var(--line);
   border-top: 0;
   background: var(--surface);
@@ -1605,7 +1609,7 @@ button.tag-chip:hover {
 
 .feedback-verify label {
   display: grid;
-  gap: 5px;
+  gap: var(--space-1);
   color: var(--ink-muted);
   font-size: 11px;
   font-weight: 700;
@@ -1616,7 +1620,7 @@ button.tag-chip:hover {
 .feedback-verify textarea {
   width: 100%;
   min-height: 64px;
-  padding: 8px;
+  padding: var(--space-2);
   border: 1px solid var(--line-strong);
   color: var(--ink);
   font-size: 13px;
@@ -1629,12 +1633,12 @@ button.tag-chip:hover {
 
 .feedback-verify-buttons {
   display: flex;
-  gap: 8px;
+  gap: var(--space-2);
 }
 
 .feedback-verify-buttons button {
   min-height: 32px;
-  padding: 0 14px;
+  padding: 0 var(--space-3);
   border: 1px solid var(--ink);
   background: var(--surface);
   color: var(--ink);
@@ -1668,21 +1672,21 @@ button.tag-chip:hover {
 /* Status sections (Backlog, In progress, ...) each hold P0-P2 groups. */
 .feedback-section {
   display: grid;
-  gap: 10px;
+  gap: var(--space-2);
 }
 
 .feedback-section-title,
 .feedback-group-title {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--space-2);
   margin: 0;
   text-transform: uppercase;
 }
 
 .feedback-section-title {
   display: flex;
-  padding-bottom: 6px;
+  padding-bottom: var(--space-2);
   border-bottom: 1px solid var(--ink);
   font-size: 12px;
   letter-spacing: 0.12em;
@@ -1693,7 +1697,7 @@ button.tag-chip:hover {
   min-width: 0;
   flex: 1;
   align-items: center;
-  gap: 8px;
+  gap: var(--space-2);
   padding: 2px 0;
   border: 0;
   background: none;
@@ -1726,7 +1730,7 @@ button.tag-chip:hover {
 
 .feedback-section-body {
   display: grid;
-  gap: 10px;
+  gap: var(--space-2);
 }
 
 .feedback-section-pins[aria-pressed="true"] {
@@ -1741,7 +1745,7 @@ button.tag-chip:hover {
 
 .feedback-group {
   display: grid;
-  gap: 6px;
+  gap: var(--space-2);
 }
 
 .feedback-group-title {
@@ -1791,8 +1795,8 @@ button.tag-chip:hover {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 8px;
-  padding: 12px;
+  gap: var(--space-2);
+  padding: var(--space-3);
   border: 1px solid var(--destructive);
   background: var(--destructive-soft);
 }
@@ -1945,7 +1949,7 @@ button.tag-chip:hover {
   .screen-rail[data-mode="compact"],
   .screen-rail[data-mode="compact"][data-expanded="true"] {
     width: auto;
-    padding: 0 16px;
+    padding: 0 var(--space-3);
     border-right: 0;
     border-bottom: 1px solid var(--ink);
     box-shadow: none;
@@ -1974,15 +1978,15 @@ button.tag-chip:hover {
     margin-inline: 0;
     min-height: 56px;
     grid-template-columns: auto auto;
-    gap: 8px;
+    gap: var(--space-2);
     /* Room on the left for the badges that hang off the number. */
-    padding: 8px 16px 8px 36px;
+    padding: var(--space-2) var(--space-3) var(--space-2) var(--space-5);
     border-bottom: 0;
   }
 
   .screen-rail[data-mode="compact"] li button {
     grid-template-columns: auto auto;
-    padding-inline: 36px 16px;
+    padding-inline: var(--space-5) var(--space-3);
   }
 
   .screen-rail .screen-name,
@@ -2006,7 +2010,7 @@ button.tag-chip:hover {
   }
 
   .review-canvas {
-    padding: 0 16px 16px;
+    padding: 0 var(--space-3) var(--space-3);
   }
 
   .feedback-column {
@@ -2024,7 +2028,7 @@ button.tag-chip:hover {
   }
 
   .action-bar {
-    padding: 0 12px;
+    padding: 0 var(--space-3);
   }
 
   .action-bar-hint {
@@ -2043,7 +2047,9 @@ button.tag-chip:hover {
   }
 
   .fullscreen-canvas {
-    padding: 72px 44px var(--action-bar-height) 16px;
+    padding: calc(56px + var(--space-3))
+      calc(var(--size-touch) + var(--space-3)) var(--action-bar-height)
+      var(--space-3);
   }
 }
 
@@ -2064,7 +2070,7 @@ button.tag-chip:hover {
   /* No room for equal side columns; the centre takes what is left. */
   .action-bar {
     grid-template-columns: auto minmax(0, 1fr) auto;
-    gap: 8px;
+    gap: var(--space-2);
   }
 
   .action-bar-nav {
@@ -2072,15 +2078,15 @@ button.tag-chip:hover {
   }
 
   .action-bar-nav button {
-    padding: 0 6px;
+    padding: 0 var(--space-2);
   }
 
   .action-bar-end {
-    gap: 4px;
+    gap: var(--space-1);
   }
 
   .action-bar .action-bar-export {
-    padding: 0 8px;
+    padding: 0 var(--space-2);
   }
 
   .feedback-add-button kbd,
@@ -2108,9 +2114,9 @@ button.tag-chip:hover {
   min-height: 44px;
   align-items: center;
   justify-content: space-between;
-  gap: 16px;
+  gap: var(--space-3);
   margin: 0;
-  padding: 8px 24px;
+  padding: var(--space-2) var(--space-4);
   border-bottom: 1px solid var(--line);
   background: var(--surface-alt);
   color: var(--ink);
@@ -2125,7 +2131,7 @@ button.tag-chip:hover {
 .workbench-banner button,
 .no-projects button {
   min-height: 44px;
-  padding: 0 16px;
+  padding: 0 var(--space-3);
   border: 1px solid var(--ink);
   background: var(--surface);
   color: var(--ink);
@@ -2142,8 +2148,8 @@ button.tag-chip:hover {
   position: sticky;
   z-index: 2;
   bottom: var(--action-bar-height);
-  margin: auto -24px -24px;
-  padding: 12px 24px;
+  margin: auto calc(var(--space-4) * -1) calc(var(--space-4) * -1);
+  padding: var(--space-3) var(--space-4);
   border-top: 1px solid var(--ink);
   background: var(--surface-alt);
 }
@@ -2163,7 +2169,7 @@ button.tag-chip:hover {
   min-height: 44px;
   align-items: center;
   justify-content: center;
-  gap: 10px;
+  gap: var(--space-2);
   border: 1px solid var(--ink);
   border-radius: 0;
   background: var(--surface);
@@ -2221,7 +2227,7 @@ button.tag-chip:hover {
   display: flex;
   height: 44px;
   align-items: center;
-  gap: 8px;
+  gap: var(--space-2);
 }
 
 .screen-approval-confirm span {
@@ -2235,7 +2241,7 @@ button.tag-chip:hover {
 
 .screen-approval-confirm button {
   height: 44px;
-  padding: 0 10px;
+  padding: 0 var(--space-2);
   border: 1px solid var(--ink);
   background: var(--surface);
   color: var(--ink);
@@ -2258,7 +2264,7 @@ button.tag-chip:hover {
   top: 8px;
   left: 8px;
   z-index: 100;
-  padding: 6px 10px;
+  padding: var(--space-2) var(--space-2);
   background: var(--surface);
   color: inherit;
   transform: translateY(-200%);
@@ -2290,17 +2296,17 @@ button.tag-chip:hover {
 
 .no-projects {
   max-width: 640px;
-  padding: 32px 24px;
+  padding: var(--space-5) var(--space-4);
 }
 
 .no-projects h2 {
-  margin: 0 0 8px;
+  margin: 0 0 var(--space-2);
 }
 
 .no-projects pre {
   overflow-x: auto;
-  margin: 16px 0 8px;
-  padding: 12px;
+  margin: var(--space-3) 0 var(--space-2);
+  padding: var(--space-3);
   border: 1px solid var(--line);
   background: var(--surface-alt);
   font-size: 12px;
