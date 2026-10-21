@@ -341,3 +341,113 @@ describe("threads", () => {
     expect((await stored(open.id)).status).toBe("OPEN");
   });
 });
+
+describe("focus after actions (ux-7)", () => {
+  const note = () => screen.getByRole("textbox", { name: "Feedback note" });
+
+  it("moves focus into the editor after selecting a pin or a card", async () => {
+    render(<App />);
+    const pin = await screen.findByRole("button", {
+      name: "Pin 1: Header wraps.",
+    });
+    pin.focus();
+    fireEvent.click(pin);
+    await waitFor(() => expect(note()).toHaveFocus());
+
+    fireEvent.click(screen.getByRole("button", { name: "Collapse comment 1" }));
+    const card = await screen.findByText("Header wraps.", {
+      selector: ".feedback-comment strong",
+    });
+    await waitFor(() => expect(card.closest("button")).toHaveFocus());
+    fireEvent.click(card);
+    await waitFor(() => expect(note()).toHaveFocus());
+  });
+
+  it("collapsing a Fixed comment (hidden pin) focuses its card", async () => {
+    render(<App />);
+    const fixedSection = await screen.findByRole("region", { name: "Fixed" });
+    fireEvent.click(
+      within(fixedSection).getByText("Footer floats mid-page.", {
+        selector: ".feedback-comment strong",
+      }),
+    );
+    await waitFor(() => expect(note()).toHaveFocus());
+    fireEvent.click(screen.getByRole("button", { name: "Collapse comment 2" }));
+    await waitFor(() =>
+      expect(
+        within(fixedSection)
+          .getByText("Footer floats mid-page.", {
+            selector: ".feedback-comment strong",
+          })
+          .closest("button"),
+      ).toHaveFocus(),
+    );
+  });
+
+  it("Verify focuses the card in its new section", async () => {
+    render(<App />);
+    const fixedSection = await screen.findByRole("region", { name: "Fixed" });
+    const verify = within(fixedSection).getByRole("button", {
+      name: "Verify pin 2",
+    });
+    verify.focus();
+    fireEvent.click(verify);
+    const verified = await screen.findByRole("region", { name: "Verified" });
+    await waitFor(() =>
+      expect(
+        within(verified)
+          .getByText("Footer floats mid-page.", {
+            selector: ".feedback-comment strong",
+          })
+          .closest("button"),
+      ).toHaveFocus(),
+    );
+  });
+
+  it("Reply returns focus to the reply box", async () => {
+    render(<App />);
+    fireEvent.click(
+      await screen.findByText("Header wraps.", {
+        selector: ".feedback-comment strong",
+      }),
+    );
+    const reply = await screen.findByRole("textbox", { name: "Reply" });
+    fireEvent.change(reply, { target: { value: "Thanks." } });
+    const send = screen.getByRole("button", { name: "Reply" });
+    send.focus();
+    fireEvent.click(send);
+    await waitFor(() => expect(reply).toHaveValue(""));
+    await waitFor(() => expect(reply).toHaveFocus());
+  });
+
+  it("delete confirm focuses Keep, and Confirm delete moves to the next card", async () => {
+    render(<App />);
+    await screen.findByText("Header wraps.", {
+      selector: ".feedback-comment strong",
+    });
+    const x = screen.getByRole("button", { name: "Delete comment 1" });
+    x.focus();
+    fireEvent.click(x);
+    const keep = screen.getByRole("button", { name: "Keep" });
+    expect(keep).toHaveFocus();
+    fireEvent.click(keep);
+    await waitFor(() =>
+      expect(
+        screen.getByRole("button", { name: "Delete comment 1" }),
+      ).toHaveFocus(),
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "Delete comment 1" }));
+    fireEvent.click(screen.getByRole("button", { name: "Confirm delete" }));
+    await waitFor(() => expect(screen.queryByText("Header wraps.")).toBeNull());
+    await waitFor(() =>
+      expect(
+        screen
+          .getByText("Footer floats mid-page.", {
+            selector: ".feedback-comment strong",
+          })
+          .closest("button"),
+      ).toHaveFocus(),
+    );
+  });
+});

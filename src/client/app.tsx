@@ -1028,12 +1028,8 @@ export function App() {
                 data-testid="feedback-pin"
                 id={feedbackPinId(item.id)}
                 key={item.id}
-                onClick={() => {
-                  setSelectedFeedbackId(item.id);
-                  document
-                    .getElementById(`feedback-comment-${item.id}`)
-                    ?.focus();
-                }}
+                // The feedback panel moves focus into the opened editor.
+                onClick={() => setSelectedFeedbackId(item.id)}
                 style={{ left: `${item.x * 100}%`, top: `${item.y * 100}%` }}
                 type="button"
               >

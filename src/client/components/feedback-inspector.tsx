@@ -312,6 +312,46 @@ export function FeedbackInspector({
     text: string;
   } | null>(null);
   const [confirmingApproval, setConfirmingApproval] = useState(false);
+  const asideRef = useRef<HTMLElement>(null);
+  // Where focus should land once the DOM catches up after an action removes,
+  // moves or disables the focused control. It only applies while focus is
+  // lost (on <body>) or still on the control that asked, so it never steals
+  // focus the reviewer has moved on purpose.
+  const focusRequestRef = useRef<{
+    find: () => HTMLElement | null | undefined;
+    from: Element | null;
+  } | null>(null);
+  const applyFocusRequest = useCallback(() => {
+    const request = focusRequestRef.current;
+    if (!request) return;
+    const active = document.activeElement;
+    const lost =
+      !active ||
+      active === document.body ||
+      active === request.from ||
+      !active.isConnected;
+    if (!lost) {
+      focusRequestRef.current = null;
+      return;
+    }
+    const target = request.find();
+    if (target?.isConnected) {
+      focusRequestRef.current = null;
+      target.focus();
+    }
+  }, []);
+  const requestFocus = useCallback(
+    (find: () => HTMLElement | null | undefined) => {
+      focusRequestRef.current = { find, from: document.activeElement };
+      // Layout effects apply it after the next render; this catches the case
+      // where that render has already happened.
+      if (typeof requestAnimationFrame === "function") {
+        requestAnimationFrame(applyFocusRequest);
+      }
+    },
+    [applyFocusRequest],
+  );
+  useLayoutEffect(applyFocusRequest);
   const approvalToggleRef = useRef<HTMLButtonElement>(null);
   const refocusApprovalRef = useRef(false);
   // Closing the confirm unmounts the focused button; hand focus back to the
@@ -469,6 +509,31 @@ export function FeedbackInspector({
   useEffect(() => {
     if (selectedRecord) openStatus(selectedRecord.status);
   }, [selectedRecord?.id, selectedRecord?.status]);
+
+  // Selecting a comment (its pin or its card) opens the editor in place of
+  // the card, so move focus into it rather than leaving it on <body>.
+  const editingId = effectiveDraftPin
+    ? null
+    : (visibleSelectedRecord?.id ?? null);
+  const previousEditingIdRef = useRef<string | null>(null);
+  useLayoutEffect(() => {
+    const previous = previousEditingIdRef.current;
+    previousEditingIdRef.current = editingId;
+    if (!editingId || previous === editingId) return;
+    if (adoptedIdRef.current === editingId) return;
+    const active = document.activeElement;
+    const fromPinOrCard =
+      !active ||
+      active === document.body ||
+      !active.isConnected ||
+      (active instanceof HTMLElement &&
+        (active.classList.contains("feedback-pin") ||
+          active.classList.contains("feedback-comment")));
+    if (fromPinOrCard) {
+      editorSectionRef.current?.scrollIntoView?.({ block: "nearest" });
+      textareaRef.current?.focus({ preventScroll: true });
+    }
+  }, [editingId]);
 
   useLayoutEffect(() => {
     const previousDraftPin = previousDraftPinRef.current;
@@ -871,6 +936,12 @@ export function FeedbackInspector({
       latestRecordRef.current = updated;
       setReplyDraft("");
       setSaveMessage("Saved");
+      // The Reply button disables itself once the box is empty.
+      requestFocus(() =>
+        asideRef.current?.querySelector<HTMLElement>(
+          'textarea[aria-label="Reply"]',
+        ),
+      );
     } catch (error) {
       setSaveMessage(
         error instanceof Error
@@ -881,16 +952,37 @@ export function FeedbackInspector({
     }
   }
 
+  function sectionToggle(status: FeedbackStatus) {
+    return asideRef.current?.querySelector<HTMLElement>(
+      `.feedback-section.status-${status.toLowerCase()} .feedback-section-toggle`,
+    );
+  }
+
+  // The card for a comment, or its section heading when the section is
+  // collapsed, so focus follows a comment that moved.
+  function focusCard(id: string, status: FeedbackStatus) {
+    requestFocus(
+      () =>
+        document.getElementById(feedbackCommentId(id)) ??
+        sectionToggle(status) ??
+        asideRef.current,
+    );
+  }
+
   async function updateCard(
     item: FeedbackRecord,
     patch: UpdateFeedbackInput["patch"],
   ) {
     setCardMessage({ id: item.id, text: "Saving…" });
     try {
-      await onUpdate(item.id, { expectedUpdatedAt: item.updatedAt, patch });
+      const updated = await onUpdate(item.id, {
+        expectedUpdatedAt: item.updatedAt,
+        patch,
+      });
       setCardMessage(null);
       setReopeningId(null);
       setReopenDraft("");
+      focusCard(updated.id, updated.status);
     } catch (error) {
       setCardMessage({
         id: item.id,
@@ -947,6 +1039,11 @@ export function FeedbackInspector({
                 onClick={() => {
                   setReopeningId(null);
                   setCardMessage(null);
+                  requestFocus(() =>
+                    asideRef.current?.querySelector<HTMLElement>(
+                      `[aria-label="Reopen pin ${pin}"]`,
+                    ),
+                  );
                 }}
                 type="button"
               >
@@ -1032,12 +1129,28 @@ export function FeedbackInspector({
       cancelPendingSave();
     }
     setDeleteMessage("Deleting…");
+    // Focus moves to the next card (or the previous one) once this one goes.
+    const rows = [
+      ...(asideRef.current?.querySelectorAll<HTMLElement>(
+        ".feedback-list > li",
+      ) ?? []),
+    ];
+    const index = rows.findIndex((row) => row.contains(document.activeElement));
+    const neighbourId = [rows[index + 1], rows[index - 1]]
+      .map((row) => row?.querySelector<HTMLElement>(".feedback-comment")?.id)
+      .find(Boolean);
     try {
       await onDelete(record.id, record.updatedAt);
       writeRecovery(projectId, updateRecoveryKey(record.id), null);
       setConfirmingDeleteId(null);
       setDeleteMessage("");
       setSaveMessage("Deleted");
+      requestFocus(
+        () =>
+          (neighbourId ? document.getElementById(neighbourId) : null) ??
+          sectionToggle(record.status) ??
+          asideRef.current,
+      );
     } catch (error) {
       setDeleteMessage(
         error instanceof Error
@@ -1078,7 +1191,8 @@ export function FeedbackInspector({
     void flushPendingSave();
     setConfirmingDeleteId(null);
     onSelectFeedback(null);
-    document.getElementById(feedbackPinId(item.id))?.focus();
+    // The pin may be hidden (Fixed and Verified are by default); the card is not.
+    focusCard(item.id, item.status);
   }
 
   function collapseButton(item: FeedbackRecord) {
@@ -1135,7 +1249,19 @@ export function FeedbackInspector({
         >
           Confirm delete
         </button>
-        <button onClick={() => setConfirmingDeleteId(null)} type="button">
+        <button
+          // The safe choice takes focus, as in the approval confirm.
+          autoFocus
+          onClick={() => {
+            setConfirmingDeleteId(null);
+            requestFocus(() =>
+              asideRef.current?.querySelector<HTMLElement>(
+                `[aria-label="Delete comment ${pinNumbers.get(item.id) ?? 0}"]`,
+              ),
+            );
+          }}
+          type="button"
+        >
           Keep
         </button>
         {deleteMessage ? (
@@ -1165,10 +1291,7 @@ export function FeedbackInspector({
           aria-pressed={item.id === selectedFeedbackId}
           className={`feedback-comment status-${item.status.toLowerCase()}`}
           id={feedbackCommentId(item.id)}
-          onClick={() => {
-            onSelectFeedback(item.id);
-            document.getElementById(feedbackPinId(item.id))?.focus();
-          }}
+          onClick={() => onSelectFeedback(item.id)}
           type="button"
         >
           <span
@@ -1445,6 +1568,7 @@ export function FeedbackInspector({
       aria-label="Feedback inspector"
       className="feedback-panel"
       id="feedback-panel"
+      ref={asideRef}
       tabIndex={-1}
     >
       <header
