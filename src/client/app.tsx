@@ -92,15 +92,22 @@ function revisionName(revision: string) {
 }
 
 // Keeps a side column in view while the page scrolls. A column shorter than
-// the window sticks to the top; a taller one scrolls with the page until its
-// end is reached, so the page is the only scroll area.
+// the window keeps its foot on the action bar; a taller one scrolls with the
+// page until its end is reached, so the page is the only scroll area.
 function useFollowPage(ref: RefObject<HTMLElement | null>, gap = 0) {
   useEffect(() => {
     const element = ref.current;
     if (!element) return;
     const update = () => {
       const room = window.innerHeight - gap;
-      element.style.top = `${Math.min(0, room - element.offsetHeight)}px`;
+      element.style.top = `${room - element.offsetHeight}px`;
+      // Where the column starts on the page, so CSS can fill the first
+      // screenful exactly and seat the approval band on the action bar.
+      const column = element.parentElement;
+      if (column) {
+        const start = column.getBoundingClientRect().top + window.scrollY;
+        element.style.setProperty("--follow-start", `${Math.round(start)}px`);
+      }
     };
     update();
     const observer =

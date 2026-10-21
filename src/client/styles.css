@@ -2256,16 +2256,16 @@ button.tag-chip:hover {
   cursor: pointer;
 }
 
-/* Approval sits at the foot of the feedback pane and stays in view while the
-   pane scrolls, just above the fixed action bar. */
+/* Approval sits on the floor of the feedback pane, just above the fixed
+   action bar, when the list fits; a longer list pushes it below the last
+   card. It is never sticky, so it never covers a card's controls. */
 .feedback-column .feedback-panel {
-  min-height: calc(100vh - var(--action-bar-height));
+  min-height: calc(
+    100dvh - var(--action-bar-height) - var(--follow-start, 0px)
+  );
 }
 
 .screen-approval {
-  position: sticky;
-  z-index: 2;
-  bottom: var(--action-bar-height);
   margin: auto calc(var(--space-4) * -1) calc(var(--space-4) * -1);
   padding: var(--space-3) var(--space-4);
   border-top: 1px solid var(--ink);
@@ -2275,10 +2275,6 @@ button.tag-chip:hover {
 /* End the fullscreen pane at the action bar so the toggle sits on its floor. */
 .fullscreen-edge-feedback {
   bottom: var(--action-bar-height);
-}
-
-.fullscreen-edge-panel .screen-approval {
-  bottom: 0;
 }
 
 .screen-approval-toggle {

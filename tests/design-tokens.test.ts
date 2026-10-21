@@ -232,3 +232,10 @@ describe("colour roles", () => {
     }
   });
 });
+
+describe("panel layout", () => {
+  it("never floats the approval band over the list (ds-21)", () => {
+    expect(rules).not.toMatch(/\.screen-approval \{[^}]*position: sticky/);
+    expect(ruleBody(".screen-approval")).toMatch(/margin: auto/);
+  });
+});
