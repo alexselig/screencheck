@@ -12,10 +12,14 @@ body,
   margin: 0;
 }
 
+/* Type scale: 11px uppercase labels (0.12em), 13px meta, 15px body and
+   notes, 22px/28px display. 700 is for headings, buttons and the current
+   selection. Prose keeps the spec's 1.625 line height from the tokens. */
 body {
   background: var(--surface);
   color: var(--ink);
   font-family: var(--font-sans);
+  font-size: 15px;
 }
 
 button,
@@ -24,6 +28,7 @@ select,
 textarea {
   border-radius: 0;
   font: inherit;
+  line-height: 1.25;
 }
 
 /* Native arrows sit flush to the edge; draw one with room to breathe. */
@@ -81,7 +86,7 @@ h1 {
 }
 
 .eyebrow {
-  font-size: 12px;
+  font-size: 11px;
   font-weight: 700;
   letter-spacing: 0.12em;
   text-transform: uppercase;
@@ -92,9 +97,10 @@ h1 {
   padding: var(--space-1) var(--space-2);
   border: 1px solid var(--ink);
   border-radius: 999px;
-  font-size: 12px;
+  font-size: 11px;
   font-weight: 700;
   text-transform: uppercase;
+  letter-spacing: 0.12em;
 }
 
 /* Room for the fixed action bar, so nothing ends up hidden behind it. */
@@ -170,7 +176,7 @@ h1 {
   display: flex;
   align-items: center;
   gap: var(--space-2);
-  font-size: 12px;
+  font-size: 11px;
   font-weight: 700;
   letter-spacing: 0.12em;
   text-transform: uppercase;
@@ -181,7 +187,7 @@ h1 {
   border: 1px solid var(--ink);
   background-color: var(--surface);
   color: var(--ink);
-  font-size: 14px;
+  font-size: 13px;
   letter-spacing: 0;
   text-transform: none;
 }
@@ -345,7 +351,7 @@ h1 {
 .export-dialog h2 {
   margin: 0;
   font-family: var(--font-display);
-  font-size: 20px;
+  font-size: 22px;
   text-transform: uppercase;
 }
 
@@ -362,7 +368,7 @@ h1 {
   width: 100%;
   margin-bottom: var(--space-2);
   padding: 0;
-  font-size: 12px;
+  font-size: 11px;
   font-weight: 700;
   letter-spacing: 0.12em;
   text-transform: uppercase;
@@ -446,7 +452,7 @@ h1 {
   padding: 2px var(--space-2);
   border: 1px solid currentColor;
   font-family: var(--font-sans);
-  font-size: 12px;
+  font-size: 11px;
 }
 
 .screen-rail,
@@ -506,8 +512,8 @@ h1 {
   justify-content: center;
   gap: var(--space-2);
   padding: 0 var(--space-2);
-  min-width: 32px;
-  min-height: 32px;
+  min-width: 28px;
+  min-height: 28px;
   border: 0;
   background: transparent;
   color: var(--ink);
@@ -531,6 +537,8 @@ h1 {
   letter-spacing: 0.12em;
   text-overflow: ellipsis;
   white-space: nowrap;
+  font-weight: 700;
+  text-transform: uppercase;
 }
 
 /* Compact mode keeps section rules at full height so rows never move when the
@@ -566,9 +574,8 @@ h1 {
   .screen-version-tag {
   display: block;
   margin-top: var(--space-1);
-  font-size: 9px;
-  font-weight: 600;
-  letter-spacing: 0.02em;
+  font-size: 11px;
+  font-weight: 700;
   line-height: 1;
   text-align: center;
   opacity: 0.75;
@@ -644,7 +651,7 @@ h1 {
   display: block;
   min-width: 20px;
   font-family: var(--font-display);
-  font-size: 16px;
+  font-size: 15px;
   font-weight: 600;
   line-height: 1;
   text-align: center;
@@ -673,7 +680,7 @@ h1 {
   outline: 1.5px solid var(--surface);
   color: var(--ink);
   font-family: var(--font-sans);
-  font-size: 9px;
+  font-size: 11px;
   font-weight: 700;
   line-height: 1;
 }
@@ -694,7 +701,7 @@ h1 {
 
 .screen-name {
   overflow: hidden;
-  font-weight: 700;
+  font-weight: 500;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
@@ -720,15 +727,19 @@ h1 {
   padding: var(--space-1) 0;
   border: 0;
   background: transparent;
-  color: var(--bauhaus-blue);
+  color: var(--ink);
   font: inherit;
-  font-size: 12px;
-  font-weight: 600;
+  font-size: 11px;
+  font-weight: 700;
   text-align: left;
   cursor: pointer;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  text-underline-offset: 3px;
 }
 
-.rail-filter-button:hover {
+.rail-filter-button:hover,
+.rail-filter-button:focus-visible {
   text-decoration: underline;
 }
 
@@ -758,7 +769,7 @@ h1 {
 
 .canvas-header h2 {
   margin-top: var(--space-1);
-  font-size: 22px;
+  font-size: 28px;
 }
 
 .canvas-header-actions {
@@ -807,8 +818,8 @@ h1 {
   cursor: text;
   font: inherit;
   font-size: 15px;
-  font-weight: 600;
-  line-height: 1.4;
+  font-weight: 500;
+  line-height: 1.45;
   text-align: left;
 }
 
@@ -830,7 +841,7 @@ h1 {
 
 .screen-caption[data-empty="true"] .screen-caption-text {
   color: var(--ink-muted);
-  font-weight: 500;
+  font-weight: 400;
 }
 
 .screen-caption[data-editing="true"] {
@@ -848,8 +859,8 @@ h1 {
   field-sizing: content;
   font: inherit;
   font-size: 15px;
-  font-weight: 600;
-  line-height: 1.4;
+  font-weight: 500;
+  line-height: 1.45;
   resize: none;
 }
 
@@ -860,7 +871,7 @@ h1 {
 .screen-caption-hint {
   padding-right: var(--space-3);
   color: var(--ink-muted);
-  font-size: 12px;
+  font-size: 13px;
   white-space: nowrap;
 }
 
@@ -903,7 +914,7 @@ h1 {
   display: block;
   margin-top: var(--space-2);
   color: var(--ink-muted);
-  font-size: 12px;
+  font-size: 13px;
   font-variant-numeric: tabular-nums;
 }
 
@@ -922,10 +933,20 @@ h1 {
   cursor: pointer;
 }
 
-.icon-button::after,
-.rail-mode-button::after {
+/* Two control heights: 44px actions, 28px chips. Chips keep a 44px hit
+   area by extending past their visible box. */
+.icon-button::after {
   position: absolute;
   inset: -4px;
+  content: "";
+}
+
+.rail-mode-button::after,
+.rail-pin-button::after,
+.feedback-delete-x::after,
+.feedback-collapse::after {
+  position: absolute;
+  inset: -8px;
   content: "";
 }
 
@@ -1018,9 +1039,9 @@ h1 {
   border-right: 1px solid var(--ink);
   background: var(--bauhaus-blue);
   color: var(--on-blue);
-  font-size: 10px;
+  font-size: 11px;
   font-weight: 700;
-  letter-spacing: 0.08em;
+  letter-spacing: 0.12em;
   text-transform: uppercase;
   writing-mode: vertical-rl;
 }
@@ -1105,15 +1126,17 @@ h1 {
 }
 
 .feedback-inspector-header > strong {
-  font-size: 12px;
+  font-size: 11px;
   letter-spacing: 0.12em;
   text-transform: uppercase;
+  font-weight: 700;
 }
 
 .feedback-inspector-count {
-  color: var(--bauhaus-blue);
-  font-size: 12px;
-  font-weight: 700;
+  color: var(--ink-muted);
+  font-size: 13px;
+  font-weight: 400;
+  font-variant-numeric: tabular-nums;
 }
 
 .feedback-add-button,
@@ -1156,7 +1179,7 @@ h1 {
   padding: var(--space-3);
   border: 1px dashed var(--line-strong);
   background: var(--surface);
-  font-size: 14px;
+  font-size: 15px;
   line-height: 1.45;
 }
 
@@ -1167,13 +1190,17 @@ h1 {
   color: var(--ink-muted);
   font-size: 11px;
   font-weight: 700;
-  letter-spacing: 0.06em;
+  letter-spacing: 0.12em;
   text-transform: uppercase;
 }
 
 .feedback-editor select,
 .feedback-editor textarea {
   width: 100%;
+  font-size: 15px;
+  font-weight: 400;
+  letter-spacing: 0;
+  text-transform: none;
   border: 1px solid var(--line-strong);
   background-color: var(--surface);
   color: var(--ink);
@@ -1181,7 +1208,6 @@ h1 {
 
 .feedback-editor select {
   min-height: 44px;
-  font-size: 12px;
 }
 
 .feedback-editor-header {
@@ -1197,7 +1223,7 @@ h1 {
 .feedback-editor-moves {
   flex-basis: 100%;
   color: var(--ink-muted);
-  font-size: 11px;
+  font-size: 13px;
 }
 
 .feedback-editor-header .pin-dot {
@@ -1248,11 +1274,11 @@ h1 {
 
 .feedback-delete-x {
   position: absolute;
-  top: 4px;
-  right: 4px;
+  top: var(--space-2);
+  right: var(--space-2);
   display: grid;
-  width: 36px;
-  height: 36px;
+  width: 28px;
+  height: 28px;
   place-items: center;
   padding: 0;
   border: 0;
@@ -1274,11 +1300,11 @@ h1 {
 
 .feedback-collapse {
   position: absolute;
-  top: 4px;
-  right: 4px;
+  top: var(--space-2);
+  right: var(--space-2);
   display: grid;
-  width: 36px;
-  height: 36px;
+  width: 28px;
+  height: 28px;
   place-items: center;
   padding: 0;
   border: 0;
@@ -1334,6 +1360,8 @@ h1 {
   color: var(--ink-muted);
   font-size: 11px;
   text-transform: uppercase;
+  letter-spacing: 0.12em;
+  font-weight: 700;
 }
 
 .feedback-editor {
@@ -1343,11 +1371,15 @@ h1 {
   border-top: 1px solid var(--ink);
 }
 
+.feedback-editor textarea::placeholder,
+.feedback-verify textarea::placeholder {
+  color: var(--ink-muted);
+}
+
 .feedback-editor textarea {
   min-height: 108px;
   resize: vertical;
   padding: var(--space-2);
-  font-size: 14px;
   line-height: 1.45;
   text-transform: none;
 }
@@ -1382,9 +1414,9 @@ h1 {
   border: 1px solid var(--line-strong);
   background: var(--surface);
   color: var(--ink);
-  font-size: 12px;
+  font-size: 11px;
   font-weight: 700;
-  letter-spacing: 0.04em;
+  letter-spacing: 0.12em;
 }
 
 button.tag-chip {
@@ -1423,7 +1455,7 @@ button.tag-chip:hover {
 .tag-custom {
   border-color: var(--line);
   background: var(--surface-alt);
-  font-weight: 600;
+  font-weight: 500;
   letter-spacing: 0;
 }
 
@@ -1474,8 +1506,8 @@ button.tag-chip:hover {
   border-top: 1px solid var(--line);
   background: var(--surface-alt);
   color: var(--ink);
-  font-size: 12px;
-  line-height: 1.4;
+  font-size: 13px;
+  line-height: 1.45;
 }
 
 .feedback-editor .feedback-reply {
@@ -1485,8 +1517,8 @@ button.tag-chip:hover {
 .feedback-reply-meta {
   color: var(--ink-muted);
   font-size: 11px;
-  font-weight: 600;
-  letter-spacing: 0.04em;
+  font-weight: 700;
+  letter-spacing: 0.12em;
   text-transform: uppercase;
 }
 
@@ -1498,8 +1530,8 @@ button.tag-chip:hover {
   column-gap: var(--space-1);
   min-width: 0;
   color: var(--ink-muted);
-  font-size: 12px;
-  line-height: 1.35;
+  font-size: 13px;
+  line-height: 1.45;
   white-space: nowrap;
 }
 
@@ -1518,8 +1550,7 @@ button.tag-chip:hover {
 
 .feedback-element-source {
   flex: none;
-  font-weight: 600;
-  letter-spacing: 0.02em;
+  font-weight: 700;
 }
 
 .feedback-reply-note {
@@ -1538,9 +1569,10 @@ button.tag-chip:hover {
   margin-left: var(--space-2);
   padding: 0 var(--space-1);
   border: 1px solid currentColor;
-  font-size: 10px;
-  line-height: 14px;
-  letter-spacing: 0.06em;
+  font-size: 11px;
+  line-height: 16px;
+  letter-spacing: 0.12em;
+  font-weight: 700;
 }
 
 .feedback-status-chip.status-resolved {
@@ -1573,14 +1605,14 @@ button.tag-chip:hover {
 
 .feedback-reply-send {
   justify-self: end;
-  min-height: 32px;
+  min-height: var(--size-touch);
   padding: 0 var(--space-3);
   border: 1px solid var(--ink);
   background: var(--surface);
   color: var(--ink);
-  font-size: 12px;
+  font-size: 11px;
   font-weight: 700;
-  letter-spacing: 0.04em;
+  letter-spacing: 0.12em;
   text-transform: uppercase;
   cursor: pointer;
 }
@@ -1613,7 +1645,7 @@ button.tag-chip:hover {
   color: var(--ink-muted);
   font-size: 11px;
   font-weight: 700;
-  letter-spacing: 0.06em;
+  letter-spacing: 0.12em;
   text-transform: uppercase;
 }
 
@@ -1623,9 +1655,8 @@ button.tag-chip:hover {
   padding: var(--space-2);
   border: 1px solid var(--line-strong);
   color: var(--ink);
-  font-size: 13px;
+  font-size: 15px;
   font-weight: 400;
-  letter-spacing: 0;
   line-height: 1.45;
   text-transform: none;
   resize: vertical;
@@ -1637,14 +1668,14 @@ button.tag-chip:hover {
 }
 
 .feedback-verify-buttons button {
-  min-height: 32px;
+  min-height: var(--size-touch);
   padding: 0 var(--space-3);
   border: 1px solid var(--ink);
   background: var(--surface);
   color: var(--ink);
-  font-size: 12px;
+  font-size: 11px;
   font-weight: 700;
-  letter-spacing: 0.04em;
+  letter-spacing: 0.12em;
   text-transform: uppercase;
   cursor: pointer;
 }
@@ -1666,7 +1697,7 @@ button.tag-chip:hover {
 
 .feedback-verify-state {
   color: var(--ink-muted);
-  font-size: 12px;
+  font-size: 13px;
 }
 
 /* Status sections (Backlog, In progress, ...) each hold P0-P2 groups. */
@@ -1688,8 +1719,9 @@ button.tag-chip:hover {
   display: flex;
   padding-bottom: var(--space-2);
   border-bottom: 1px solid var(--ink);
-  font-size: 12px;
+  font-size: 11px;
   letter-spacing: 0.12em;
+  font-weight: 700;
 }
 
 .feedback-section-toggle {
@@ -1726,6 +1758,7 @@ button.tag-chip:hover {
   letter-spacing: 0.12em;
   text-transform: uppercase;
   cursor: pointer;
+  font-weight: 400;
 }
 
 .feedback-section-body {
@@ -1751,7 +1784,8 @@ button.tag-chip:hover {
 .feedback-group-title {
   color: var(--ink-muted);
   font-size: 11px;
-  letter-spacing: 0.08em;
+  letter-spacing: 0.12em;
+  font-weight: 700;
 }
 
 .feedback-group-title::before {
@@ -1772,7 +1806,7 @@ button.tag-chip:hover {
 .feedback-count {
   color: var(--ink-muted);
   font-size: 11px;
-  font-weight: 600;
+  font-weight: 400;
   font-variant-numeric: tabular-nums;
   letter-spacing: 0;
 }
@@ -1788,7 +1822,7 @@ button.tag-chip:hover {
   height: 18px;
   line-height: 18px;
   color: var(--ink-muted);
-  font-size: 12px;
+  font-size: 13px;
 }
 
 .feedback-delete-confirm {
@@ -1804,7 +1838,7 @@ button.tag-chip:hover {
 .feedback-delete-confirm span {
   flex-basis: 100%;
   color: var(--destructive);
-  font-weight: 600;
+  font-weight: 700;
 }
 
 .feedback-delete-confirm .feedback-delete-button {
@@ -1831,7 +1865,7 @@ button.tag-chip:hover {
   background: var(--bauhaus-orange);
   outline: 1px solid var(--ink);
   color: var(--ink);
-  font-size: 12px;
+  font-size: 13px;
   font-weight: 700;
   font-variant-numeric: tabular-nums;
   line-height: 1;
@@ -1873,7 +1907,7 @@ button.tag-chip:hover {
   border-radius: 50%;
   background: var(--surface);
   color: var(--success);
-  font-size: 9px;
+  font-size: 11px;
   font-weight: 700;
   line-height: 1;
 }
@@ -1903,7 +1937,7 @@ button.tag-chip:hover {
   background: var(--success);
   outline: 1px solid var(--success);
   color: var(--surface);
-  font-size: 9px;
+  font-size: 11px;
   font-weight: 700;
   line-height: 1;
 }
@@ -2175,9 +2209,9 @@ button.tag-chip:hover {
   background: var(--surface);
   color: var(--ink);
   font: inherit;
-  font-size: 13px;
-  font-weight: 600;
-  letter-spacing: 0.04em;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
   text-transform: uppercase;
   cursor: pointer;
 }
@@ -2218,7 +2252,7 @@ button.tag-chip:hover {
   height: 16px;
   place-items: center;
   border: 1px solid currentColor;
-  font-size: 12px;
+  font-size: 13px;
   line-height: 1;
 }
 
@@ -2234,8 +2268,8 @@ button.tag-chip:hover {
   flex: 1;
   min-width: 0;
   color: var(--ink);
-  font-size: 12px;
-  font-weight: 600;
+  font-size: 13px;
+  font-weight: 500;
   line-height: 1.25;
 }
 
@@ -2245,9 +2279,9 @@ button.tag-chip:hover {
   border: 1px solid var(--ink);
   background: var(--surface);
   color: var(--ink);
-  font-size: 12px;
+  font-size: 11px;
   font-weight: 700;
-  letter-spacing: 0.04em;
+  letter-spacing: 0.12em;
   text-transform: uppercase;
   cursor: pointer;
 }
@@ -2309,5 +2343,5 @@ button.tag-chip:hover {
   padding: var(--space-3);
   border: 1px solid var(--line);
   background: var(--surface-alt);
-  font-size: 12px;
+  font-size: 13px;
 }

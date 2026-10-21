@@ -88,3 +88,50 @@ describe("Bauhausian tokens", () => {
     expect(ruleBody(".screen-ordinal")).toMatch(/font-weight: 600;/);
   });
 });
+
+describe("type and control scale", () => {
+  it("keeps editor fields at body weight (ds-5)", () => {
+    expect(
+      ruleBody(".feedback-editor select,\n.feedback-editor textarea"),
+    ).toMatch(/font-weight: 400;/);
+    expect(rules).toMatch(
+      /\.feedback-editor textarea::placeholder[^{]*\{[^}]*color: var\(--ink-muted\);/,
+    );
+  });
+
+  it("uses four text sizes plus display (ds-6)", () => {
+    const sizes = new Set(
+      [...rules.matchAll(/font-size: (\d+)px;/g)].map((match) => match[1]),
+    );
+    expect([...sizes].sort()).toEqual(["11", "13", "15", "22", "28"]);
+    // Uppercase labels share one tracking.
+    for (const match of rules.matchAll(/\{([^}]*)\}/g)) {
+      const body = match[1]!;
+      const spacing = body.match(/letter-spacing: ([^;]+);/)?.[1];
+      if (body.includes("text-transform: uppercase") && spacing) {
+        expect(["0.12em", "inherit"]).toContain(spacing);
+      }
+    }
+    // 600 is kept only for the rail numerals (ds-35).
+    expect(rules.match(/font-weight: 600;/g)).toHaveLength(1);
+    expect(ruleBody(".screen-ordinal")).toMatch(/font-weight: 600;/);
+  });
+
+  it("keeps passive counts and filters out of action blue (ds-19)", () => {
+    expect(ruleBody(".feedback-inspector-count")).toMatch(
+      /color: var\(--ink-muted\);/,
+    );
+    expect(ruleBody(".rail-filter-button")).not.toMatch(/bauhaus-blue/);
+  });
+
+  it("uses two control heights (ds-22)", () => {
+    for (const selector of [
+      ".feedback-reply-send",
+      ".feedback-verify-buttons button",
+    ]) {
+      expect(ruleBody(selector)).toMatch(/min-height: var\(--size-touch\);/);
+    }
+    expect(ruleBody(".feedback-delete-x")).toMatch(/height: 28px;/);
+    expect(ruleBody(".feedback-collapse")).toMatch(/height: 28px;/);
+  });
+});
