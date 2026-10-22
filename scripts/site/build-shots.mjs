@@ -145,11 +145,12 @@ async function seed() {
     }
   }
   for (const screenId of APPROVED) {
-    await api("PUT", "/approvals", {
-      version: VERSION,
-      screenId,
-      approved: true,
-    });
+    await api(
+      "PUT",
+      "/approvals",
+      { version: VERSION, screenId, approved: true },
+      { "x-screencheck-actor": "reviewer" },
+    );
   }
 }
 
