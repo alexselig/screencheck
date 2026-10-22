@@ -4,6 +4,29 @@ import type { ReviewScreen } from "../../shared/manifest";
 
 export type RailMode = "wide" | "compact";
 
+// On a tablet-width window the rail starts as numbers so the capture gets
+// the room; it still expands on hover.
+export const TABLET_QUERY = "(min-width: 901px) and (max-width: 1200px)";
+
+// The phone/tablet strip centres the current screen, so the screens either
+// side of it stay in view.
+export function centeredScrollLeft(
+  left: number,
+  width: number,
+  viewport: number,
+  scrollWidth: number,
+) {
+  const centred = left + width / 2 - viewport / 2;
+  return Math.round(Math.min(Math.max(0, centred), scrollWidth - viewport));
+}
+
+export function defaultRailMode(): RailMode {
+  return typeof window.matchMedia === "function" &&
+    window.matchMedia(TABLET_QUERY).matches
+    ? "compact"
+    : "wide";
+}
+
 const HIDE_APPROVED_KEY = "screencheck:hide-approved-screens";
 
 export function readHideApproved() {
@@ -105,7 +128,6 @@ export function ScreenRail({
   }
   const expanded = mode === "wide" || temporaryExpanded || pinned;
   let previousGroup = "";
-  let groupIndex = -1;
   const navRef = useRef<HTMLElement>(null);
 
   // Keep the current screen visible in the list without moving the page.
@@ -114,22 +136,34 @@ export function ScreenRail({
     const current = nav?.querySelector<HTMLElement>('[aria-current="page"]');
     if (!nav || !current) return;
     const strip = current.closest("ol");
-    if (strip && strip.scrollWidth > strip.clientWidth) {
-      const left = current.offsetLeft - strip.offsetLeft;
-      if (
-        left < strip.scrollLeft ||
-        left + current.offsetWidth > strip.scrollLeft + strip.clientWidth
-      ) {
-        strip.scrollLeft = Math.max(0, left - 16);
+    let stripObserver: ResizeObserver | undefined;
+    if (strip) {
+      const centre = () => {
+        if (strip.scrollWidth <= strip.clientWidth) return;
+        const box = current.getBoundingClientRect();
+        strip.scrollLeft = centeredScrollLeft(
+          box.left - strip.getBoundingClientRect().left + strip.scrollLeft,
+          box.width,
+          strip.clientWidth,
+          strip.scrollWidth,
+        );
+      };
+      centre();
+      // Counts and fonts arrive after the first paint and widen the items.
+      if (typeof ResizeObserver === "function") {
+        stripObserver = new ResizeObserver(centre);
+        for (const item of strip.children) stripObserver.observe(item);
       }
     }
-    if (nav.scrollHeight <= nav.clientHeight) return;
+    const stop = () => stripObserver?.disconnect();
+    if (nav.scrollHeight <= nav.clientHeight) return stop;
     const top = current.offsetTop - nav.offsetTop;
     if (top < nav.scrollTop + 48) {
       nav.scrollTop = Math.max(0, top - 96);
     } else if (top + current.offsetHeight > nav.scrollTop + nav.clientHeight) {
       nav.scrollTop = top + current.offsetHeight - nav.clientHeight + 48;
     }
+    return stop;
   }, [selectedId]);
 
   // When a screen button has focus, keep focus on the current screen so the
@@ -185,73 +219,97 @@ export function ScreenRail({
       onMouseEnter={() => mode === "compact" && setTemporaryExpanded(true)}
       onMouseLeave={() => !pinned && setTemporaryExpanded(false)}
     >
-      <div className="rail-toolbar">
-        {expanded ? <h2 className="rail-title">Screen index</h2> : null}
-        {mode === "compact" && expanded ? (
+      <div className="rail-head">
+        <div className="rail-toolbar">
+          {expanded ? <h2 className="rail-title">Screen index</h2> : null}
+          {mode === "compact" && expanded ? (
+            <button
+              aria-label="Keep open"
+              aria-pressed={pinned}
+              className="rail-pin-button"
+              onClick={() => setPinned((value) => !value)}
+              title={pinned ? "Let the index collapse" : "Keep the index open"}
+              type="button"
+            >
+              {/* A thumbtack; "pin" already names feedback markers. */}
+              <svg
+                aria-hidden="true"
+                height="16"
+                viewBox="0 0 16 16"
+                width="16"
+              >
+                <path
+                  d="M6 2h4M7 2v4L4.5 9h7L9 6V2M8 9v5"
+                  fill={pinned ? "currentColor" : "none"}
+                  stroke="currentColor"
+                  strokeLinejoin="round"
+                  strokeWidth="1.5"
+                />
+              </svg>
+            </button>
+          ) : null}
+          {onModeChange ? (
+            <button
+              aria-label={
+                mode === "wide"
+                  ? "Collapse screen index"
+                  : "Expand screen index"
+              }
+              aria-expanded={mode === "wide"}
+              className="rail-mode-button"
+              title={
+                mode === "wide" ? "Collapse to numbers" : "Expand screen index"
+              }
+              onClick={() => {
+                setPinned(false);
+                setTemporaryExpanded(false);
+                onModeChange(mode === "wide" ? "compact" : "wide");
+              }}
+              type="button"
+            >
+              <svg
+                aria-hidden="true"
+                height="16"
+                viewBox="0 0 16 16"
+                width="16"
+              >
+                <path
+                  d={
+                    mode === "wide"
+                      ? "M9 3 4 8l5 5M13 3 8 8l5 5"
+                      : "M3 3l5 5-5 5M7 3l5 5-5 5"
+                  }
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="1.75"
+                />
+              </svg>
+            </button>
+          ) : null}
+        </div>
+        {approvedCount > 0 ? (
           <button
-            aria-pressed={pinned}
-            className="rail-pin-button"
-            onClick={() => setPinned((value) => !value)}
+            aria-pressed={hideApproved}
+            className="rail-filter-button"
+            onClick={toggleHideApproved}
             type="button"
           >
-            {pinned ? "Unpin" : "Pin"}
-          </button>
-        ) : null}
-        {onModeChange ? (
-          <button
-            aria-label={
-              mode === "wide" ? "Collapse screen index" : "Expand screen index"
-            }
-            aria-expanded={mode === "wide"}
-            className="rail-mode-button"
-            title={
-              mode === "wide" ? "Collapse to numbers" : "Expand screen index"
-            }
-            onClick={() => {
-              setPinned(false);
-              setTemporaryExpanded(false);
-              onModeChange(mode === "wide" ? "compact" : "wide");
-            }}
-            type="button"
-          >
-            <svg aria-hidden="true" height="16" viewBox="0 0 16 16" width="16">
-              <path
-                d={
-                  mode === "wide"
-                    ? "M9 3 4 8l5 5M13 3 8 8l5 5"
-                    : "M3 3l5 5-5 5M7 3l5 5-5 5"
-                }
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="1.75"
-              />
-            </svg>
+            {hideApproved
+              ? `Show approved screens (${approvedCount})`
+              : "Hide approved screens"}
           </button>
         ) : null}
       </div>
-      {approvedCount > 0 ? (
-        <button
-          aria-pressed={hideApproved}
-          className="rail-filter-button"
-          onClick={toggleHideApproved}
-          type="button"
-        >
-          {hideApproved
-            ? `Show approved screens (${approvedCount})`
-            : "Hide approved screens"}
-        </button>
-      ) : null}
       <ol onKeyDown={onListKeyDown}>
         {visibleScreens.map((screen, index) => {
           const showGroup = screen.group !== previousGroup;
-          if (showGroup) groupIndex += 1;
           previousGroup = screen.group;
           const approved = approvedIds?.has(screen.id) ?? false;
           const openCount = openCounts?.get(screen.id) ?? 0;
           return (
             <li key={screen.id}>
               {showGroup ? (
-                <h3 data-tone={groupIndex % 4} title={screen.group}>
+                <h3 title={screen.group}>
                   <span className="group-full">{screen.group}</span>
                   <span aria-hidden="true" className="group-short">
                     {groupAbbreviation(screen.group)}
@@ -265,10 +323,11 @@ export function ScreenRail({
                 tabIndex={
                   screen.id === rovingId || (!rovingId && index === 0) ? 0 : -1
                 }
-                aria-label={`${String(screen.ordinal).padStart(2, "0")}. ${screen.title}${approved ? " (approved)" : ""}${openCount ? `, ${openCount} open` : ""}`}
+                aria-label={`${String(screen.ordinal).padStart(2, "0")}. ${screen.title}${screen.versionLabel ? ` · ${screen.versionLabel}` : ""}${approved ? " (approved)" : ""}${openCount ? `, ${openCount} open` : ""}`}
                 onClick={() => onSelect(screen.id)}
                 title={[
                   screen.title,
+                  screen.versionLabel ?? "",
                   approved ? "Approved" : "",
                   openCount ? `${openCount} open` : "",
                 ]
@@ -307,6 +366,11 @@ export function ScreenRail({
                   ) : null}
                 </span>
                 <span className="screen-name">{screen.title}</span>
+                {screen.versionLabel ? (
+                  <span aria-hidden="true" className="screen-version">
+                    {versionTag(screen.versionLabel)}
+                  </span>
+                ) : null}
               </button>
             </li>
           );

@@ -1,0 +1,91 @@
+/* ==================================================================
+   Bauhausian design tokens
+   Flat functional grids, geometric type, square controls, blue action, orange framing.
+   Generated from Bauhausian/Bauhausian-Design.md. Edit that file, not this one.
+   ================================================================== */
+
+:root {
+  --surface: #ffffff;
+  --surface-alt: #f5f3ee;
+  --surface-hover: #fbfaf7;
+  --line: #e3e5e9;
+  --line-strong: #7d828b;
+  --ink: #141414;
+  --ink-muted: #5b5f66;
+  --bauhaus-orange: #ed6c47;
+  --on-orange: #141414;
+  --orange-soft: #fff3ed;
+  --orange-text: #b4410b;
+  --bauhaus-blue: #1b6fa8;
+  --on-blue: #ffffff;
+  --blue-soft: #edf1ff;
+  --blue-line: #cfd8fb;
+  --bauhaus-yellow: #f2b33d;
+  --on-yellow: #141414;
+  --success: #17634d;
+  --success-soft: #eaf5f0;
+  --warning: #9a4b18;
+  --warning-soft: #fff0e5;
+  --destructive: #b42318;
+  --destructive-soft: #fff0ee;
+
+  /* Radius — square controls; pill state; semantic circles */
+  --radius-none: 0;
+  --radius-pill: 999px;
+  --radius-circle: 50%;
+
+  /* Spacing — 4px base */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 16px;
+  --space-4: 24px;
+  --space-5: 32px;
+  --space-6: 48px;
+  --space-7: 96px;
+  --space-8: 144px;
+
+  /* Shadows — inset state plus one bounded illustrative exception */
+  --shadow-none: none;
+  --shadow-active-inset: inset 0 -4px var(--bauhaus-blue);
+  --shadow-illustrative-offset: 7px 7px 0 var(--ink);
+
+  /* Motion — local and structural durations */
+  --fast: 160ms;
+  --standard: 320ms;
+
+  /* Sizing — interaction and persistent shell dimensions */
+  --size-touch: 44px;
+  --size-evidence-sheet: 540px;
+  --size-footer: 65px;
+
+  /* Type */
+  --font-display: "League Spartan", Futura, "Avenir Next", system-ui, sans-serif;
+  --font-sans: Figtree, "Avenir Next", system-ui, sans-serif;
+}
+
+body {
+  margin: 0;
+  background: var(--surface);
+  color: var(--ink);
+  font-family: var(--font-sans);
+  font-size: 16px;
+  line-height: 1.625;
+  -webkit-font-smoothing: antialiased;
+}
+
+button, input, select, textarea {
+  border-radius: var(--radius-none);
+  font-family: inherit;
+}
+
+.pill { border-radius: var(--radius-pill); }
+.avatar, .semantic-circle { border-radius: var(--radius-circle); }
+
+:focus-visible {
+  outline: 2px solid var(--bauhaus-blue);
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { transition: none !important; animation: none !important; }
+}

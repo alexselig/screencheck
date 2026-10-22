@@ -99,12 +99,19 @@ through each feature, from dropping a pin to an agent replying over MCP.
 
 ## Current implementation
 
-- Wide and compact numbered navigation with hover/focus expansion and pinning.
+- Wide and compact numbered navigation with hover/focus expansion and a
+  **Keep open** toggle. Between 901 and 1200px the index opens compact to give
+  the capture room. Its title, collapse control and filter stay in view while
+  the list scrolls.
 - Fullscreen review: a slim numbered screen strip on the left that expands to
-  names on hover, and a feedback edge panel on the right.
+  names on hover (the chevron in its corner keeps it expanded), and a feedback
+  handle on the right that shows the screen's open count.
 - Stable screen manifests, registered from local JSON files.
 - Screen pins placed on an aspect-locked screen frame, so they stay put at any
   window size. Each comment card leads with the same numbered dot as its pin.
+  Pins scale with the capture (20 to 30px) and keep a 44px target. While
+  adding, the frame gets a blue outline and a strip above it names the pin the
+  click will place.
 - Free-text tags with suggested P0/P1/P2 priorities (one at a time; new pins
   default to P1), a status of Backlog, In progress, Fixed, Verified or
   Won't fix, autosaved notes and two-step delete. Fixed pins turn teal with a
@@ -133,7 +140,10 @@ through each feature, from dropping a pin to an agent replying over MCP.
   retagging or a status change; it moves to its new group when collapsed.
   A new comment always starts in Backlog and keeps the compact create form
   through its first autosave, so the editor never grows under your cursor;
-  the status picker appears once you reopen it.
+  the status picker appears once you reopen it. **Save pin** commits a new
+  comment; **Cancel** discards one that has no note yet.
+  A screen with no feedback offers **Add feedback** in the panel, with how
+  many comments are open elsewhere and a link to the next screen that has some.
   A note edit is saved to the comment it was typed in, even when you switch
   comment, pin or screen before the autosave fires. If a save or status
   change fails, the status picker shows the saved status again and a
@@ -141,16 +151,16 @@ through each feature, from dropping a pin to an agent replying over MCP.
   Each status section has a **Hide pins / Show pins** switch on its right;
   Fixed and Verified pins are hidden by default and the choice is remembered
   per browser.
-- **Approve screen** is pinned to the foot of the feedback panel. One click
+- **Approve screen** sits at the foot of the feedback panel. One click
   approves the screen (teal, "Screen approved"); click again to unapprove.
   If the screen still has Fixed comments nobody has verified, the click asks
-  first ("1 fix not verified. Approve anyway?").
+  first ("1 fix not verified. Approve anyway?"). An approved screen shows an
+  **Approved · date** pill beside its title.
   Approvals are saved per version and screen in `approvals.json`. Approved
-  screens carry a teal check left of their number in the screen index, expanded,
+  screens carry a teal check beside their number in the screen index, expanded,
   collapsed and fullscreen. The open-comment count is a matching orange badge
-  in the same spot. Numbers stay dead center; badges hang off their left edge,
-  and a screen that is approved and still has open comments stacks the check
-  above the count so both fit the collapsed rail.
+  beside it; a screen that is approved and still has open comments shows both
+  side by side.
 - **Hide approved screens**, a text button at the top of the screen index,
   drops approved screens from the list (the current screen always stays) so
   only what's left to review remains. ↑ / ↓, ← / → and Prev / Next all skip
@@ -164,8 +174,12 @@ through each feature, from dropping a pin to an agent replying over MCP.
   becomes P0/P1/P2, the category becomes a tag, and a single `reply` becomes
   the first message of the thread. Files are written with `schemaVersion: 2`;
   a file without it is read as version 1 and only rewritten on the next change.
-- Responsive layout: at 900px and below, screens become a numbered strip and
-  the feedback panel stacks under the canvas.
+- Responsive layout: at 900px and below, screens become a numbered strip,
+  centred on the current screen, and the feedback panel stacks under the
+  canvas. At 480px and below the header wraps, feedback becomes a bottom sheet
+  opened from **Feedback N**, Prev/Next become arrows around the screen
+  counter, Add feedback becomes **+**, and Export and fullscreen move to a
+  **More** menu.
 - Real captures: registered projects are read from
   `~/.screencheck/projects/*.json` (override with
   `SCREENCHECK_PROJECTS`) and each screen's capture is shown at full width.

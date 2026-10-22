@@ -356,7 +356,7 @@ describe("focus after actions (ux-7)", () => {
 
     fireEvent.click(screen.getByRole("button", { name: "Collapse comment 1" }));
     const card = await screen.findByText("Header wraps.", {
-      selector: ".feedback-comment strong",
+      selector: ".feedback-comment-note",
     });
     await waitFor(() => expect(card.closest("button")).toHaveFocus());
     fireEvent.click(card);
@@ -368,7 +368,7 @@ describe("focus after actions (ux-7)", () => {
     const fixedSection = await screen.findByRole("region", { name: "Fixed" });
     fireEvent.click(
       within(fixedSection).getByText("Footer floats mid-page.", {
-        selector: ".feedback-comment strong",
+        selector: ".feedback-comment-note",
       }),
     );
     await waitFor(() => expect(note()).toHaveFocus());
@@ -377,7 +377,7 @@ describe("focus after actions (ux-7)", () => {
       expect(
         within(fixedSection)
           .getByText("Footer floats mid-page.", {
-            selector: ".feedback-comment strong",
+            selector: ".feedback-comment-note",
           })
           .closest("button"),
       ).toHaveFocus(),
@@ -397,7 +397,7 @@ describe("focus after actions (ux-7)", () => {
       expect(
         within(verified)
           .getByText("Footer floats mid-page.", {
-            selector: ".feedback-comment strong",
+            selector: ".feedback-comment-note",
           })
           .closest("button"),
       ).toHaveFocus(),
@@ -408,7 +408,7 @@ describe("focus after actions (ux-7)", () => {
     render(<App />);
     fireEvent.click(
       await screen.findByText("Header wraps.", {
-        selector: ".feedback-comment strong",
+        selector: ".feedback-comment-note",
       }),
     );
     const reply = await screen.findByRole("textbox", { name: "Reply" });
@@ -423,7 +423,7 @@ describe("focus after actions (ux-7)", () => {
   it("delete confirm focuses Keep, and Confirm delete moves to the next card", async () => {
     render(<App />);
     await screen.findByText("Header wraps.", {
-      selector: ".feedback-comment strong",
+      selector: ".feedback-comment-note",
     });
     const x = screen.getByRole("button", { name: "Delete comment 1" });
     x.focus();
@@ -444,7 +444,7 @@ describe("focus after actions (ux-7)", () => {
       expect(
         screen
           .getByText("Footer floats mid-page.", {
-            selector: ".feedback-comment strong",
+            selector: ".feedback-comment-note",
           })
           .closest("button"),
       ).toHaveFocus(),

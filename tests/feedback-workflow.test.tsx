@@ -109,7 +109,7 @@ describe("feedback workflow integration", () => {
     expect(list.querySelectorAll(".feedback-list > li")).toHaveLength(1);
     expect(
       screen.queryByText("Only once.", {
-        selector: ".feedback-comment strong",
+        selector: ".feedback-comment-note",
       }),
     ).toBeNull();
     expect(
@@ -129,13 +129,15 @@ describe("feedback workflow integration", () => {
 
     fireEvent.click(add);
     expect(add).toHaveAttribute("aria-pressed", "true");
-    expect(
-      screen.getByText(/Click the screen to place a pin/),
-    ).toBeInTheDocument();
+    const hint = screen.getByText(/Click the screen to place pin 1\b/);
+    expect(hint).toHaveTextContent(/Esc to cancel/);
+    // ds-16: the hint sits on the canvas, right above the frame.
+    expect(screen.getByTestId("canvas")).toContainElement(hint);
+    expect(hint.nextElementSibling).toBe(screen.getByTestId("screen-frame"));
 
     fireEvent.keyDown(window, { key: "Escape" });
     expect(add).toHaveAttribute("aria-pressed", "false");
-    expect(screen.queryByText(/Click the screen to place a pin/)).toBeNull();
+    expect(screen.queryByText(/Click the screen to place pin/)).toBeNull();
   });
 
   it("shows a load error with retry instead of an empty review", async () => {
@@ -201,5 +203,39 @@ describe("legacy browser feedback migration", () => {
     expect(await screen.findByRole("alert")).toHaveTextContent(/1 older/);
     expect(localStorage.getItem(key)).not.toBeNull();
     expect(await api.storage.listFeedback("example")).toHaveLength(1);
+  });
+
+  it("saves a new pin explicitly and closes its editor (ds-31)", async () => {
+    render(<App />);
+    await waitFor(() =>
+      expect(
+        screen.getByRole("button", { name: "Add feedback" }),
+      ).toBeEnabled(),
+    );
+    fireEvent.click(screen.getByRole("button", { name: "Add feedback" }));
+    const frame = screen.getByTestId("screen-frame");
+    fakeRect(frame);
+    fireEvent.click(frame, { clientX: 500, clientY: 350 });
+
+    const save = screen.getByRole("button", { name: "Save pin" });
+    expect(save).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Cancel" })).toBeEnabled();
+    fireEvent.change(screen.getByRole("textbox", { name: "Feedback note" }), {
+      target: { value: "Saved on purpose." },
+    });
+    expect(save).toBeEnabled();
+    fireEvent.click(save);
+
+    await waitFor(() =>
+      expect(
+        screen.queryByRole("region", { name: "Feedback editor" }),
+      ).toBeNull(),
+    );
+    expect(await screen.findByTestId("feedback-pin")).toBeInTheDocument();
+    expect(
+      screen.getByText("Saved on purpose.", {
+        selector: ".feedback-comment-note",
+      }),
+    ).toBeInTheDocument();
   });
 });

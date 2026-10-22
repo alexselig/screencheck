@@ -88,7 +88,7 @@ describe("typing feedback keeps the same input", () => {
     fireEvent.click(screen.getByRole("button", { name: /^Collapse comment/ }));
     fireEvent.click(
       await screen.findByText("Retag me", {
-        selector: ".feedback-comment strong",
+        selector: ".feedback-comment-note",
       }),
     );
     const reopened = await screen.findByRole("textbox", {
@@ -119,7 +119,7 @@ describe("typing feedback keeps the same input", () => {
 
     fireEvent.click(screen.getByRole("button", { name: /^Collapse comment/ }));
     const card = await screen.findByText("Retag me", {
-      selector: ".feedback-comment strong",
+      selector: ".feedback-comment-note",
     });
     expect(card.closest("[role=group]")).toHaveAttribute(
       "aria-label",

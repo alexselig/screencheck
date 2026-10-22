@@ -126,4 +126,16 @@ describe("approve screen toggle", () => {
       expect(screen.queryByText(/Approval was not saved/)).toBeNull(),
     );
   });
+
+  it("shows the approval on the canvas header (ds-29)", async () => {
+    render(<App />);
+    const button = await approveButton();
+    const header = document.querySelector(".canvas-header")!;
+    expect(header.querySelector(".canvas-approved")).toBeNull();
+    fireEvent.click(button);
+    const pill = header.querySelector(".canvas-approved")!;
+    expect(pill).toHaveTextContent(/^Approved · [A-Z][a-z]{2} \d{1,2}$/);
+    fireEvent.click(button);
+    expect(header.querySelector(".canvas-approved")).toBeNull();
+  });
 });

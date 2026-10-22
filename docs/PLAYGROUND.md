@@ -63,11 +63,11 @@ right), which opens on the newer build-42.
 
 5. **Drop a pin.** Go to **09 Settings**, press **⌘F** (or click **Add
    feedback**), then click the **Save changes** button on the capture.
-   - Type a note. It saves as you type; there's no Save button.
+   - Type a note. It saves as you type; **Save pin** closes the editor.
    - Click **P0**, type `Layout` in Add tag and press Enter.
    - The card shows an element line, `↳ span "Save changes"`. That's the
      element under your click, taken from the capture's element map.
-   - **Cancel pin** removes a pin you haven't written anything on.
+   - **Cancel** removes a pin you haven't written anything on.
 6. **Reply thread.** Go to **03 Choose route** and open pin 1 under Fixed. You'll
    see the agent's reply, your follow-up and the agent's second fix. Add a
    reply in the Reply box.

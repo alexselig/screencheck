@@ -25,6 +25,8 @@ import {
   visibleRailScreens,
   writeHideApproved,
   type RailMode,
+  TABLET_QUERY,
+  defaultRailMode,
 } from "./components/screen-rail";
 import { isApproved, type ScreenApproval } from "../shared/approvals";
 import { captionFor, type ScreenCaption as Caption } from "../shared/captions";
@@ -82,6 +84,9 @@ function clampUnit(value: number) {
   return Math.min(1, Math.max(0, Math.round(value * 1000) / 1000));
 }
 
+// --action-bar-height, the spec footer size (--size-footer).
+const ACTION_BAR_HEIGHT = 65;
+
 const CLOSED_DRAWER: FullscreenDrawer = { open: false, pinned: false };
 
 function revisionName(revision: string) {
@@ -89,15 +94,42 @@ function revisionName(revision: string) {
 }
 
 // Keeps a side column in view while the page scrolls. A column shorter than
-// the window sticks to the top; a taller one scrolls with the page until its
-// end is reached, so the page is the only scroll area.
+// the window keeps its foot on the action bar; a taller one scrolls with the
+// page until its end is reached, so the page is the only scroll area.
+// Phones get one task at a time: feedback is a sheet, extras live in a menu.
+export const PHONE_QUERY = "(max-width: 480px)";
+
+function useMediaQuery(query: string) {
+  const [matches, setMatches] = useState(
+    () =>
+      typeof window.matchMedia === "function" &&
+      window.matchMedia(query).matches,
+  );
+  useEffect(() => {
+    if (typeof window.matchMedia !== "function") return;
+    const list = window.matchMedia(query);
+    const follow = () => setMatches(list.matches);
+    follow();
+    list.addEventListener("change", follow);
+    return () => list.removeEventListener("change", follow);
+  }, [query]);
+  return matches;
+}
+
 function useFollowPage(ref: RefObject<HTMLElement | null>, gap = 0) {
   useEffect(() => {
     const element = ref.current;
     if (!element) return;
     const update = () => {
       const room = window.innerHeight - gap;
-      element.style.top = `${Math.min(0, room - element.offsetHeight)}px`;
+      element.style.top = `${room - element.offsetHeight}px`;
+      // Where the column starts on the page, so CSS can fill the first
+      // screenful exactly and seat the approval band on the action bar.
+      const column = element.parentElement;
+      if (column) {
+        const start = column.getBoundingClientRect().top + window.scrollY;
+        element.style.setProperty("--follow-start", `${Math.round(start)}px`);
+      }
     };
     update();
     const observer =
@@ -225,9 +257,9 @@ function NoProjects({ list }: { list: ProjectList }) {
   return (
     <main className="workbench-shell">
       <header className="workbench-header">
-        <div>
-          <span className="eyebrow">Design review</span>
+        <div className="workbench-brand">
           <h1>ScreenCheck</h1>
+          <span className="eyebrow">Design review</span>
         </div>
       </header>
       {list.problems.map((problem) => (
@@ -273,7 +305,17 @@ function Workbench({
   projects: PublicProject[];
   projectProblems: string[];
 }) {
-  const [railMode, setRailMode] = useState<RailMode>("wide");
+  const [railMode, setRailMode] = useState<RailMode>(defaultRailMode);
+  // Fullscreen keeps its own rail choice; it opens as numbers on the edge.
+  const [fullscreenRailMode, setFullscreenRailMode] =
+    useState<RailMode>("compact");
+  useEffect(() => {
+    if (typeof window.matchMedia !== "function") return;
+    const tablet = window.matchMedia(TABLET_QUERY);
+    const follow = () => setRailMode(defaultRailMode());
+    tablet.addEventListener("change", follow);
+    return () => tablet.removeEventListener("change", follow);
+  }, []);
   const initialPlace = useMemo(readPlace, []);
   const [projectId, setProjectId] = useState(initialPlace.project ?? "");
   // A shared link or reload opens the version in the URL; when a newer
@@ -355,6 +397,26 @@ function Workbench({
   const [selectedFeedbackId, setSelectedFeedbackId] = useState<string | null>(
     null,
   );
+  const phone = useMediaQuery(PHONE_QUERY);
+  const [sheetOpen, setSheetOpen] = useState(false);
+  const [moreOpen, setMoreOpen] = useState(false);
+  const moreRef = useRef<HTMLDivElement>(null);
+  // On a phone the sheet gets out of the way while a pin is placed, then
+  // comes back for the note or a tapped pin.
+  useEffect(() => {
+    if (!phone) return;
+    if (addingFeedback && !draftPin) setSheetOpen(false);
+    else if (draftPin || selectedFeedbackId) setSheetOpen(true);
+  }, [phone, addingFeedback, draftPin, selectedFeedbackId]);
+  useEffect(() => {
+    if (!moreOpen) return;
+    moreRef.current?.querySelector<HTMLElement>('[role="menuitem"]')?.focus();
+    const away = (event: PointerEvent) => {
+      if (!moreRef.current?.contains(event.target as Node)) setMoreOpen(false);
+    };
+    document.addEventListener("pointerdown", away);
+    return () => document.removeEventListener("pointerdown", away);
+  }, [moreOpen]);
   const selected = screens.find((item) => item.id === selectedId)!;
   const [captureFailed, setCaptureFailed] = useState(false);
   // A full-page capture can be taller than the registered viewport, so the
@@ -366,7 +428,7 @@ function Workbench({
   } | null>(null);
   const panelRef = useRef<HTMLDivElement>(null);
   const gridRef = useRef<HTMLElement>(null);
-  useFollowPage(panelRef, 64);
+  useFollowPage(panelRef, ACTION_BAR_HEIGHT);
 
   useEffect(() => {
     const params = new URLSearchParams({
@@ -533,7 +595,8 @@ function Workbench({
     const shown = revisionVersions.filter(
       (item) => resolution === "all" || item === resolution,
     );
-    let ordinal = 0;
+    // Rows keep their screen's ordinal; the version is a separate tag, so
+    // the rail, canvas and action bar share one numbering.
     return screens.flatMap((screen) =>
       shown.map((item) => ({
         ...screen,
@@ -541,8 +604,6 @@ function Workbench({
         screenId: screen.id,
         version: item,
         versionLabel: labelOf(item),
-        ordinal: ++ordinal,
-        title: `${screen.title} · ${labelOf(item)}`,
       })),
     );
   }, [revisionVersions, resolution, screens, labelOf]);
@@ -608,6 +669,11 @@ function Workbench({
   const screenApproved = approvals
     ? isApproved(approvals, version, selectedId)
     : false;
+  const approvedAt = screenApproved
+    ? approvals?.find(
+        (item) => item.version === version && item.screenId === selectedId,
+      )?.approvedAt
+    : undefined;
 
   const saveCaption = useCallback(
     async (text: string) => {
@@ -761,11 +827,13 @@ function Workbench({
   useShortcuts({
     escape: [
       { active: exportOpen, run: () => {}, block: true, whileTyping: true },
+      { active: moreOpen, run: () => setMoreOpen(false), whileTyping: true },
       {
         active: addingFeedback && !draftPin,
         run: () => setAddingFeedback(false),
         whileTyping: true,
       },
+      { active: phone && sheetOpen, run: () => setSheetOpen(false) },
       {
         active: fullscreen && drawer.open,
         run: () => setDrawer(CLOSED_DRAWER),
@@ -783,8 +851,8 @@ function Workbench({
 
   const navigation = (
     <ScreenRail
-      mode={fullscreen ? "compact" : railMode}
-      onModeChange={fullscreen ? undefined : setRailMode}
+      mode={fullscreen ? fullscreenRailMode : railMode}
+      onModeChange={fullscreen ? setFullscreenRailMode : setRailMode}
       approvedIds={railApprovedIds}
       hideApproved={hideApproved}
       onHideApprovedChange={changeHideApproved}
@@ -816,6 +884,8 @@ function Workbench({
         setDraftPin(pin);
       }}
       onSelectFeedback={setSelectedFeedbackId}
+      onAddFeedback={startPin}
+      onSelectScreen={(screenId) => selectRailItem({ screenId })}
       onUpdate={updateFeedback}
       onDelete={deleteFeedback}
       onVisibleFeedbackChange={setVisibleFeedback}
@@ -834,6 +904,10 @@ function Workbench({
       version={version}
     />
   );
+  const nextPinNumber =
+    feedbackRecords.filter(
+      (item) => item.screenId === selected.id && item.version === version,
+    ).length + 1;
   const captureKey = `${project.id}/${version}/${selected.id}`;
   const frameSize =
     captureSize?.key === captureKey ? captureSize : selected.viewport;
@@ -852,9 +926,20 @@ function Workbench({
         <div>
           <span className="eyebrow">
             {String(selected.ordinal).padStart(2, "0")} / {screens.length} ·{" "}
+            {flatMode ? `${labelOf(version)} · ` : ""}
             {selected.group}
           </span>
-          <h2>{selected.title}</h2>
+          <div className="canvas-title">
+            <h2>{selected.title}</h2>
+            {screenApproved ? (
+              <span className="canvas-approved">
+                Approved
+                {approvedAt
+                  ? ` · ${new Date(approvedAt).toLocaleDateString("en-US", { month: "short", day: "numeric" })}`
+                  : ""}
+              </span>
+            ) : null}
+          </div>
         </div>
         <div className="canvas-header-actions">
           {selected.liveUrl ? (
@@ -871,6 +956,12 @@ function Workbench({
         onSave={saveCaption}
         saved={captions ? captionFor(captions, version, selectedId) : undefined}
       />
+      {placingPin ? (
+        <p className="canvas-adding-hint" role="status">
+          Click the screen to place pin {nextPinNumber}, or use the arrow keys
+          and Enter · Esc to cancel
+        </p>
+      ) : null}
       <div
         className="screen-frame"
         data-testid="screen-frame"
@@ -1042,10 +1133,6 @@ function Workbench({
         </button>
         {placingPin ? (
           <>
-            <p className="action-bar-hint" role="status">
-              Click the screen to place a pin, or use the arrow keys and Enter ·
-              Esc to cancel
-            </p>
             <button
               className="action-bar-whole-screen"
               onClick={() => placePin(WHOLE_SCREEN_PIN)}
@@ -1065,13 +1152,18 @@ function Workbench({
           title={`Previous screen (${SHORTCUTS.previous.label})`}
           type="button"
         >
-          ‹ Prev
+          <span aria-hidden="true">‹</span>
+          <span className="action-bar-nav-label">Prev</span>
         </button>
         <span className="action-bar-place" aria-live="polite">
           <strong>
             {String(selected.ordinal).padStart(2, "0")} / {screens.length}
-          </strong>{" "}
-          {selected.title}
+          </strong>
+          <span className="action-bar-place-title">
+            {" "}
+            {selected.title}
+            {flatMode ? ` · ${labelOf(version)}` : ""}
+          </span>
         </span>
         <button
           aria-label="Next screen"
@@ -1081,10 +1173,75 @@ function Workbench({
           title={`Next screen (${SHORTCUTS.next.label})`}
           type="button"
         >
-          Next ›
+          <span className="action-bar-nav-label">Next</span>
+          <span aria-hidden="true">›</span>
         </button>
       </div>
       <div className="action-bar-end">
+        {fullscreen ? null : (
+          <button
+            aria-controls="feedback-panel"
+            aria-expanded={sheetOpen}
+            className="action-bar-sheet"
+            onClick={() => setSheetOpen((open) => !open)}
+            type="button"
+          >
+            Feedback
+            {openCounts.get(selectedId) ? (
+              <span className="action-bar-sheet-count">
+                {openCounts.get(selectedId)}
+              </span>
+            ) : null}
+          </button>
+        )}
+        <div className="action-bar-more-wrap" ref={moreRef}>
+          <button
+            aria-expanded={moreOpen}
+            aria-haspopup="menu"
+            aria-label="More actions"
+            className="icon-button action-bar-more"
+            onClick={() => setMoreOpen((open) => !open)}
+            type="button"
+          >
+            <svg aria-hidden="true" height="18" viewBox="0 0 18 18" width="18">
+              <path
+                d="M3.5 9h.01M9 9h.01M14.5 9h.01"
+                stroke="currentColor"
+                strokeLinecap="round"
+                strokeWidth="3"
+              />
+            </svg>
+          </button>
+          {moreOpen ? (
+            <div
+              aria-label="More actions"
+              className="action-bar-menu"
+              role="menu"
+            >
+              <button
+                disabled={!ready}
+                onClick={() => {
+                  setMoreOpen(false);
+                  setExportOpen(true);
+                }}
+                role="menuitem"
+                type="button"
+              >
+                Export…
+              </button>
+              <button
+                onClick={() => {
+                  setMoreOpen(false);
+                  setFullscreen((value) => !value);
+                }}
+                role="menuitem"
+                type="button"
+              >
+                {fullscreen ? "Exit fullscreen" : "View fullscreen"}
+              </button>
+            </div>
+          ) : null}
+        </div>
         <button
           aria-haspopup="dialog"
           className="action-bar-export"
@@ -1097,13 +1254,15 @@ function Workbench({
         <button
           aria-keyshortcuts={SHORTCUTS.addFeedback.aria}
           aria-pressed={addingFeedback}
+          aria-label="Add feedback"
           className="feedback-add-button"
           disabled={!ready}
           onClick={startPin}
           title={`Add feedback (${SHORTCUTS.addFeedback.label})`}
           type="button"
         >
-          Add feedback <kbd aria-hidden="true">{SHORTCUTS.addFeedback.kbd}</kbd>
+          <span className="feedback-add-label">Add feedback</span>{" "}
+          <kbd aria-hidden="true">{SHORTCUTS.addFeedback.kbd}</kbd>
         </button>
       </div>
       {exportOpen ? (
@@ -1151,6 +1310,9 @@ function Workbench({
           navigation={navigation}
           drawer={drawer}
           onDrawerChange={setDrawer}
+          openCount={
+            (flatMode ? flatOpenCounts : openCounts).get(railSelectedId) ?? 0
+          }
         >
           {canvas}
         </FullscreenReview>
@@ -1163,9 +1325,9 @@ function Workbench({
     <main className="workbench-shell">
       {skipLinks}
       <header className="workbench-header">
-        <div>
-          <span className="eyebrow">Design review</span>
+        <div className="workbench-brand">
           <h1>ScreenCheck</h1>
+          <span className="eyebrow">Design review</span>
         </div>
         <div className="header-controls">
           {projects.length > 1 ? (
@@ -1183,7 +1345,10 @@ function Workbench({
               </select>
             </label>
           ) : (
-            <span className="header-project">{project.name}</span>
+            <span className="header-project">
+              <span className="header-label">Project</span>
+              <strong title={project.name}>{project.name}</strong>
+            </span>
           )}
           {revisions.length > 1 ? (
             <label>
@@ -1298,12 +1463,23 @@ function Workbench({
       <section
         className="workbench-grid"
         data-rail-mode={railMode}
+        data-sheet-open={sheetOpen}
         aria-label="Review workspace"
         ref={gridRef}
       >
         <div className="rail-column">{navigation}</div>
         {canvas}
         <div className="feedback-column">
+          <div className="feedback-sheet-bar">
+            <button
+              aria-label="Close feedback"
+              className="feedback-sheet-close"
+              onClick={() => setSheetOpen(false)}
+              type="button"
+            >
+              Close
+            </button>
+          </div>
           <div className="feedback-follow" ref={panelRef}>
             {feedback}
           </div>
