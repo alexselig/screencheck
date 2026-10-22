@@ -5,7 +5,9 @@ import path from "node:path";
 import { describe, expect, it } from "vitest";
 
 const client = path.resolve(__dirname, "../src/client");
-const read = (file: string) => readFileSync(path.join(client, file), "utf8");
+// Normalise CRLF so selector lookups behave the same on Windows checkouts.
+const read = (file: string) =>
+  readFileSync(path.join(client, file), "utf8").replace(/\r\n/g, "\n");
 const styles = read("styles.css");
 // Data URIs carry their own colours (the select arrow); the rules may not.
 const rules = styles.replace(/url\("data:[^"]*"\)/g, "url()");
