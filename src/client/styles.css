@@ -346,7 +346,8 @@ h1 {
 }
 
 /* Same blue as the selected rail row, so the hover is unmistakable. */
-.before-after button:hover:not([aria-pressed="true"]) {
+.before-after button:hover,
+.before-after button[aria-pressed="true"]:hover {
   border-color: var(--bauhaus-blue);
   background: var(--bauhaus-blue);
   color: var(--on-blue);
