@@ -9,6 +9,7 @@ import {
   loopbackOrigins,
 } from "./origin";
 import type { ProjectCatalog } from "./projects";
+import { handleAssist, type AssistService } from "./assist-routes";
 import { setApprovalInputSchema } from "../shared/approvals";
 import { setCaptionInputSchema } from "../shared/captions";
 import { ACTOR_HEADER, REVIEWER_ACTOR } from "../shared/feedback";
@@ -137,6 +138,8 @@ export type ApiOptions = {
   storage: FeedbackStorage;
   port: number;
   catalog?: ProjectCatalog;
+  // AI assist (#14); undefined means it is off.
+  assist?: AssistService;
 };
 
 // Returns false when the request is not an API route, so the caller can fall
@@ -144,7 +147,7 @@ export type ApiOptions = {
 export async function handleApi(
   request: IncomingMessage,
   response: ServerResponse,
-  { storage, port, catalog }: ApiOptions,
+  { storage, port, catalog, assist }: ApiOptions,
 ): Promise<boolean> {
   const url = new URL(request.url ?? "/", "http://placeholder");
   if (!url.pathname.startsWith("/api/")) return false;
@@ -168,6 +171,26 @@ export async function handleApi(
       if (request.method !== "GET")
         throw new HttpError(405, "Method not allowed.");
       sendJson(response, 200, await catalog.list());
+      return true;
+    }
+    if (
+      url.pathname === "/api/assist" ||
+      url.pathname.startsWith("/api/assist/")
+    ) {
+      const handled = await handleAssist(request, url.pathname, {
+        assist,
+        storage,
+        assertOrigin() {
+          try {
+            assertMutationOrigin(request.headers.origin, loopbackOrigins(port));
+          } catch (error) {
+            throw new HttpError(403, (error as Error).message);
+          }
+        },
+        readBody: () => readJsonBody(request),
+        fail: (status, message) => new HttpError(status, message),
+      });
+      sendJson(response, handled.status, handled.body);
       return true;
     }
     const capture = CAPTURE_ROUTE.exec(url.pathname);

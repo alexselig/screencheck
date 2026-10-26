@@ -8,6 +8,7 @@ import type { AddressInfo } from "node:net";
 import { join } from "node:path";
 
 import { handleApi, sendJson as json } from "./api";
+import { assistEnabledFromEnv, createAssist } from "./assist";
 import { appHome } from "./home";
 import { acquireDataRootLock } from "./lock";
 import { createProjectCatalog, defaultProjectsRoot } from "./projects";
@@ -29,6 +30,9 @@ export type ServerOptions = {
   // A built client (dist/client). When set, the server serves it as static
   // files and never loads Vite; without it, Vite runs in middleware mode.
   clientRoot?: string;
+  // AI assist through the reviewer's Copilot CLI (#14). Off unless true or
+  // SCREENCHECK_ASSIST=1.
+  assist?: boolean;
 };
 
 type Fallback = (
@@ -79,6 +83,7 @@ export async function startServer({
   dataRoot = defaultDataRoot(),
   projectsRoot = defaultProjectsRoot(),
   clientRoot,
+  assist: assistOption,
 }: ServerOptions = {}) {
   assertLoopbackHost(host);
   const lock = await acquireDataRootLock(dataRoot);
@@ -96,6 +101,8 @@ export async function startServer({
       hasFeedback: async (projectId) =>
         (await storage.listFeedback(projectId)).length > 0,
     });
+    const assist =
+      (assistOption ?? assistEnabledFromEnv()) ? createAssist() : undefined;
     let boundPort = port;
     // Assigned before listen(), so every request sees it.
     let fallback!: Awaited<ReturnType<typeof createFallback>>;
@@ -110,6 +117,7 @@ export async function startServer({
             storage,
             port: boundPort,
             catalog,
+            assist,
           })
         )
           return;
@@ -136,6 +144,7 @@ export async function startServer({
       dataRoot,
       projectsRoot,
       mode: clientRoot ? ("static" as const) : ("dev" as const),
+      assist: Boolean(assist),
       async close() {
         try {
           await fallback.close?.();
@@ -157,6 +166,9 @@ export async function serve(options: ServerOptions = {}) {
   console.log(`ScreenCheck: ${running.origin}`);
   console.log(`Feedback stored in: ${running.dataRoot}`);
   console.log(`Projects read from: ${running.projectsRoot}`);
+  if (running.assist) {
+    console.log("AI assist: on (uses your GitHub Copilot CLI, tool-less)");
+  }
   if (shouldRecordRuntime()) {
     writeRuntimeInfo({
       origin: running.origin,
