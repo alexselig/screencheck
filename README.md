@@ -57,6 +57,7 @@ and `server.json` — for a sandboxed trial, a test run or CI.
 | `screencheck init <id> --captures <dir>`             | Register a project from a folder of captures (see below)         |
 | `screencheck add <id> <dir>`                         | Add a folder of captures as a new version                        |
 | `screencheck reply --project <id> ...`               | List open comments or reply to one (see below)                   |
+| `screencheck issues --project <id> --repo <o/r>`     | File comments as GitHub issues; `issues sync` (see below)        |
 | `screencheck mcp [--url <origin>] [--author <name>]` | Run the MCP server on stdio for coding agents                    |
 | `screencheck capture <url> --out <file>`             | Full-page screenshot without mid-page footers (needs Playwright) |
 | `screencheck doctor [<project>] [--restore]`         | Check stored feedback; restore a damaged file from its backup    |
@@ -249,7 +250,8 @@ details (including file paths) go only to the server log.
 Feedback records carry `thread: [{id, author, role, note, at, status?}]`
 (`role` is `reviewer` or `agent`; `status` is the change that message made)
 and a derived `reply: {note, author, at}`, the latest agent message, for older
-clients. In a PATCH:
+clients. A comment filed with `screencheck issues` also carries
+`issue: {repo, number, url}`; records without it load unchanged. In a PATCH:
 
 - `reply: {note, author?}` appends an agent message (author defaults to
   `Agent`). `reply: null` removes the most recent agent message.
@@ -258,6 +260,8 @@ clients. In a PATCH:
 - The server stamps each message's `id` and `at`. If the same patch changes
   `status`, the message records the new status.
 - Moving to Fixed or Won't fix needs a `reply` or `message` in the same patch.
+- `issue: {repo, number, url}` links the comment to a GitHub issue; `issue:
+null` unlinks it.
 - `status: "VERIFIED"` returns `403` unless the request carries
   `x-screencheck-actor: reviewer`. The same rule applies to create and import.
 
@@ -324,6 +328,46 @@ the same moment, the reply re-reads it and retries once. If the reviewer
 changed its status meanwhile (verified it, reopened it), the agent's note is
 still added but its status change is dropped, and the command fails with a
 message naming the reviewer's change, so the agent rereads before acting.
+
+## GitHub Issues
+
+`screencheck issues` files comments as GitHub issues through the
+[`gh` CLI](https://cli.github.com) (run `gh auth login` first), and
+`issues sync` moves a comment to Fixed once its issue is closed. Both talk to
+the running ScreenCheck server, like `reply`.
+
+```bash
+# Preview: print each issue's title and body, change nothing
+npx screencheck issues --project shop --repo owner/name --dry-run
+
+# One issue per open comment (Backlog and In progress), labelled screencheck
+npx screencheck issues --project shop --repo owner/name
+
+# Or one issue per screen listing its comments, for one version
+npx screencheck issues --project shop --repo owner/name --per screen --version build-42
+
+# Later: comments whose issue was closed move to Fixed
+npx screencheck issues sync --project shop
+```
+
+Each issue names the screen, version and size, priority, tags, note and
+thread, and links back to the screen (`http://127.0.0.1:<port>/#project=…`).
+`gh issue create` can't upload images, so the crop around each pin (the same
+crop the MCP `get_comment` tool returns) is saved to
+`~/.screencheck/issue-crops/<project>/<comment>.png` and the body names that
+path; drag it into the issue if others need to see it. The issue is stored on
+the comment (`issue: {repo, number, url}`), so re-running files only comments
+that have none yet.
+
+`--status` picks comments (`open`, the default, means Backlog and In
+progress; or `fixed,wont-fix`, or `all`). `--label ""` files without a label;
+otherwise the label (default `screencheck`) is created if the repo lacks it.
+
+`sync` checks each linked comment that is still open with
+`gh issue view --json state`. When the issue is closed it sets Fixed and adds
+"Closed in owner/name#N" to the thread. It never sets Verified: the reviewer
+still checks the fix in ScreenCheck. Fixed, Verified and Won't fix comments
+are left alone.
 
 ## MCP server
 

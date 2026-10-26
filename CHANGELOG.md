@@ -13,6 +13,12 @@ provenance.
 - **Before | After** toggle in the footer (and **B**): flips the canvas to the
   previous build's capture of the same screen and size. On phones it is in the
   **…** menu.
+- `screencheck issues` files review comments as GitHub issues through `gh`, one
+  per comment or `--per screen`, with the screen, size, priority, tags, note,
+  thread, a link back and a saved crop around the pin. Re-runs skip comments
+  already filed (the issue is stored on the comment as `issue`).
+  `screencheck issues sync` moves comments whose issue was closed to Fixed,
+  never to Verified.
 
 ### Changed
 
