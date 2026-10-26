@@ -2,7 +2,9 @@ import type { IncomingMessage, ServerResponse } from "node:http";
 
 import { z } from "zod";
 
-import { elementMapSchema } from "../shared/elements";
+import { elementMapSchema, resolvePinElement } from "../shared/elements";
+import { toPinElement } from "../shared/reanchor";
+import { carryOpenFeedback } from "./carry";
 import {
   assertMutationOrigin,
   isLoopbackHostHeader,
@@ -132,6 +134,46 @@ const ELEMENTS_ROUTE =
 const APPROVALS_ROUTE = /^\/api\/projects\/([^/]+)\/approvals\/?$/;
 
 const CAPTIONS_ROUTE = /^\/api\/projects\/([^/]+)\/captions\/?$/;
+
+// Records the element under a new pin, from its capture's element map, so
+// the pin can be found again on another size or a later build.
+async function withPinElement(
+  catalog: ProjectCatalog | undefined,
+  projectId: string,
+  body: unknown,
+) {
+  if (!catalog || typeof body !== "object" || body === null) return body;
+  const input = body as Record<string, unknown>;
+  if (
+    input.element !== undefined ||
+    typeof input.version !== "string" ||
+    typeof input.screenId !== "string" ||
+    typeof input.x !== "number" ||
+    typeof input.y !== "number"
+  ) {
+    return body;
+  }
+  try {
+    const text = await catalog.elements(
+      projectId,
+      input.version,
+      input.screenId,
+    );
+    if (text === null) return body;
+    const map = elementMapSchema.safeParse(JSON.parse(text));
+    if (!map.success) return body;
+    const element = resolvePinElement(map.data, {
+      x: input.x,
+      y: input.y,
+      box: input.box,
+    });
+    return element
+      ? { ...input, element: toPinElement(element, map.data.capture) }
+      : body;
+  } catch {
+    return body;
+  }
+}
 
 export type ApiOptions = {
   storage: FeedbackStorage;
@@ -302,6 +344,17 @@ export async function handleApi(
     await requireRegistered(projectId);
 
     if (!id && !isImport && method === "GET") {
+      if (catalog) {
+        try {
+          await carryOpenFeedback(storage, catalog, projectId);
+        } catch (error) {
+          // Carrying is a convenience; the comments still load where they are.
+          console.error(
+            "ScreenCheck: carrying comments forward failed:",
+            error,
+          );
+        }
+      }
       const { feedback, rejected } = await storage.inspectFeedback(projectId);
       sendJson(response, 200, {
         feedback,
@@ -320,7 +373,10 @@ export async function handleApi(
         version: stringField(body, "version"),
         screenId: stringField(body, "screenId"),
       });
-      const created = await storage.createFeedback(projectId, body as never);
+      const created = await storage.createFeedback(
+        projectId,
+        (await withPinElement(catalog, projectId, body)) as never,
+      );
       sendJson(response, 201, { feedback: created });
     } else if (isImport && method === "POST") {
       const body = importBodySchema.parse(await readJsonBody(request));

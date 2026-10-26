@@ -16,6 +16,8 @@ import {
   createFeedbackInputSchema,
   feedbackRecordSchema,
   feedbackThread,
+  isOpenFeedback,
+  scopeOf,
   updateFeedbackInputSchema,
   type CreateFeedbackInput,
   type FeedbackMessage,
@@ -34,7 +36,21 @@ import {
   type ScreenCaption,
   type SetCaptionInput,
 } from "../shared/captions";
+import type { PinBox } from "../shared/pin-box";
+import type { PinElement } from "../shared/reanchor";
 import { formatZodError } from "../shared/zod-format";
+
+// One comment carried from `from` to `to`, already re-anchored.
+export type CarryMove = {
+  id: string;
+  from: string;
+  to: string;
+  x: number;
+  y: number;
+  box?: PinBox;
+  element?: PinElement;
+  checkPlacement: boolean;
+};
 
 // The shape of feedback records on disk. v1 files (no `schemaVersion`) hold a
 // single `reply` per comment; v2 holds `thread`. Older files are migrated in
@@ -207,7 +223,8 @@ function sameCreate(
     JSON.stringify(record.box ?? null) === JSON.stringify(input.box ?? null) &&
     record.note === input.note &&
     record.tags.join("\0") === input.tags.join("\0") &&
-    record.status === input.status
+    record.status === input.status &&
+    scopeOf(record) === (input.scope ?? "size")
   );
 }
 
@@ -725,6 +742,8 @@ export function createFeedbackStorage(options: FeedbackStorageOptions) {
         tags: input.tags,
         status: input.status,
         ...(input.author ? { author: input.author } : {}),
+        ...(input.scope === "all" ? { scope: "all" } : {}),
+        ...(input.element ? { element: input.element } : {}),
         createdAt: timestamp,
         updatedAt: timestamp,
       });
@@ -751,7 +770,8 @@ export function createFeedbackStorage(options: FeedbackStorageOptions) {
         );
       }
       const updatedAt = nextUpdatedAt(now(), current.updatedAt);
-      const { reply, message, issue, ...patch } = input.patch;
+      const { reply, message, issue, scope, checkPlacement, ...patch } =
+        input.patch;
       const statusChange =
         patch.status && patch.status !== current.status
           ? { status: patch.status }
@@ -789,6 +809,9 @@ export function createFeedbackStorage(options: FeedbackStorageOptions) {
       delete next.reply;
       if (issue === null) delete next.issue;
       else if (issue) next.issue = issue;
+      if (scope === "size") delete next.scope;
+      else if (scope) next.scope = scope;
+      if (checkPlacement === false) delete next.checkPlacement;
       const updated = feedbackRecordSchema.parse(next);
       const nextFeedback = [...feedback];
       nextFeedback[index] = updated;
@@ -816,6 +839,49 @@ export function createFeedbackStorage(options: FeedbackStorageOptions) {
         projectId,
         feedback.filter((item) => item.id !== id),
       );
+    });
+  }
+
+  // Moves open comments to a newer version (carry forward). A move applies
+  // only while the comment is still open and still on the version it was
+  // planned from, so a concurrent edit or a second carry never doubles up.
+  function carryFeedback(
+    projectId: string,
+    moves: readonly CarryMove[],
+  ): Promise<FeedbackRecord[]> {
+    return serializeMutation(projectId, async () => {
+      if (moves.length === 0) return [];
+      const feedback = await read(projectId);
+      const byId = new Map(moves.map((move) => [move.id, move]));
+      const carried: FeedbackRecord[] = [];
+      const next = feedback.map((current) => {
+        const move = byId.get(current.id);
+        if (
+          !move ||
+          current.version !== move.from ||
+          !isOpenFeedback(current)
+        ) {
+          return current;
+        }
+        const record: Record<string, unknown> = {
+          ...current,
+          version: move.to,
+          x: move.x,
+          y: move.y,
+          carriedFrom: [...(current.carriedFrom ?? []), move.from],
+          updatedAt: nextUpdatedAt(now(), current.updatedAt),
+        };
+        delete record.reply;
+        if (move.box) record.box = move.box;
+        else delete record.box;
+        if (move.element) record.element = move.element;
+        if (move.checkPlacement) record.checkPlacement = true;
+        const updated = feedbackRecordSchema.parse(record);
+        carried.push(updated);
+        return updated;
+      });
+      if (carried.length > 0) await write(projectId, next);
+      return carried;
     });
   }
 
@@ -863,6 +929,7 @@ export function createFeedbackStorage(options: FeedbackStorageOptions) {
     updateFeedback,
     deleteFeedback,
     importFeedback,
+    carryFeedback,
     listApprovals,
     setApproval,
     listCaptions,

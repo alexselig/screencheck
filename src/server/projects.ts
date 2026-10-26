@@ -8,7 +8,11 @@ import { appHome } from "./home";
 import { elementMapPathFor } from "../shared/elements";
 import { parseScreens, type ReviewScreen } from "../shared/manifest";
 import { formatZodError } from "../shared/zod-format";
-import type { PublicProject, ProjectList } from "../shared/projects";
+import type {
+  PublicProject,
+  PublicVersion,
+  ProjectList,
+} from "../shared/projects";
 
 // Kept only so feedback written to it before any project was registered
 // stays reachable; it is no longer listed on a fresh install.
@@ -322,6 +326,19 @@ export function createProjectCatalog({
         };
       }
       return null;
+    },
+    // A project's versions in registration order, with their grouping, or
+    // null when it isn't registered.
+    async versionDetails(projectId: string): Promise<PublicVersion[] | null> {
+      const { registrations } = await readRegistrations(projectsRoot);
+      const registration = registrations.find((item) => item.id === projectId);
+      if (!registration) return null;
+      return registration.versions.map(({ id, revision, label, viewport }) => ({
+        id,
+        ...(revision ? { revision } : {}),
+        ...(label ? { label } : {}),
+        ...(viewport ? { viewport } : {}),
+      }));
     },
     async capture(projectId: string, versionId: string, screenId: string) {
       const found = await find(projectId, versionId, screenId);
