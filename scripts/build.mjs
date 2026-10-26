@@ -3,6 +3,7 @@
 import { execFileSync } from "node:child_process";
 import {
   chmodSync,
+  copyFileSync,
   existsSync,
   readdirSync,
   readFileSync,
@@ -58,6 +59,32 @@ await build({
   logLevel: "info",
 });
 chmodSync(path.join(DIST, "cli.js"), 0o755);
+
+// The offline viewer for `screencheck bundle`: the same client as one classic
+// script, because browsers refuse module scripts on file:// pages.
+await build({
+  absWorkingDir: ROOT,
+  entryPoints: { viewer: "src/client/main.tsx" },
+  outdir: path.join(DIST, "viewer"),
+  bundle: true,
+  format: "iife",
+  platform: "browser",
+  target: "es2022",
+  minify: true,
+  jsx: "automatic",
+  loader: { ".woff2": "file" },
+  assetNames: "fonts/[name]",
+  define: { "process.env.NODE_ENV": '"production"' },
+  logLevel: "info",
+});
+for (const licence of readdirSync(path.join(ROOT, "src/client/fonts"))) {
+  if (licence.endsWith(".txt")) {
+    copyFileSync(
+      path.join(ROOT, "src/client/fonts", licence),
+      path.join(DIST, "viewer/fonts", licence),
+    );
+  }
+}
 
 run("tsc", [
   "src/capture/full-page.ts",

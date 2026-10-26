@@ -39,7 +39,6 @@ import {
   type FeedbackStatus,
 } from "../shared/feedback";
 import {
-  captureUrl,
   type ProjectList,
   type PublicProject,
   type PublicScreen,
@@ -53,6 +52,7 @@ import {
   putApproval,
   putCaption,
 } from "./feedback-api";
+import { captureSrc } from "./offline-api";
 import { SHORTCUTS, useShortcuts } from "./shortcuts";
 import { useFeedbackStore } from "./use-feedback-store";
 import { versionModel } from "./versions";
@@ -1044,7 +1044,7 @@ function Workbench({
                 });
               }
             }}
-            src={captureUrl(project.id, shownVersion, selected.id)}
+            src={captureSrc(project.id, shownVersion, selected.id)}
           />
         ) : (
           <div className="empty-canvas">
