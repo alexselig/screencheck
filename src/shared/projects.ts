@@ -9,11 +9,13 @@ export type PublicScreen = Pick<
 
 // Optional grouping for a version: captures of one build at several
 // viewports share a `revision` and each carries a short `label` ("1440",
-// "mobile"). Without them a version is its own revision.
+// "mobile") and/or the `viewport` width it was captured at. Without them a
+// version is its own revision; nothing is ever read from the id.
 export type PublicVersion = {
   id: string;
   revision?: string;
   label?: string;
+  viewport?: number;
 };
 
 export type PublicProject = {

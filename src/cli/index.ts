@@ -6,6 +6,7 @@ import { serve } from "../server/index";
 import { DataRootInUseError } from "../server/lock";
 import { readRuntimeInfo, type RuntimeInfo } from "../server/runtime";
 import { CAPTURE_USAGE, parseCaptureArgs, runCapture } from "./capture";
+import { runConfigCapture } from "./capture-config";
 import { DOCTOR_USAGE, runDoctor } from "./doctor";
 import { DEMO_USAGE, type DemoHandle, startDemo } from "./demo";
 import { ADD_USAGE, INIT_USAGE, runAdd, runInit } from "./init";
@@ -29,7 +30,7 @@ Commands:
   reply     List open comments or reply to one
   issues    File comments as GitHub issues; sync closed ones to Fixed
   mcp       Run the MCP server on stdio for coding agents
-  capture   Take a full-page screenshot without mid-page footers
+  capture   Take full-page screenshots; --config captures a whole project
   doctor    Check stored feedback and restore damaged files from backup
 
 Run "screencheck <command> --help" for a command's options.
@@ -228,7 +229,8 @@ export async function main(
       case "capture": {
         const job = parseCaptureArgs(rest);
         if (job === "help") return (log(CAPTURE_USAGE), 0);
-        await runCapture(job, { log });
+        if ("config" in job) await runConfigCapture(job, { log, env });
+        else await runCapture(job, { log });
         return 0;
       }
       case "init":

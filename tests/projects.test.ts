@@ -87,6 +87,45 @@ describe("project catalog", () => {
     ]);
   });
 
+  it("passes an explicit viewport, and adds no details to older registrations", async () => {
+    await register("sized.json", {
+      id: "sized",
+      name: "Sized",
+      versions: [
+        { id: "b1-390", revision: "b1", viewport: 390, captureRoot: root },
+        { id: "b1-1440", captureRoot: root },
+      ],
+      screens: [{ ...screenBase, id: "home" }],
+    });
+    await register("plain.json", {
+      id: "plain",
+      name: "Plain",
+      versions: [
+        { id: "build-41", captureRoot: root },
+        { id: "build-42", captureRoot: root },
+      ],
+      screens: [{ ...screenBase, id: "home" }],
+    });
+    await register("bad.json", {
+      id: "bad",
+      name: "Bad",
+      versions: [{ id: "x", viewport: "wide", captureRoot: root }],
+      screens: [{ ...screenBase, id: "home" }],
+    });
+    const body = await (await fetch(`${server.origin}/api/projects`)).json();
+    const byId = (id: string) =>
+      body.projects.find((item: { id: string }) => item.id === id);
+    expect(byId("sized").versionDetails).toEqual([
+      { id: "b1-390", revision: "b1", viewport: 390 },
+      { id: "b1-1440" },
+    ]);
+    expect(byId("plain").versionDetails).toBeUndefined();
+    expect(byId("bad")).toBeUndefined();
+    expect(body.problems.join("\n")).toMatch(
+      /bad\.json: versions\[0\]\.viewport/,
+    );
+  });
+
   it("lists registered screens without exposing local paths and serves captures", async () => {
     await register("demo.json", {
       id: "demo",

@@ -61,6 +61,7 @@ and `server.json` — for a sandboxed trial, a test run or CI.
 | `screencheck issues --project <id> --repo <o/r>`     | File comments as GitHub issues; `issues sync` (see below)        |
 | `screencheck mcp [--url <origin>] [--author <name>]` | Run the MCP server on stdio for coding agents                    |
 | `screencheck capture <url> --out <file>`             | Full-page screenshot without mid-page footers (needs Playwright) |
+| `screencheck capture --config <file>`                | Capture every screen at every width and register it (see below)  |
 | `screencheck doctor [<project>] [--restore]`         | Check stored feedback; restore a damaged file from its backup    |
 
 `screencheck --help` lists them; `screencheck <command> --help` shows options.
@@ -451,6 +452,75 @@ claude mcp add screencheck -- npx -y screencheck mcp
 }
 ```
 
+## Capture at several sizes
+
+`screencheck capture --config` captures every screen of a project at every
+viewport and writes or updates its registration, so there is no capture script
+or JSON to maintain. It needs Playwright
+(`npm i -D playwright && npx playwright install chromium`). List the screens in
+`screencheck.config.mjs` (see
+[`examples/screencheck.config.mjs`](examples/screencheck.config.mjs)):
+
+```js
+export default {
+  project: { id: "shop", name: "Shop" },
+  baseUrl: "http://localhost:3000",
+  version: "build-43", // the revision; --version overrides it
+  viewports: [390, 768, 1440], // default [1440]
+  screens: [
+    { id: "home", title: "Home", url: "/" },
+    {
+      id: "checkout",
+      title: "Checkout",
+      url: "/cart",
+      caption: "Step 2 of 3, saved card", // the Showing strip
+      section: "Buy", // the group in the screen index
+      steps: [
+        { click: "text=Check out" },
+        { fill: "#email", value: "sam@example.com" },
+        { waitFor: ".payment" },
+      ],
+    },
+    {
+      id: "orders",
+      title: "Order history",
+      url: "/login",
+      // .mjs only: any Playwright code, after the page loads
+      setup: async (page, { viewport }) => {
+        await page.fill("#user", "sam");
+        await page.click("button[type=submit]");
+        await page.goto("http://localhost:3000/orders");
+      },
+    },
+  ],
+};
+```
+
+```bash
+npx screencheck capture --config screencheck.config.mjs --version build-44
+npx screencheck capture --config screencheck.config.mjs --screen checkout
+```
+
+One run opens each screen's `url` (relative URLs resolve against `baseUrl`) at
+each width, runs its `steps` (`goto`, `click`, `fill` + `value`, `press`,
+`waitFor`, `wait` in ms), then its `setup`, then waits for its `waitFor`
+selector, and captures it with `captureFullPage`, element map included. Each
+width becomes one version, `<revision>-<width>`, with explicit `revision`,
+`label` and `viewport` fields, captured into
+`<outDir>/<revision>/<width>/<screen id>.png` (`outDir` defaults to `captures`
+beside the config file; `height` sets the window height, default 1000). The
+registration is then created or updated: this run's versions are added (or
+replaced on a re-run), screens are added or refreshed, and everything else,
+such as earlier versions, other screens and hand-written descriptions, is
+kept. `--screen <id>` re-captures one screen and touches nothing else;
+`--projects <dir>` writes the registration somewhere other than the registry.
+A screen that fails to load stops the run with its id and width, and nothing
+is registered.
+
+A `.json` config takes the same fields except `setup`. A `.ts` config works
+where Node runs TypeScript directly (22.18 and later); otherwise use `.mjs`.
+Plain `screencheck capture <url> --out <file>` still takes a single shot.
+
 ## Register a project
 
 The quickest way is to point ScreenCheck at a folder of captures:
@@ -525,15 +595,17 @@ beside the registrations rather than in this repository.
 
 Each version is its own entry in the header's **Revision** picker, newest
 (last) first; `build-41` and `build-42` are two builds. Version ids are never
-split apart. If one build was captured at several viewports, say so with
-optional `revision` and `label` fields; versions that share a `revision`
-appear as one entry, a **Viewport** filter lists their labels, and the screen
-index shows each screen once per viewport (`Checkout · 390`):
+split apart, so `build-43-390` is not read as "build-43 at 390". If one build
+was captured at several viewports, say so with optional `revision`, `viewport`
+(the width) and `label` fields; versions that share a `revision` appear as one
+entry, a **Viewport** filter lists their labels (the `label`, else the
+`viewport` width, else the id), and the screen index shows each screen once
+per viewport (`Checkout · 390`). `capture --config` writes all three:
 
 ```json
 "versions": [
-  { "id": "b42-desktop", "revision": "build-42", "label": "1440", "captureRoot": "…/b42/desktop" },
-  { "id": "b42-mobile", "revision": "build-42", "label": "390", "captureRoot": "…/b42/mobile" }
+  { "id": "b42-desktop", "revision": "build-42", "viewport": 1440, "label": "1440", "captureRoot": "…/b42/desktop" },
+  { "id": "b42-mobile", "revision": "build-42", "viewport": 390, "label": "390", "captureRoot": "…/b42/mobile" }
 ]
 ```
 

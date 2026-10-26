@@ -57,6 +57,8 @@ const registrationSchema = z.object({
         captureRoot: z.string().min(1),
         revision: z.string().min(1).optional(),
         label: z.string().min(1).optional(),
+        // The width this version was captured at, e.g. 390.
+        viewport: z.number().int().positive().optional(),
       }),
     )
     .min(1),
@@ -71,6 +73,7 @@ type Registration = {
     captureRoot: string;
     revision?: string;
     label?: string;
+    viewport?: number;
   }[];
   screens: ReviewScreen[];
 };
@@ -233,13 +236,16 @@ export function createProjectCatalog({
           id: registration.id,
           name: registration.name,
           versions: registration.versions.map((version) => version.id),
-          ...(registration.versions.some((item) => item.revision || item.label)
+          ...(registration.versions.some(
+            (item) => item.revision || item.label || item.viewport,
+          )
             ? {
                 versionDetails: registration.versions.map(
-                  ({ id, revision, label }) => ({
+                  ({ id, revision, label, viewport }) => ({
                     id,
                     ...(revision ? { revision } : {}),
                     ...(label ? { label } : {}),
+                    ...(viewport ? { viewport } : {}),
                   }),
                 ),
               }
