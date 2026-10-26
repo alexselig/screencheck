@@ -6,6 +6,7 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { startServer } from "../src/server/index";
 import { createFeedbackStorage } from "../src/server/storage";
 import { newestSameSize, planCarry } from "../src/shared/carry";
+import { serializeMarkdown } from "../src/shared/export";
 import type { FeedbackRecord } from "../src/shared/feedback";
 
 let root: string;
@@ -330,5 +331,68 @@ describe("scope", () => {
       patch: { scope: "size" },
     });
     expect(narrowed.scope).toBeUndefined();
+  });
+});
+
+describe("Markdown export with sizes", () => {
+  it("groups a screen's comments as All sizes, then by size", () => {
+    const at = (minute: number) => `2026-10-01T10:0${minute}:00.000Z`;
+    const base = {
+      projectId: "demo",
+      screenId: "home",
+      x: 0.5,
+      y: 0.5,
+      tags: [],
+      status: "OPEN" as const,
+    };
+    const markdown = serializeMarkdown({
+      projectId: "demo",
+      screens: [
+        { id: "home", ordinal: 1, title: "Home", group: "Main" } as never,
+      ],
+      versions: [
+        { id: "r1-1440", label: "1440" },
+        { id: "r1-390", label: "390" },
+      ],
+      feedback: [
+        {
+          ...base,
+          id: "s390",
+          version: "r1-390",
+          note: "Small only",
+          createdAt: at(1),
+          updatedAt: at(1),
+        },
+        {
+          ...base,
+          id: "s1440",
+          version: "r1-1440",
+          note: "Wide only",
+          createdAt: at(2),
+          updatedAt: at(2),
+        },
+        {
+          ...base,
+          id: "all",
+          version: "r1-1440",
+          note: "Everywhere",
+          scope: "all",
+          createdAt: at(3),
+          updatedAt: at(3),
+        },
+      ] as FeedbackRecord[],
+    });
+    const order = [
+      "## 01 · Home",
+      "### All sizes",
+      "Everywhere",
+      "Pinned at 1440",
+      "### 1440",
+      "Wide only",
+      "### 390",
+      "Small only",
+    ].map((text) => markdown.indexOf(text));
+    expect(order.every((index) => index >= 0)).toBe(true);
+    expect([...order].sort((a, b) => a - b)).toEqual(order);
   });
 });

@@ -311,6 +311,50 @@ describe("MCP server", () => {
     expect(text(result)).toContain("Pin 1 on v1 / 01 Home · P0 · Backlog");
   });
 
+  it("reports scope, size and carry-forward fields", async () => {
+    await api("POST", "/api/projects/demo/feedback/import", {
+      records: [
+        {
+          ...record("d1", {
+            version: "v2",
+            screenId: "checkout",
+            createdAt: "2026-10-01T10:05:00.000Z",
+          }),
+          scope: "all",
+          carriedFrom: ["v1"],
+          checkPlacement: true,
+        },
+      ],
+    });
+    const client = await connect();
+    const result = await call(client, "list_feedback", { version: "v2" });
+    const items = result.structuredContent!.feedback;
+    expect(
+      items.find((item: { id: string }) => item.id === "c1"),
+    ).toMatchObject({
+      scope: "size",
+      size: "v2",
+      carriedFrom: [],
+      checkPlacement: false,
+    });
+    expect(
+      items.find((item: { id: string }) => item.id === "d1"),
+    ).toMatchObject({
+      scope: "all",
+      size: "v2",
+      carriedFrom: ["v1"],
+      checkPlacement: true,
+    });
+    expect(text(result)).toContain(
+      "all sizes (pinned at v2) · carried from v1 · check placement",
+    );
+    const comment = await call(client, "get_comment", { id: "d1" });
+    expect(comment.structuredContent!.comment).toMatchObject({
+      scope: "all",
+      checkPlacement: true,
+    });
+  });
+
   it("filters by status, tag, screen and version", async () => {
     const client = await connect();
     const ids = async (args: Record<string, unknown>) =>
