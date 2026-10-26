@@ -13,6 +13,12 @@ provenance.
 - **Before | After** toggle in the footer (and **B**): flips the canvas to the
   previous build's capture of the same screen and size. On phones it is in the
   **…** menu.
+- **Reviewer names without accounts:** a name per browser, asked for inline
+  in the feedback editor and editable from **Your name…** in the **…** menu.
+  New comments and reviewer replies carry it as an optional `author` (≤ 60
+  characters, control characters stripped); cards and threads show it with
+  the time. `@agent` and `@name` in notes and replies render as chips, and MCP
+  `list_feedback` takes a `mentions` filter. Older comments load unchanged.
 
 ### Changed
 
