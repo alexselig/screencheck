@@ -2,6 +2,7 @@
 // pin numbers, labels and wording whichever one it uses.
 import type { FeedbackRecord } from "../shared/feedback";
 import { priorityTag } from "../shared/feedback";
+import { describePinBox, pinBoxOf } from "../shared/pin-box";
 import type { PublicProject } from "../shared/projects";
 import { ToolError, type ApiFeedback } from "./client";
 import { isOpenStatus, statusLabel, toApiStatus } from "./status";
@@ -64,6 +65,7 @@ export function summarize(
 ) {
   const screen = project?.screens.find((item) => item.id === record.screenId);
   const latest = latestReply(record);
+  const region = pinBoxOf(record);
   return {
     id: record.id,
     project: project?.id ?? record.projectId,
@@ -80,6 +82,8 @@ export function summarize(
     priority: priorityTag(record.tags),
     note: record.note,
     position: { x: record.x, y: record.y },
+    // Box pins: the region drawn; `position` is its centre.
+    ...(region ? { region } : {}),
     latestReply: latest,
     // The reviewer spoke last (a reopen with a reason, a follow-up), so the
     // ball is in the agent's court.
@@ -109,7 +113,7 @@ export function latestLine(latest: LatestMessage, full = false) {
 export function formatComment(comment: Comment) {
   const tags = comment.tags.length ? ` · ${comment.tags.join(", ")}` : "";
   const lines = [
-    `Pin ${comment.pin} on ${screenLabel(comment)}${tags} · ${comment.statusLabel} · at (${percent(comment.position.x)}, ${percent(comment.position.y)}) · id ${comment.id}`,
+    `Pin ${comment.pin} on ${screenLabel(comment)}${tags} · ${comment.statusLabel} · at (${percent(comment.position.x)}, ${percent(comment.position.y)})${comment.region ? ` · ${describePinBox(comment.region)}` : ""} · id ${comment.id}`,
     `  ${oneLine(comment.note)}`,
   ];
   if (comment.latestReply) lines.push(`  ${latestLine(comment.latestReply)}`);

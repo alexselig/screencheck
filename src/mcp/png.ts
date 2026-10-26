@@ -206,3 +206,39 @@ export function drawPinRing(image: Raster, x: number, y: number) {
     }
   }
 }
+
+// Outlines a box pin's region: a 3px rust frame with a 1px white edge either
+// side, so it reads on dark and light captures alike.
+export function drawBoxOutline(
+  image: Raster,
+  box: { left: number; top: number; width: number; height: number },
+) {
+  const right = box.left + box.width;
+  const bottom = box.top + box.height;
+  const reach = 2;
+  for (
+    let py = Math.max(0, box.top - reach);
+    py <= Math.min(image.height - 1, bottom + reach);
+    py += 1
+  ) {
+    for (
+      let px = Math.max(0, box.left - reach);
+      px <= Math.min(image.width - 1, right + reach);
+      px += 1
+    ) {
+      // Distance to the rectangle's edge, inside or out.
+      const inside = Math.min(
+        px - box.left,
+        right - px,
+        py - box.top,
+        bottom - py,
+      );
+      const edge =
+        inside >= 0
+          ? inside
+          : Math.max(box.left - px, px - right, box.top - py, py - bottom);
+      const color = edge <= 1 ? RUST : edge <= 2 ? WHITE : null;
+      if (color) image.data.set(color, (py * image.width + px) * 3);
+    }
+  }
+}

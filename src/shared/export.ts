@@ -12,6 +12,7 @@ import {
   type FeedbackRecord,
 } from "./feedback";
 import type { ReviewScreen } from "./manifest";
+import { describePinBox, pinBoxOf } from "./pin-box";
 
 export type FeedbackExportInput = {
   projectId: string;
@@ -134,6 +135,11 @@ function percent(value: number) {
   return `${Math.round(value * 100)}%`;
 }
 
+function position(item: FeedbackRecord) {
+  const box = pinBoxOf(item);
+  return box ? describePinBox(box) : `${percent(item.x)}, ${percent(item.y)}`;
+}
+
 // One line per message, oldest first: "Reply" for the agent, "Reviewer" for
 // the person, then the status change the message made, if any.
 function threadLine(message: FeedbackMessage) {
@@ -187,7 +193,7 @@ export function serializeMarkdown(input: FeedbackExportInput): string {
         ? "x"
         : " ";
     lines.push(
-      `- [${checked}] **Pin ${item.pinNumber}${item.tags.length ? ` · ${item.tags.join(", ")}` : ""} · ${STATUS_LABELS[item.status]}** (${percent(item.x)}, ${percent(item.y)}): ${escapeMarkdown(item.note)} \`id: ${item.id.replace(/`/g, "")}\``,
+      `- [${checked}] **Pin ${item.pinNumber}${item.tags.length ? ` · ${item.tags.join(", ")}` : ""} · ${STATUS_LABELS[item.status]}** (${position(item)}): ${escapeMarkdown(item.note)} \`id: ${item.id.replace(/`/g, "")}\``,
       ...(item.element
         ? [`  - Element: ${escapeMarkdown(item.element.description)}`]
         : []),
