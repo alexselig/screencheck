@@ -37,25 +37,26 @@ afterEach(async () => {
 });
 
 describe("revision filter", () => {
-  it("defaults to the newest revision and limits resolutions to it", async () => {
+  it("defaults to the newest revision and limits sizes to it", async () => {
     render(<App />);
     const revision = await screen.findByRole("combobox", { name: "Revision" });
     expect(revision).toHaveValue("build-r2");
     expect(
-      screen.queryByRole("combobox", { name: "Viewport" }),
+      screen.queryByRole("group", { name: "Screen size" }),
     ).not.toBeInTheDocument();
+    // Builds are never labelled as a resolution or viewport (ux-3, ds-36).
+    expect(
+      screen.queryByRole("combobox", { name: /Viewport|Resolution/ }),
+    ).toBeNull();
 
     fireEvent.change(revision, { target: { value: "build-r1" } });
-    const resolution = await screen.findByRole("combobox", {
-      name: "Viewport",
-    });
-    const options = within(resolution)
-      .getAllByRole("option")
-      .map((option) => option.getAttribute("value"));
-    expect(options).toEqual([
-      "all",
-      "build-r1-desktop-1440",
-      "build-r1-mobile-390",
+    const sizes = await screen.findByRole("group", { name: "Screen size" });
+    const buttons = within(sizes).getAllByRole("button");
+    expect(buttons.map((button) => button.textContent)).toEqual([
+      "390Phone",
+      "1440Desktop",
     ]);
+    // The size you were on carries over to the other build.
+    expect(buttons[1]).toHaveAttribute("aria-pressed", "true");
   });
 });

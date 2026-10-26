@@ -74,6 +74,7 @@ export function ScreenRail({
   selectedId,
   openCounts,
   approvedIds,
+  partialApprovals,
   mode,
   onModeChange,
   onSelect,
@@ -85,6 +86,8 @@ export function ScreenRail({
   selectedId: string;
   openCounts?: ReadonlyMap<string, number>;
   approvedIds?: ReadonlySet<string>;
+  // Screens approved at some of their sizes, with a summary of which.
+  partialApprovals?: ReadonlyMap<string, string>;
   mode: RailMode;
   // Omitted where the container controls collapse (the fullscreen drawer).
   onModeChange?: (mode: RailMode) => void;
@@ -284,6 +287,9 @@ export function ScreenRail({
           if (showGroup) groupIndex += 1;
           previousGroup = screen.group;
           const approved = approvedIds?.has(screen.id) ?? false;
+          const partial = approved
+            ? undefined
+            : partialApprovals?.get(screen.id);
           const openCount = openCounts?.get(screen.id) ?? 0;
           return (
             <li key={screen.id}>
@@ -299,12 +305,13 @@ export function ScreenRail({
                 tabIndex={
                   screen.id === rovingId || (!rovingId && index === 0) ? 0 : -1
                 }
-                aria-label={`${String(screen.ordinal).padStart(2, "0")}. ${screen.title}${screen.versionLabel ? ` · ${screen.versionLabel}` : ""}${approved ? " (approved)" : ""}${openCount ? `, ${openCount} open` : ""}`}
+                aria-label={`${String(screen.ordinal).padStart(2, "0")}. ${screen.title}${screen.versionLabel ? ` · ${screen.versionLabel}` : ""}${approved ? " (approved)" : ""}${partial ? ` (${partial})` : ""}${openCount ? `, ${openCount} open` : ""}`}
                 onClick={() => onSelect(screen.id)}
                 title={[
                   screen.title,
                   screen.versionLabel ?? "",
                   approved ? "Approved" : "",
+                  partial ?? "",
                   openCount ? `${openCount} open` : "",
                 ]
                   .filter(Boolean)
@@ -320,6 +327,15 @@ export function ScreenRail({
                         viewBox="0 0 12 12"
                       >
                         <circle cx="6" cy="6" r="6" />
+                        <path d="M3.2 6.2 5.2 8.1 8.9 4.2" />
+                      </svg>
+                    ) : partial ? (
+                      <svg
+                        className="screen-approved-mark is-partial"
+                        data-testid="screen-partial-mark"
+                        viewBox="0 0 12 12"
+                      >
+                        <circle cx="6" cy="6" r="5.25" />
                         <path d="M3.2 6.2 5.2 8.1 8.9 4.2" />
                       </svg>
                     ) : null}

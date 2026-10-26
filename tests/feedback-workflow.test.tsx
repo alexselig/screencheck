@@ -131,9 +131,13 @@ describe("feedback workflow integration", () => {
     expect(add).toHaveAttribute("aria-pressed", "true");
     const hint = screen.getByText(/Click the screen to place pin 1\b/);
     expect(hint).toHaveTextContent(/Esc to cancel/);
-    // ds-16: the hint sits on the canvas, right above the frame.
+    // ds-16: the hint sits on the canvas, right above the frame (inside the
+    // wrapper that scrolls it at 100%).
     expect(screen.getByTestId("canvas")).toContainElement(hint);
-    expect(hint.nextElementSibling).toBe(screen.getByTestId("screen-frame"));
+    expect(hint.nextElementSibling).toHaveClass("screen-scroll");
+    expect(hint.nextElementSibling?.firstElementChild).toBe(
+      screen.getByTestId("screen-frame"),
+    );
 
     fireEvent.keyDown(window, { key: "Escape" });
     expect(add).toHaveAttribute("aria-pressed", "false");

@@ -821,6 +821,17 @@ h1 {
   stroke-width: 1.6px;
 }
 
+/* Approved at some sizes: an outlined tick. */
+.screen-approved-mark.is-partial circle {
+  fill: var(--surface);
+  stroke: var(--success);
+  stroke-width: 1.5px;
+}
+
+.screen-approved-mark.is-partial path {
+  stroke: var(--success);
+}
+
 .screen-name {
   overflow: hidden;
   font-weight: 500;
@@ -1148,6 +1159,178 @@ h1 {
   color: var(--ink-muted);
   font-size: 13px;
   font-variant-numeric: tabular-nums;
+}
+
+/* Above the capture: size, zoom and Compare sizes. Segments share edges. */
+.canvas-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2) var(--space-3);
+  margin: 0 auto var(--space-3);
+}
+
+.segmented {
+  display: inline-flex;
+  flex: none;
+}
+
+.segmented button,
+.canvas-compare-button {
+  display: inline-flex;
+  min-height: calc(var(--size-touch) - 8px);
+  align-items: baseline;
+  gap: var(--space-1);
+  padding: var(--space-1) var(--space-3);
+  border: 1px solid var(--ink);
+  border-radius: 0;
+  background: var(--surface);
+  color: var(--ink);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  cursor: pointer;
+}
+
+.segmented button + button {
+  border-left: 0;
+}
+
+.segmented button:hover,
+.canvas-compare-button:hover {
+  background: var(--surface-hover);
+}
+
+.segmented button[aria-pressed="true"],
+.canvas-compare-button[aria-pressed="true"] {
+  background: var(--ink);
+  color: var(--surface);
+}
+
+.segmented button:focus-visible,
+.canvas-compare-button:focus-visible {
+  outline: 2px solid var(--bauhaus-blue);
+  outline-offset: 2px;
+}
+
+.size-switcher-name {
+  color: var(--ink-muted);
+  font-size: 11px;
+  font-weight: 500;
+}
+
+.segmented button[aria-pressed="true"] .size-switcher-name {
+  color: inherit;
+}
+
+/* 100%: actual pixels; the capture scrolls inside the canvas. */
+.review-canvas[data-zoom="actual"] .screen-scroll {
+  overflow: auto;
+  padding: var(--space-2);
+}
+
+.review-canvas[data-zoom="actual"] .screen-frame {
+  width: var(--screen-width);
+  max-width: none;
+}
+
+/* Compare sizes: every size at one height, side by side. */
+.compare-sizes {
+  --compare-height: min(70vh, 640px);
+}
+
+.compare-sizes-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  margin-bottom: var(--space-3);
+}
+
+.compare-sizes-head button {
+  min-height: calc(var(--size-touch) - 8px);
+  padding: 0 var(--space-3);
+  border: 1px solid var(--ink);
+  background: var(--surface);
+  color: var(--ink);
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.compare-sizes-row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: safe center;
+  gap: var(--space-4);
+  margin: 0;
+  padding: var(--space-1) var(--space-1) var(--space-3);
+  overflow-x: auto;
+  list-style: none;
+}
+
+.compare-sizes-row li {
+  display: grid;
+  flex: none;
+  justify-items: center;
+  gap: var(--space-2);
+}
+
+.compare-sizes-shot {
+  position: relative;
+  display: block;
+  height: var(--compare-height);
+  aspect-ratio: var(--shot-ratio);
+  padding: 0;
+  border: 1px solid var(--line-strong);
+  background: var(--surface-alt);
+  container-type: inline-size;
+  cursor: pointer;
+}
+
+.compare-sizes-shot img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
+.compare-sizes-shot:hover {
+  border-color: var(--bauhaus-blue);
+}
+
+.compare-sizes-shot[aria-current="true"] {
+  outline: 2px solid var(--ink);
+  outline-offset: 2px;
+}
+
+.compare-sizes-shot:focus-visible {
+  outline: 2px solid var(--bauhaus-blue);
+  outline-offset: 2px;
+}
+
+.compare-sizes-shot .feedback-pin {
+  pointer-events: none;
+}
+
+.compare-sizes-empty {
+  display: grid;
+  height: 100%;
+  place-items: center;
+  color: var(--ink-muted);
+  font-size: 13px;
+}
+
+.compare-sizes-label {
+  font-size: 13px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.compare-sizes-label span {
+  color: var(--ink-muted);
+  font-weight: 500;
 }
 
 /* Square icon buttons: a 36px visible box with a 44px hit area. */
@@ -2892,6 +3075,48 @@ button.tag-chip:hover {
   border: 1px solid currentColor;
   font-size: 13px;
   line-height: 1;
+}
+
+/* Approve all sizes: a quiet second line under the size's own toggle. */
+.screen-approval-all {
+  display: flex;
+  width: 100%;
+  min-height: 44px;
+  align-items: center;
+  justify-content: center;
+  margin-top: var(--space-2);
+  border: 1px solid var(--success);
+  border-radius: 0;
+  background: var(--surface);
+  color: var(--success);
+  font: inherit;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+
+.screen-approval-all:hover:not(:disabled) {
+  background: var(--success-soft);
+}
+
+.screen-approval-all:disabled {
+  border-color: var(--line-strong);
+  background: var(--surface);
+  color: var(--line-strong);
+  font-weight: 600;
+  cursor: not-allowed;
+}
+
+.screen-approval-all:focus-visible {
+  outline: 2px solid var(--bauhaus-blue);
+  outline-offset: 2px;
+}
+
+.screen-approval .screen-approval-confirm + .screen-approval-confirm,
+.screen-approval-toggle + .screen-approval-confirm {
+  margin-top: var(--space-2);
 }
 
 /* Approving over unverified fixes asks once, in the toggle's own footprint. */
