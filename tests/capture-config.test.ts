@@ -24,6 +24,20 @@ afterEach(async () => {
 });
 
 const MAP = { version: 1, capture: { width: 1, height: 1 }, elements: [] };
+// What the in-page axe step returns: one finding with a box.
+const RAW_A11Y = {
+  capture: { width: 100, height: 200 },
+  violations: [
+    {
+      id: "image-alt",
+      impact: "critical",
+      help: "Images must have alternative text",
+      nodes: [
+        { target: "img", rect: { left: 10, top: 20, right: 60, bottom: 70 } },
+      ],
+    },
+  ],
+};
 
 type Call = string;
 
@@ -58,7 +72,13 @@ function fakePlaywright(calls: Call[] = []) {
               },
               screenshot: async () =>
                 new TextEncoder().encode(`IMG ${viewport.width} ${url}`),
-              evaluate: async (fn: () => unknown) => {
+              evaluate: async (fn: (() => unknown) | string) => {
+                if (typeof fn === "string") {
+                  calls.push(
+                    fn.includes("axe.run") ? "a11y run" : "a11y inject",
+                  );
+                  return fn.includes("axe.run") ? RAW_A11Y : undefined;
+                }
                 if (fn.name === "pinBottomChromeInPage") return { pinned: [] };
                 if (fn.name === "collectElementsInPage") return MAP;
                 return undefined;
@@ -227,9 +247,35 @@ describe("capture config parsing", () => {
       parseCaptureArgs(["http://x.test", "-o", "a.png", "--screen", "a"]),
     ).toThrow(/--screen.*--config/);
   });
+
+  it("takes --a11y for a single capture and a11y in the config, on by default", () => {
+    expect(
+      parseCaptureArgs(["http://x.test", "--out", "a.png", "--a11y"]),
+    ).toMatchObject({ a11y: true });
+    expect(() => parseCaptureArgs(["--config", "c.json", "--a11y"])).toThrow(
+      /--a11y.*config file/,
+    );
+    expect(parseCaptureConfig(CONFIG, "c.json").a11y).toBe(true);
+    expect(parseCaptureConfig({ ...CONFIG, a11y: false }, "c.json").a11y).toBe(
+      false,
+    );
+  });
 });
 
 describe("screencheck capture --config", () => {
+  it("skips the accessibility checks when the config says a11y: false", async () => {
+    const file = await writeConfig({ ...CONFIG, a11y: false });
+    const calls: Call[] = [];
+    await runConfigCapture(
+      { config: file },
+      { env, log: () => undefined, playwright: fakePlaywright(calls) },
+    );
+    expect(calls.filter((call) => call.startsWith("a11y"))).toEqual([]);
+    await expect(
+      readFile(join(dir, "captures", "build-43", "390", "home.a11y.json")),
+    ).rejects.toThrow();
+  });
+
   it("captures every screen at every viewport and registers one version per size", async () => {
     const file = await writeConfig(CONFIG);
     const calls: Call[] = [];
@@ -262,6 +308,20 @@ describe("screencheck capture --config", () => {
         ).toEqual(MAP);
       }
     }
+    expect(
+      JSON.parse(
+        await readFile(join(captures, "390", "home.a11y.json"), "utf8"),
+      ),
+    ).toMatchObject({
+      version: 1,
+      violations: [
+        {
+          id: "image-alt",
+          impact: "critical",
+          nodes: [{ target: "img", box: { x: 0.1, y: 0.1, w: 0.5, h: 0.25 } }],
+        },
+      ],
+    });
     expect(calls).toContain("click text=Saved card");
     expect(calls).toContain("fill #email=a@b.test");
     expect(calls).toContain("waitFor .summary");

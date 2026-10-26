@@ -34,6 +34,12 @@ import {
   type ScreenCaption,
   type SetCaptionInput,
 } from "../shared/captions";
+import {
+  setSuggestionDismissalInputSchema,
+  suggestionDismissalSchema,
+  type SetSuggestionDismissalInput,
+  type SuggestionDismissal,
+} from "../shared/a11y";
 import { formatZodError } from "../shared/zod-format";
 
 // The shape of feedback records on disk. v1 files (no `schemaVersion`) hold a
@@ -63,6 +69,7 @@ export const STORE_FILES = [
   "feedback.json",
   "approvals.json",
   "captions.json",
+  "suggestions.json",
 ] as const;
 export type StoreFile = (typeof STORE_FILES)[number];
 
@@ -82,6 +89,13 @@ const captionsEnvelopeSchema = z.object({
   captions: z.array(screenCaptionSchema),
 });
 
+// Dismissed (or promoted) accessibility suggestions. A missing file means
+// none, so older data needs nothing.
+const suggestionsEnvelopeSchema = z.object({
+  version: z.literal(1),
+  dismissed: z.array(suggestionDismissalSchema),
+});
+
 // Approvals live in their own file, so they queue separately from feedback.
 function approvalsQueue(projectId: string) {
   return `${projectId}\0approvals`;
@@ -89,6 +103,10 @@ function approvalsQueue(projectId: string) {
 
 function captionsQueue(projectId: string) {
   return `${projectId}\0captions`;
+}
+
+function suggestionsQueue(projectId: string) {
+  return `${projectId}\0suggestions`;
 }
 
 type StorageFileSystem = {
@@ -518,6 +536,65 @@ export function createFeedbackStorage(options: FeedbackStorageOptions) {
     });
   }
 
+  async function readDismissals(
+    projectId: string,
+  ): Promise<SuggestionDismissal[]> {
+    const envelope = await readEnvelope(
+      projectId,
+      "suggestions.json",
+      suggestionsEnvelopeSchema,
+      "suggestion",
+    );
+    return envelope?.dismissed ?? [];
+  }
+
+  async function listDismissedSuggestions(projectId: string) {
+    await afterPendingMutation(suggestionsQueue(projectId));
+    return readDismissals(projectId);
+  }
+
+  function setSuggestionDismissal(
+    projectId: string,
+    rawInput: SetSuggestionDismissalInput,
+  ): Promise<SuggestionDismissal[]> {
+    return serializeMutation(suggestionsQueue(projectId), async () => {
+      const input = setSuggestionDismissalInputSchema.parse(rawInput);
+      const dismissed = await readDismissals(projectId);
+      const others = dismissed.filter(
+        (item) =>
+          item.version !== input.version ||
+          item.screenId !== input.screenId ||
+          item.suggestionId !== input.suggestionId,
+      );
+      const current = dismissed.find((item) => !others.includes(item));
+      if (
+        input.dismissed
+          ? current && current.feedbackId === input.feedbackId
+          : !current
+      ) {
+        return dismissed;
+      }
+      const next = input.dismissed
+        ? [
+            ...others,
+            {
+              version: input.version,
+              screenId: input.screenId,
+              suggestionId: input.suggestionId,
+              ...(input.feedbackId ? { feedbackId: input.feedbackId } : {}),
+              dismissedAt: now().toISOString(),
+            },
+          ]
+        : others;
+      await writeAtomically(
+        projectId,
+        "suggestions.json",
+        suggestionsEnvelopeSchema.parse({ version: 1, dismissed: next }),
+      );
+      return next;
+    });
+  }
+
   async function listApprovals(projectId: string) {
     await afterPendingMutation(approvalsQueue(projectId));
     return readApprovals(projectId);
@@ -867,6 +944,8 @@ export function createFeedbackStorage(options: FeedbackStorageOptions) {
     setApproval,
     listCaptions,
     setCaption,
+    listDismissedSuggestions,
+    setSuggestionDismissal,
   };
 }
 
