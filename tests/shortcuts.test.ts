@@ -129,6 +129,29 @@ describe("shortcut router (ux-18)", () => {
     expect(vi.mocked(h.step!).mock.calls).toEqual([[1], [-1]]);
   });
 
+  it("steps sizes with Shift+arrows, never screens", () => {
+    const stepSize = vi.fn();
+    const h = handlers({ stepSize });
+    const event = press({ key: "ArrowRight", shiftKey: true });
+    routeShortcut(event, h);
+    routeShortcut(press({ key: "ArrowLeft", shiftKey: true }), h);
+    routeShortcut(
+      press(
+        { key: "ArrowLeft", shiftKey: true },
+        document.createElement("input"),
+      ),
+      h,
+    );
+    expect(stepSize.mock.calls).toEqual([[1], [-1]]);
+    expect(event.defaultPrevented).toBe(true);
+    expect(h.step).not.toHaveBeenCalled();
+
+    // With one size, Shift+arrows do nothing rather than stepping screens.
+    const single = handlers();
+    routeShortcut(press({ key: "ArrowRight", shiftKey: true }), single);
+    expect(single.step).not.toHaveBeenCalled();
+  });
+
   it("shares one typing and dialog check", () => {
     expect(isTyping(document.createElement("select"))).toBe(true);
     expect(isTyping(document.body)).toBe(false);

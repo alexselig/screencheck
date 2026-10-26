@@ -29,27 +29,31 @@ Ctrl+C to stop.
 
 Tidewater has two builds: **build-41**, from before the agent's fixes, and
 **build-42**, with them. Each is one entry in the **Revision** picker (top
-right), which opens on the newer build-42.
+right), which opens on the newer build-42. build-42 was captured at three
+sizes, **390**, **768** and **1440** wide, and opens at 1440; build-41 only at 1440. The table describes build-42 at 1440.
 
 | Screen                    | What's there                                       |
 | ------------------------- | -------------------------------------------------- |
-| 01 Sign in                | Approved (teal check in the rail)                  |
+| 01 Sign in                | Approved at every size (solid teal check)          |
 | 02 Home                   | One Won't fix with an agent reply, one In progress |
 | 03 Choose route           | Pin 1 Fixed with a reply thread; pin 2 open        |
 | 04 Pick a sailing         | One Verified, a P0 and a P1 open                   |
 | 05 Vehicle and passengers | P0 In progress                                     |
 | 06 Review and pay         | Pin 1 Fixed with a reply; pin 2 P0 open            |
-| 07 Booking confirmed      | P2 open, for the agent to fix                      |
+| 07 Booking confirmed      | P2 open; approved at 1440 only (outlined check)    |
 | 08 My trips               | P1 open, for the agent to fix                      |
 | 09 Settings               | Blank and unapproved, for your own pins            |
 
-**build-41** is the older build, with two open comments of its own.
+**build-41** is the older build, with two open comments of its own. At 390,
+**02 Home** has one more open comment, about the headline wrapping.
 
 ## Part 1: Look around (2 min)
 
 1. **Screen index (left rail).** Screens are grouped Access, Booking, Account.
-   Orange badges are open counts; a teal check means approved. Click
-   **«** to collapse the rail to numbers.
+   Each screen is listed once. Orange badges count open comments across every
+   size; a solid teal check means approved at every size, an outlined one
+   approved at some (hover it to see which). Click **«** to collapse the rail
+   to numbers.
 2. **Move between screens.** Use **‹ Prev / Next ›** in the bottom bar, the
    **← →** keys, or **[ ]**. After clicking a screen in the rail, **↑ ↓**
    step through the list and **Home / End** jump to the first or last screen.
@@ -71,23 +75,36 @@ right), which opens on the newer build-42.
 6. **Reply thread.** Go to **03 Choose route** and open pin 1 under Fixed. You'll
    see the agent's reply, your follow-up and the agent's second fix. Add a
    reply in the Reply box.
-7. **Approval guard.** Still on Choose route, tick **Approve screen** (or press
-   **⌘A**). ScreenCheck asks "1 fix not verified. Approve anyway?" Click **Cancel**.
+7. **Approval guard.** Still on Choose route, tick **Approve screen at 1440**
+   (or press **⌘A**). ScreenCheck asks "1 fix not verified. Approve anyway?" Click **Cancel**.
 8. **Verify a fix.** On pin 1, click **Verify**. It moves to Verified. Only a
-   reviewer can verify; agents can't. Tick **Approve screen** again: no
-   warning this time, and the rail shows a teal check.
+   reviewer can verify; agents can't. Tick **Approve screen at 1440** again:
+   no warning this time, and the rail shows an outlined check, because 390 and
+   768 are still to review.
 9. **Reopen a fix.** Go to **06 Review and pay**, open pin 1 and click
    **Reopen**. It goes back to Backlog for the agent to try again.
-10. **Approve your own screen.** On **09 Settings**, tick **Approve screen**.
-    Open comments don't block approval; only unverified fixes ask first.
-11. **Compare builds.** Switch the **Revision** picker to **build-41**. The Route
+10. **Approve your own screen.** On **09 Settings**, click **Approve all
+    sizes**. Open comments don't block approval; only unverified fixes ask
+    first. ⌘A approves just the size you're looking at.
+11. **Review every size.** Go to **02 Home**.
+    - The switcher above the capture reads **390 Phone · 768 Tablet · 1440
+      Desktop**. Click **390**, or press **Shift+←** / **Shift+→** to step
+      sizes. The size sticks as you move between screens, and the URL keeps it.
+    - At 390 the Home screen has its own comment. Pins belong to one size.
+    - **Fit** shows the whole width; **100%** shows actual pixels and the
+      canvas scrolls. Pins scale with the capture.
+    - **Compare sizes** lays every size of the screen side by side with its
+      pins. Click one to open it, or press Esc to go back where you were.
+    - **Before / After** in the bottom bar only appears at 1440 here, the one
+      size build-41 has.
+12. **Compare builds.** Switch the **Revision** picker to **build-41**. The Route
     screen has no "Save 10%" pill, and the old comments are there. Switch back
     to build-42.
-12. **Fullscreen.** Click the corner icon at the bottom left. The rail
+13. **Fullscreen.** Click the corner icon at the bottom left. The rail
     collapses and the feedback panel tucks away; ← → still work.
-13. **Export.** Click **Export**. Choose Markdown or JSON, all screens or this
+14. **Export.** Click **Export**. Choose Markdown or JSON, all screens or this
     one, and which statuses to include, then **Download**.
-14. **Hide approved screens.** At the top of the screen index, flip the **Hide
+15. **Hide approved screens.** At the top of the screen index, flip the **Hide
     approved screens** switch to drop approved rows so only what's left to
     review remains.
 

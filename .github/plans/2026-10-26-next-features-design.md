@@ -109,11 +109,14 @@ updates the registration. `--screen <id>` re-captures a single screen.
 1. **Release 0.2.0** to npm (blocked on the npm token or Trusted Publisher).
 2. **Leftover fixes:** don't label builds as "Resolution" (ux-3, ds-36); make
    counters match the index numbering (pr-10, ux-9); have `capture` write the
-   element map and fix the site snippet (pr-11). S.
+   element map and fix the site snippet (pr-11). S. _Done (ux-3, ds-36, pr-10,
+   ux-9) on `feat/responsive-review`; pr-11 is separate._
 3. **Capture at several sizes** (section 1, roadmap #6). M.
 4. **Responsive review, slice 1:** one row per screen, size switcher, Fit/100%
-   zoom, approval rollup (sections 2, 3, 5). M.
-5. **Responsive review, slice 2:** Compare sizes view. S.
+   zoom, approval rollup (sections 2, 3, 5). M. _Done on
+   `feat/responsive-review`._
+5. **Responsive review, slice 2:** Compare sizes view. S. _Done on
+   `feat/responsive-review`._
 6. **Responsive review, slice 3:** all-sizes comments, built together with
    **carry open pins forward** (#8) because both need element-map
    re-anchoring. M.

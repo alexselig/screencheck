@@ -1188,10 +1188,11 @@
   --config screencheck.config.mjs \
   --version build-42</code></pre>
               <p>
-                Each width becomes a version of revision
-                <code>build-42</code>, and a <b>Viewport</b> filter switches
-                between them. <code>--screen checkout</code> re-captures one
-                screen. Already have captures? Run
+                Each width becomes a size of revision <code>build-42</code>: the
+                screen index lists each screen once, and a
+                <b>390 · 768 · 1440</b> switcher above the capture picks the
+                size. <code>--screen checkout</code> re-captures one screen.
+                Already have captures? Run
                 <code>npx screencheck init shop --captures ./captures</code>.
               </p>
             </div>
@@ -1219,6 +1220,13 @@
               <tr>
                 <th scope="row">← / → or [ / ]</th>
                 <td>Previous / next screen (ignored while typing)</td>
+              </tr>
+              <tr>
+                <th scope="row">Shift+← / Shift+→</th>
+                <td>
+                  Previous / next size of this screen, when the build has
+                  several
+                </td>
               </tr>
               <tr>
                 <th scope="row">↑ / ↓, Home / End</th>

@@ -185,8 +185,13 @@ through each feature, from dropping a pin to an agent replying over MCP.
   collapsed and fullscreen. The open-comment count is a matching orange badge
   beside it; a screen that is approved and still has open comments shows both
   side by side.
+- **Approve all sizes** sits under Approve screen when the build has several
+  sizes. It approves every size still pending, asking first if any of them has
+  unverified fixes ("390: 1 fix not verified. Approve all anyway?"). ⌘A and
+  the checkbox approve only the size on screen.
 - **Hide approved screens**, a switch at the top of the screen index,
   drops approved screens from the list so only what's left to review remains.
+  With several sizes it hides only screens approved at every size.
   Turning it on from an approved screen moves you to the nearest open one. ↑ / ↓, ← / → and Prev / Next all skip
   the hidden rows; the choice is remembered.
 - A **Showing** strip above each capture says exactly what it shows (for
@@ -224,6 +229,7 @@ through each feature, from dropping a pin to an agent replying over MCP.
 | ⌘F / Ctrl+F       | Add feedback (replaces the browser's find in this app)                                                                                                                                              |
 | Arrows, Enter     | While placing a pin: move the crosshair (Shift moves further) and drop the pin; Comment on whole screen pins the top left                                                                           |
 | ← / → or [ / ]    | Previous / next screen (ignored while typing)                                                                                                                                                       |
+| Shift+← / Shift+→ | Previous / next size of this screen, when the build has several                                                                                                                                     |
 | ↑ / ↓, Home / End | In the screen index: previous / next, first / last screen                                                                                                                                           |
 | Tab               | The screen index is one tab stop; Skip to capture and Skip to feedback links come first                                                                                                             |
 | ⌘A / Ctrl+A       | Approve / unapprove the screen (ignored while typing)                                                                                                                                               |
@@ -648,16 +654,15 @@ placeholder project is always accepted.
 To register a project from its own manifests, keep a small importer script
 beside the registrations rather than in this repository.
 
-## Versions, revisions and viewports
+## Versions, revisions and sizes
 
 Each version is its own entry in the header's **Revision** picker, newest
 (last) first; `build-41` and `build-42` are two builds. Version ids are never
 split apart, so `build-43-390` is not read as "build-43 at 390". If one build
-was captured at several viewports, say so with optional `revision`, `viewport`
-(the width) and `label` fields; versions that share a `revision` appear as one
-entry, a **Viewport** filter lists their labels (the `label`, else the
-`viewport` width, else the id), and the screen index shows each screen once
-per viewport (`Checkout · 390`). `capture --config` writes all three:
+was captured at several widths, say so with optional `revision`, `viewport`
+(the width) and `label` fields; versions that share a `revision` are the
+**sizes** of one build and appear as one entry. Labels come from `label`, else
+the `viewport` width, else the id. `capture --config` writes all three:
 
 ```json
 "versions": [
@@ -665,6 +670,24 @@ per viewport (`Checkout · 390`). `capture --config` writes all three:
   { "id": "b42-mobile", "revision": "build-42", "viewport": 390, "label": "390", "captureRoot": "…/b42/mobile" }
 ]
 ```
+
+With several sizes:
+
+- The screen index lists each screen once. Its orange badge counts open
+  comments across every size; a solid teal check means approved at every size,
+  an outlined check approved at some, with a tooltip such as "Approved at 1440;
+  390 and 768 still to review".
+- A switcher above the capture picks the size: **390 Phone · 768 Tablet ·
+  1440 Desktop** (Phone up to 480 wide, Tablet up to 1024, Desktop beyond).
+  **Shift+← / Shift+→** step through it. The size stays as you move between
+  screens or switch revision, and the address bar's `version` keeps it. The
+  build opens at its last registered size.
+- **Fit** (the default) fits the capture's whole width to the canvas; **100%**
+  shows actual pixels and the canvas scrolls. Pins scale with the capture.
+- **Compare sizes** shows every size of the screen side by side at the same
+  height, each with its pins, read-only. Click a size to open it; Close or Esc
+  returns to the size you were on.
+- Pins and approvals belong to one size.
 
 When an earlier build exists, the footer's **Before | After** toggle (or **B**)
 flips the canvas to the previous build's capture of the same screen at the same

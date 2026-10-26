@@ -33,6 +33,8 @@ export const SHORTCUTS = {
   next: { label: "→", aria: "ArrowRight ]" },
   escape: { label: "Esc", aria: "Escape" },
   beforeAfter: { label: "B", aria: "B" },
+  previousSize: { label: "Shift+←", aria: "Shift+ArrowLeft" },
+  nextSize: { label: "Shift+→", aria: "Shift+ArrowRight" },
 } as const;
 
 // Escape undoes only the innermost thing. Layers are checked in order; the
@@ -55,6 +57,8 @@ export type ShortcutHandlers = {
   // select-all still runs.
   approve?: () => boolean;
   step?: (delta: 1 | -1) => void;
+  // Shift+← / Shift+→ step between the sizes of the current screen.
+  stepSize?: (delta: 1 | -1) => void;
   // Flips the canvas between this build and the previous one.
   beforeAfter?: () => void;
 };
@@ -98,6 +102,13 @@ export function routeShortcut(
   if (event.key.toLowerCase() === "b" && handlers.beforeAfter) {
     event.preventDefault();
     handlers.beforeAfter();
+    return;
+  }
+  if (event.shiftKey) {
+    if (event.key !== "ArrowRight" && event.key !== "ArrowLeft") return;
+    if (!handlers.stepSize) return;
+    event.preventDefault();
+    handlers.stepSize(event.key === "ArrowRight" ? 1 : -1);
     return;
   }
   if (!handlers.step) return;

@@ -13,7 +13,7 @@ import {
 import { createPinNumbers } from "../../shared/export";
 import { ElementLine } from "./element-line";
 import { SHORTCUTS, type ApproveShortcut } from "../shortcuts";
-import { ApprovalBar } from "./approval-bar";
+import { ApprovalBar, type SizeApproval } from "./approval-bar";
 import { VerifyActions } from "./verify-actions";
 import { MentionText, ReviewerNameField } from "./reviewer-name";
 import {
@@ -276,7 +276,16 @@ export function FeedbackInspector({
   onVisibleFeedbackChange?: (feedback: FeedbackRecord[]) => void;
   hiddenPinStatuses?: readonly FeedbackStatus[];
   onTogglePinStatus?: (status: FeedbackStatus) => void;
-  approval?: { approved: boolean; ready: boolean; onToggle: () => void };
+  approval?: {
+    approved: boolean;
+    ready: boolean;
+    onToggle: () => void;
+    // Set when the screen has several sizes: the toggle approves one size,
+    // Approve all sizes the rest.
+    sizeLabel?: string;
+    sizes?: SizeApproval[];
+    onApproveAll?: () => void;
+  };
   // Filled with the ⌘A handler for App's shortcut router.
   approveShortcut?: ApproveShortcut;
   ready?: boolean;
@@ -1722,6 +1731,9 @@ export function FeedbackInspector({
           onCloseConfirm={closeApprovalConfirm}
           onToggle={approval.onToggle}
           toggleRef={approvalToggleRef}
+          allSizes={approval.sizes}
+          onApproveAll={approval.onApproveAll}
+          sizeLabel={approval.sizeLabel}
           unverifiedFixes={unverifiedFixes}
         />
       ) : null}

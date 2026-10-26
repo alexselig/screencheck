@@ -18,6 +18,7 @@ import {
   FullscreenReview,
   type FullscreenDrawer,
 } from "./components/fullscreen-review";
+import { CompareSizes } from "./components/compare-sizes";
 import {
   PinBoxOutline,
   pinBoxClassName,
@@ -25,6 +26,7 @@ import {
 } from "./components/pin-layer";
 import { ReviewerNameMenuItem } from "./components/reviewer-name";
 import { ScreenCaption } from "./components/screen-caption";
+import { CanvasToolbar, type Zoom } from "./components/size-switcher";
 import {
   ScreenRail,
   readHideApproved,
@@ -35,6 +37,8 @@ import {
   defaultRailMode,
 } from "./components/screen-rail";
 import { isApproved, type ScreenApproval } from "../shared/approvals";
+import { rollUpSizes } from "./sizes";
+import { useSizes, viewportLookup } from "./use-sizes";
 import { captionFor, type ScreenCaption as Caption } from "../shared/captions";
 import { createPinNumbers } from "../shared/export";
 import {
@@ -331,8 +335,6 @@ function Workbench({
   );
   const [newerDismissed, setNewerDismissed] = useState(false);
   const [selectedChoice, setSelectedId] = useState(initialPlace.screen ?? "");
-  // "all" lists every resolution in the rail; a version narrows it to one.
-  const [resolutionChoice, setResolutionChoice] = useState("all");
   // Before shows the previous build's capture of the same screen and size.
   const [showBefore, setShowBefore] = useState(false);
   const project =
@@ -363,15 +365,10 @@ function Workbench({
     () => versions.versionsOf(revision),
     [versions, revision],
   );
-  const resolution = revisionVersions.includes(resolutionChoice)
-    ? resolutionChoice
-    : "all";
-  const version =
-    resolution !== "all"
-      ? resolution
-      : revisionVersions.includes(versionChoice)
-        ? versionChoice
-        : revisionVersions.at(-1)!;
+  // A revision's versions are its sizes; the chosen one is the version.
+  const version = revisionVersions.includes(versionChoice)
+    ? versionChoice
+    : revisionVersions.at(-1)!;
   const beforeVersion = versions.previousVersion(version);
   const comparing = showBefore && beforeVersion !== undefined;
   const shownVersion = comparing ? beforeVersion : version;
@@ -595,93 +592,63 @@ function Workbench({
     });
   }, []);
 
-  const approvedIds = useMemo(
-    () =>
-      new Set(
-        (approvals ?? [])
-          .filter((approval) => approval.version === version)
-          .map((approval) => approval.screenId),
-      ),
-    [approvals, version],
+  const chooseSize = useCallback((next: string) => {
+    setVersionChoice(next);
+    // Pins belong to one size, so a half-placed pin does not follow.
+    setAddingFeedback(false);
+    setDraftPin(null);
+    setSelectedFeedbackId(null);
+  }, []);
+  const viewportOf = useMemo(
+    () => viewportLookup(project.versionDetails),
+    [project.versionDetails],
   );
-  // When a revision has several versions (one per viewport), the rail lists
-  // every screen at each of them so review is one scroll rather than a
-  // dropdown per screen.
-  const flatItems = useMemo(() => {
-    const shown = revisionVersions.filter(
-      (item) => resolution === "all" || item === resolution,
-    );
-    // Rows keep their screen's ordinal; the version is a separate tag, so
-    // the rail, canvas and action bar share one numbering.
-    return screens.flatMap((screen) =>
-      shown.map((item) => ({
-        ...screen,
-        id: `${screen.id}@@${item}`,
-        screenId: screen.id,
-        version: item,
-        versionLabel: labelOf(item),
-      })),
-    );
-  }, [revisionVersions, resolution, screens, labelOf]);
-  const flatMode = revisionVersions.length > 1;
-  // The versions the rail lists, which Export offers to include.
+  const sizing = useSizes({
+    revisionVersions,
+    labelOf,
+    viewportOf,
+    version,
+    onChange: chooseSize,
+  });
+  const { sizes } = sizing;
+  // Changing build keeps the size you were reviewing when the build has it.
+  const sameSizeIn = (next: string) =>
+    versions
+      .versionsOf(next)
+      .find((item) => labelOf(item) === labelOf(version)) ?? "";
+  // One index row per screen: badges and approval roll up across sizes.
+  const rollup = useMemo(
+    () =>
+      rollUpSizes(
+        screens.map((item) => item.id),
+        sizes,
+        feedbackRecords,
+        approvals ?? [],
+      ),
+    [screens, sizes, feedbackRecords, approvals],
+  );
+  // The sizes Export offers to include.
   const exportVersions = useMemo(
-    () =>
-      (flatMode
-        ? revisionVersions.filter(
-            (item) => resolution === "all" || item === resolution,
-          )
-        : [version]
-      ).map((id) => ({ id, label: labelOf(id) })),
-    [flatMode, revisionVersions, resolution, version, labelOf],
-  );
-  const flatOpenCounts = useMemo(() => {
-    const counts = new Map<string, number>();
-    for (const item of feedbackRecords) {
-      if (isOpenFeedback(item)) {
-        const key = `${item.screenId}@@${item.version}`;
-        counts.set(key, (counts.get(key) ?? 0) + 1);
-      }
-    }
-    return counts;
-  }, [feedbackRecords]);
-  const flatApprovedIds = useMemo(
-    () =>
-      new Set(
-        (approvals ?? []).map(
-          (approval) => `${approval.screenId}@@${approval.version}`,
-        ),
-      ),
-    [approvals],
+    () => sizes.map((size) => ({ id: size.version, label: size.label })),
+    [sizes],
   );
   const [hideApproved, setHideApproved] = useState(readHideApproved);
   const changeHideApproved = useCallback((hide: boolean) => {
     setHideApproved(hide);
     writeHideApproved(hide);
   }, []);
-  const railSelectedId = flatMode ? `${selectedId}@@${version}` : selectedId;
-  const railApprovedIds = flatMode ? flatApprovedIds : approvedIds;
   // The rows the rail shows; Prev/Next and ← / → walk the same list.
   const railItems = useMemo(
     () =>
-      visibleRailScreens<{ id: string; screenId: string; version?: string }>(
-        flatMode
-          ? flatItems
-          : screens.map((item) => ({ id: item.id, screenId: item.id })),
-        railSelectedId,
-        railApprovedIds,
+      visibleRailScreens(
+        screens.map((item) => ({ id: item.id })),
+        selectedId,
+        rollup.approvedIds,
         hideApproved,
       ),
-    [
-      flatMode,
-      flatItems,
-      screens,
-      railSelectedId,
-      railApprovedIds,
-      hideApproved,
-    ],
+    [screens, selectedId, rollup.approvedIds, hideApproved],
   );
-  const railIndex = railItems.findIndex((item) => item.id === railSelectedId);
+  const railIndex = railItems.findIndex((item) => item.id === selectedId);
   const screenApproved = approvals
     ? isApproved(approvals, version, selectedId)
     : false;
@@ -778,6 +745,56 @@ function Workbench({
     }
   }, [approvals, clearNotice, project.id, selectedId, version]);
 
+  // Approves every size still to review, one request per size.
+  const approveAllSizes = useCallback(async () => {
+    if (!approvals) return;
+    const previous = approvals;
+    const request = ++approvalRequest.current;
+    const pending = sizes.filter(
+      (size) => !isApproved(previous, size.version, selectedId),
+    );
+    if (pending.length === 0) return;
+    const approvedAt = new Date().toISOString();
+    setApprovals([
+      ...previous,
+      ...pending.map((size) => ({
+        version: size.version,
+        screenId: selectedId,
+        approvedAt,
+      })),
+    ]);
+    try {
+      let saved = previous;
+      for (const size of pending) {
+        saved = await putApproval(project.id, {
+          version: size.version,
+          screenId: selectedId,
+          approved: true,
+        });
+      }
+      if (request === approvalRequest.current) {
+        setApprovals(saved);
+        clearNotice("approval-save");
+      }
+    } catch (error) {
+      if (request !== approvalRequest.current) return;
+      // Some sizes may have saved; reload rather than guess.
+      setApprovals(previous);
+      fetchApprovals(project.id).then(
+        (list) => {
+          if (request === approvalRequest.current) setApprovals(list);
+        },
+        () => undefined,
+      );
+      setNotice({
+        kind: "approval-save",
+        text: `Approval was not saved: ${
+          error instanceof Error ? error.message : "unknown error"
+        }`,
+      });
+    }
+  }, [approvals, clearNotice, project.id, selectedId, sizes]);
+
   // A failed save is about the screen it happened on; moving on retires it.
   useEffect(() => {
     setNotice((current) =>
@@ -799,24 +816,24 @@ function Workbench({
     }
   }, []);
 
-  const selectRailItem = useCallback(
-    (item: { screenId: string; version?: string }) => {
-      if (item.version) setVersionChoice(item.version);
-      selectScreen(item.screenId);
-    },
-    [selectScreen],
-  );
-
   const stepScreen = useCallback(
     (delta: number) => {
       const next = railIndex < 0 ? undefined : railItems[railIndex + delta];
-      if (next) selectRailItem(next);
+      if (next) selectScreen(next.id);
     },
-    [railIndex, railItems, selectRailItem],
+    [railIndex, railItems, selectScreen],
   );
+
+  // Compare sizes replaces the capture; it opens on the size you were on.
+  const [comparingSizes, setComparingSizes] = useState(false);
+  const [zoom, setZoom] = useState<Zoom>("fit");
+  useEffect(() => {
+    if (!sizing.multiple) setComparingSizes(false);
+  }, [sizing.multiple]);
 
   const startPin = useCallback(() => {
     if (!ready) return;
+    setComparingSizes(false);
     // Pins belong to this build, so adding one leaves the Before view.
     setShowBefore(false);
     setAddingFeedback(true);
@@ -828,7 +845,6 @@ function Workbench({
     setProjectId(id);
     setVersionChoice("");
     setRevisionChoice("");
-    setResolutionChoice("all");
     setSelectedId("");
     setFeedbackRecords([]);
     setAddingFeedback(false);
@@ -853,6 +869,10 @@ function Workbench({
       },
       { active: phone && sheetOpen, run: () => setSheetOpen(false) },
       {
+        active: comparingSizes,
+        run: () => setComparingSizes(false),
+      },
+      {
         active: fullscreen && drawer.open,
         run: () => setDrawer(CLOSED_DRAWER),
       },
@@ -865,6 +885,7 @@ function Workbench({
       return Boolean(approve);
     },
     step: stepScreen,
+    stepSize: sizing.multiple && !comparingSizes ? sizing.step : undefined,
     beforeAfter: beforeVersion
       ? () => setShowBefore((value) => !value)
       : undefined,
@@ -874,18 +895,14 @@ function Workbench({
     <ScreenRail
       mode={fullscreen ? fullscreenRailMode : railMode}
       onModeChange={fullscreen ? setFullscreenRailMode : setRailMode}
-      approvedIds={railApprovedIds}
+      approvedIds={rollup.approvedIds}
+      partialApprovals={rollup.partialApprovals}
       hideApproved={hideApproved}
       onHideApprovedChange={changeHideApproved}
-      onSelect={(id) => {
-        const item = flatMode
-          ? flatItems.find((entry) => entry.id === id)
-          : undefined;
-        selectRailItem(item ?? { screenId: id });
-      }}
-      openCounts={flatMode ? flatOpenCounts : openCounts}
-      screens={flatMode ? flatItems : screens}
-      selectedId={railSelectedId}
+      onSelect={selectScreen}
+      openCounts={rollup.openCounts}
+      screens={screens}
+      selectedId={selectedId}
     />
   );
   const feedback = (
@@ -906,7 +923,7 @@ function Workbench({
       }}
       onSelectFeedback={setSelectedFeedbackId}
       onAddFeedback={startPin}
-      onSelectScreen={(screenId) => selectRailItem({ screenId })}
+      onSelectScreen={selectScreen}
       onUpdate={updateFeedback}
       onDelete={deleteFeedback}
       onVisibleFeedbackChange={setVisibleFeedback}
@@ -916,6 +933,26 @@ function Workbench({
         approved: screenApproved,
         ready: approvals !== null,
         onToggle: toggleApproval,
+        ...(sizing.multiple
+          ? {
+              sizeLabel: sizing.current?.label,
+              sizes: sizes.map((size) => ({
+                label: size.label,
+                approved: (approvals ?? []).some(
+                  (item) =>
+                    item.version === size.version &&
+                    item.screenId === selectedId,
+                ),
+                unverifiedFixes: feedbackRecords.filter(
+                  (item) =>
+                    item.screenId === selectedId &&
+                    item.version === size.version &&
+                    item.status === "RESOLVED",
+                ).length,
+              })),
+              onApproveAll: () => void approveAllSizes(),
+            }
+          : {}),
       }}
       key={project.id}
       projectId={project.id}
@@ -930,24 +967,29 @@ function Workbench({
       (item) => item.screenId === selected.id && item.version === version,
     ).length + 1;
   const captureKey = `${project.id}/${shownVersion}/${selected.id}`;
+  // Until the capture loads, a width-shaped size label is the best guess.
   const frameSize =
-    captureSize?.key === captureKey ? captureSize : selected.viewport;
+    captureSize?.key === captureKey
+      ? captureSize
+      : {
+          width: sizing.current?.width ?? selected.viewport.width,
+          height: selected.viewport.height,
+        };
   const canvas = (
     <section
       className="review-canvas"
       data-adding-feedback={addingFeedback}
+      data-zoom={zoom}
       data-testid="canvas"
       id="review-capture"
       tabIndex={-1}
-      style={
-        { "--screen-width": `${selected.viewport.width}px` } as CSSProperties
-      }
+      style={{ "--screen-width": `${frameSize.width}px` } as CSSProperties}
     >
       <header className="canvas-header">
         <div>
           <span className="eyebrow">
             {String(selected.ordinal).padStart(2, "0")} / {screens.length} ·{" "}
-            {flatMode ? `${labelOf(version)} · ` : ""}
+            {sizing.multiple ? `${labelOf(version)} · ` : ""}
             {selected.group}
           </span>
           <div className="canvas-title">
@@ -977,168 +1019,211 @@ function Workbench({
         onSave={saveCaption}
         saved={captions ? captionFor(captions, version, selectedId) : undefined}
       />
+      <CanvasToolbar
+        onCompare={() => {
+          setShowBefore(false);
+          setAddingFeedback(false);
+          setDraftPin(null);
+          setComparingSizes((open) => !open);
+        }}
+        comparing={comparingSizes}
+        onSize={chooseSize}
+        onZoom={setZoom}
+        sizes={sizes}
+        version={version}
+        zoom={zoom}
+      />
+      {comparingSizes ? (
+        <CompareSizes
+          captureSrc={(item) =>
+            selected.hasCapture
+              ? captureSrc(project.id, item, selected.id)
+              : undefined
+          }
+          fallbackHeight={selected.viewport.height}
+          onClose={() => setComparingSizes(false)}
+          onPick={(item) => {
+            chooseSize(item);
+            setComparingSizes(false);
+          }}
+          pinNumbers={pinNumbers}
+          pinsFor={(item) =>
+            feedbackRecords.filter(
+              (record) =>
+                record.screenId === selectedId &&
+                record.version === item &&
+                !hiddenPinStatuses.includes(record.status),
+            )
+          }
+          sizes={sizes}
+          title={selected.title}
+          version={version}
+        />
+      ) : null}
       {placingPin ? (
         <p className="canvas-adding-hint" role="status">
           Click the screen to place pin {nextPinNumber}, or use the arrow keys
           and Enter · Esc to cancel
         </p>
       ) : null}
-      <div
-        className="screen-frame"
-        data-testid="screen-frame"
-        {...pinDrag.handlers}
-        onKeyDown={(event) => {
-          if (!placingPin || !ready) return;
-          const step = event.shiftKey ? 0.1 : 0.01;
-          const move = {
-            ArrowLeft: [-step, 0],
-            ArrowRight: [step, 0],
-            ArrowUp: [0, -step],
-            ArrowDown: [0, step],
-          }[event.key];
-          if (move) {
-            event.preventDefault();
-            setCrosshair((current) => ({
-              x: clampUnit(current.x + move[0]!),
-              y: clampUnit(current.y + move[1]!),
-            }));
-          } else if (event.key === "Enter" || event.key === " ") {
-            event.preventDefault();
-            placePin(crosshair);
-          }
-        }}
-        ref={frameRef}
-        {...(placingPin
-          ? {
-              "aria-label": `Place a pin at ${Math.round(crosshair.x * 100)}% across, ${Math.round(crosshair.y * 100)}% down. Arrow keys move, Shift moves further, Enter drops the pin.`,
-              role: "application",
-              tabIndex: 0,
+      <div className="screen-scroll" hidden={comparingSizes}>
+        <div
+          className="screen-frame"
+          data-testid="screen-frame"
+          {...pinDrag.handlers}
+          onKeyDown={(event) => {
+            if (!placingPin || !ready) return;
+            const step = event.shiftKey ? 0.1 : 0.01;
+            const move = {
+              ArrowLeft: [-step, 0],
+              ArrowRight: [step, 0],
+              ArrowUp: [0, -step],
+              ArrowDown: [0, step],
+            }[event.key];
+            if (move) {
+              event.preventDefault();
+              setCrosshair((current) => ({
+                x: clampUnit(current.x + move[0]!),
+                y: clampUnit(current.y + move[1]!),
+              }));
+            } else if (event.key === "Enter" || event.key === " ") {
+              event.preventDefault();
+              placePin(crosshair);
             }
-          : {})}
-        style={
-          {
-            "--screen-ratio": `${frameSize.width} / ${frameSize.height}`,
-            "--screen-width": `${frameSize.width}px`,
-          } as CSSProperties
-        }
-      >
-        {selected.hasCapture && !captureFailed ? (
-          <img
-            alt={`${selected.title} capture`}
-            className="screen-capture"
-            draggable={false}
-            key={captureKey}
-            onError={() => setCaptureFailed(true)}
-            onLoad={(event) => {
-              const { naturalWidth, naturalHeight } = event.currentTarget;
-              if (naturalWidth && naturalHeight) {
-                setCaptureSize({
-                  key: captureKey,
-                  width: naturalWidth,
-                  height: naturalHeight,
-                });
+          }}
+          ref={frameRef}
+          {...(placingPin
+            ? {
+                "aria-label": `Place a pin at ${Math.round(crosshair.x * 100)}% across, ${Math.round(crosshair.y * 100)}% down. Arrow keys move, Shift moves further, Enter drops the pin.`,
+                role: "application",
+                tabIndex: 0,
               }
-            }}
-            src={captureSrc(project.id, shownVersion, selected.id)}
-          />
-        ) : (
-          <div className="empty-canvas">
-            <span className="eyebrow">
-              {String(selected.ordinal).padStart(2, "0")} / {screens.length}
+            : {})}
+          style={
+            {
+              "--screen-ratio": `${frameSize.width} / ${frameSize.height}`,
+              "--screen-width": `${frameSize.width}px`,
+            } as CSSProperties
+          }
+        >
+          {selected.hasCapture && !captureFailed ? (
+            <img
+              alt={`${selected.title} capture`}
+              className="screen-capture"
+              draggable={false}
+              key={captureKey}
+              onError={() => setCaptureFailed(true)}
+              onLoad={(event) => {
+                const { naturalWidth, naturalHeight } = event.currentTarget;
+                if (naturalWidth && naturalHeight) {
+                  setCaptureSize({
+                    key: captureKey,
+                    width: naturalWidth,
+                    height: naturalHeight,
+                  });
+                }
+              }}
+              src={captureSrc(project.id, shownVersion, selected.id)}
+            />
+          ) : (
+            <div className="empty-canvas">
+              <span className="eyebrow">
+                {String(selected.ordinal).padStart(2, "0")} / {screens.length}
+              </span>
+              <h2>{selected.title}</h2>
+              <span className="screen-frame-size">
+                {captureFailed
+                  ? "Capture could not load · "
+                  : selected.hasCapture
+                    ? ""
+                    : "No capture · "}
+                {selected.viewport.width} × {selected.viewport.height}
+              </span>
+            </div>
+          )}
+          {comparing ? (
+            <span className="before-badge">
+              Before · {revisionName(revisionOf(beforeVersion))}
             </span>
-            <h2>{selected.title}</h2>
-            <span className="screen-frame-size">
-              {captureFailed
-                ? "Capture could not load · "
-                : selected.hasCapture
-                  ? ""
-                  : "No capture · "}
-              {selected.viewport.width} × {selected.viewport.height}
-            </span>
-          </div>
-        )}
-        {comparing ? (
-          <span className="before-badge">
-            Before · {revisionName(revisionOf(beforeVersion))}
-          </span>
-        ) : null}
-        <div className="feedback-pin-layer" aria-label="Screen feedback pins">
-          {visibleFeedback
-            .filter(
-              (item) =>
-                !comparing &&
-                item.screenId === selectedId &&
-                item.version === version &&
-                (!hiddenPinStatuses.includes(item.status) ||
-                  item.id === selectedFeedbackId),
-            )
-            .map((item) => [
-              pinBoxOf(item) ? (
-                <PinBoxOutline
-                  box={pinBoxOf(item)!}
-                  className={pinBoxClassName(
-                    item.status,
-                    item.id === selectedFeedbackId,
-                  )}
-                  key={`${item.id}-box`}
-                  testId="feedback-box"
-                />
-              ) : null,
-              <button
-                aria-controls={`feedback-comment-${item.id}`}
-                aria-label={`Pin ${pinNumbers.get(item.id) ?? 0}${item.status === "RESOLVED" ? " (fixed)" : item.status === "VERIFIED" ? " (verified)" : ""}: ${item.note}`}
-                aria-pressed={item.id === selectedFeedbackId}
-                className={`feedback-pin ${pinDotClassName(item, item.id === selectedFeedbackId)}`}
-                data-testid="feedback-pin"
-                id={feedbackPinId(item.id)}
-                key={item.id}
-                // The feedback panel moves focus into the opened editor.
-                onClick={() => setSelectedFeedbackId(item.id)}
+          ) : null}
+          <div className="feedback-pin-layer" aria-label="Screen feedback pins">
+            {visibleFeedback
+              .filter(
+                (item) =>
+                  !comparing &&
+                  item.screenId === selectedId &&
+                  item.version === version &&
+                  (!hiddenPinStatuses.includes(item.status) ||
+                    item.id === selectedFeedbackId),
+              )
+              .map((item) => [
+                pinBoxOf(item) ? (
+                  <PinBoxOutline
+                    box={pinBoxOf(item)!}
+                    className={pinBoxClassName(
+                      item.status,
+                      item.id === selectedFeedbackId,
+                    )}
+                    key={`${item.id}-box`}
+                    testId="feedback-box"
+                  />
+                ) : null,
+                <button
+                  aria-controls={`feedback-comment-${item.id}`}
+                  aria-label={`Pin ${pinNumbers.get(item.id) ?? 0}${item.status === "RESOLVED" ? " (fixed)" : item.status === "VERIFIED" ? " (verified)" : ""}: ${item.note}`}
+                  aria-pressed={item.id === selectedFeedbackId}
+                  className={`feedback-pin ${pinDotClassName(item, item.id === selectedFeedbackId)}`}
+                  data-testid="feedback-pin"
+                  id={feedbackPinId(item.id)}
+                  key={item.id}
+                  // The feedback panel moves focus into the opened editor.
+                  onClick={() => setSelectedFeedbackId(item.id)}
+                  style={{
+                    left: `${pinAnchor(item).x * 100}%`,
+                    top: `${pinAnchor(item).y * 100}%`,
+                  }}
+                  type="button"
+                >
+                  {pinNumbers.get(item.id) ?? 0}
+                </button>,
+              ])}
+            {placingPin ? (
+              <span
+                aria-hidden="true"
+                className="pin-crosshair"
                 style={{
-                  left: `${pinAnchor(item).x * 100}%`,
-                  top: `${pinAnchor(item).y * 100}%`,
+                  left: `${crosshair.x * 100}%`,
+                  top: `${crosshair.y * 100}%`,
                 }}
-                type="button"
+              />
+            ) : null}
+            {pinDrag.preview ? (
+              <PinBoxOutline
+                box={pinDrag.preview}
+                className="is-draft"
+                testId="pin-box-preview"
+              />
+            ) : null}
+            {draftPin?.box ? (
+              <PinBoxOutline
+                box={draftPin.box}
+                className="is-draft"
+                testId="draft-box"
+              />
+            ) : null}
+            {draftPin ? (
+              <span
+                className="feedback-pin pin-dot feedback-pin-draft"
+                data-testid="draft-pin"
+                style={{
+                  left: `${pinAnchor(draftPin).x * 100}%`,
+                  top: `${pinAnchor(draftPin).y * 100}%`,
+                }}
               >
-                {pinNumbers.get(item.id) ?? 0}
-              </button>,
-            ])}
-          {placingPin ? (
-            <span
-              aria-hidden="true"
-              className="pin-crosshair"
-              style={{
-                left: `${crosshair.x * 100}%`,
-                top: `${crosshair.y * 100}%`,
-              }}
-            />
-          ) : null}
-          {pinDrag.preview ? (
-            <PinBoxOutline
-              box={pinDrag.preview}
-              className="is-draft"
-              testId="pin-box-preview"
-            />
-          ) : null}
-          {draftPin?.box ? (
-            <PinBoxOutline
-              box={draftPin.box}
-              className="is-draft"
-              testId="draft-box"
-            />
-          ) : null}
-          {draftPin ? (
-            <span
-              className="feedback-pin pin-dot feedback-pin-draft"
-              data-testid="draft-pin"
-              style={{
-                left: `${pinAnchor(draftPin).x * 100}%`,
-                top: `${pinAnchor(draftPin).y * 100}%`,
-              }}
-            >
-              +
-            </span>
-          ) : null}
+                +
+              </span>
+            ) : null}
+          </div>
         </div>
       </div>
     </section>
@@ -1199,7 +1284,7 @@ function Workbench({
         </button>
         <div className="action-bar-middle">
           <span
-            aria-label={`Screen ${selected.ordinal} of ${screens.length}`}
+            aria-label={`Screen ${selected.ordinal} of ${screens.length}${sizing.multiple && sizing.current ? ` at ${sizing.current.label}` : ""}`}
             aria-live="polite"
             className="action-bar-place"
           >
@@ -1388,9 +1473,7 @@ function Workbench({
           navigation={navigation}
           drawer={drawer}
           onDrawerChange={setDrawer}
-          openCount={
-            (flatMode ? flatOpenCounts : openCounts).get(railSelectedId) ?? 0
-          }
+          openCount={openCounts.get(selectedId) ?? 0}
         >
           {canvas}
         </FullscreenReview>
@@ -1434,19 +1517,9 @@ function Workbench({
               <select
                 onChange={(event) => {
                   const next = event.target.value;
-                  const sameResolution = project.versions.find(
-                    (item) =>
-                      revisionOf(item) === next &&
-                      labelOf(item) === labelOf(version),
-                  );
                   setNewerDismissed(true);
                   setRevisionChoice(next);
-                  setVersionChoice(sameResolution ?? "");
-                  setResolutionChoice(
-                    resolution !== "all" && sameResolution
-                      ? sameResolution
-                      : "all",
-                  );
+                  setVersionChoice(sameSizeIn(next));
                 }}
                 value={revision}
               >
@@ -1458,28 +1531,11 @@ function Workbench({
               </select>
             </label>
           ) : null}
-          {revisionVersions.length > 1 ? (
-            <label>
-              Viewport
-              <select
-                onChange={(event) => {
-                  const next = event.target.value;
-                  setResolutionChoice(next);
-                  if (next !== "all") setVersionChoice(next);
-                }}
-                value={resolution}
-              >
-                <option value="all">All</option>
-                {revisionVersions.map((item) => (
-                  <option key={item} value={item}>
-                    {labelOf(item)}
-                  </option>
-                ))}
-              </select>
-            </label>
-          ) : (
+          {!sizing.multiple ? (
             <span className="status-pill">{version}</span>
-          )}
+          ) : revisions.length <= 1 ? (
+            <span className="status-pill">{revisionName(revision)}</span>
+          ) : null}
         </div>
       </header>
       {newerBuild ? (
@@ -1492,8 +1548,7 @@ function Workbench({
             onClick={() => {
               setNewerDismissed(true);
               setRevisionChoice(newestRevision);
-              setVersionChoice("");
-              setResolutionChoice("all");
+              setVersionChoice(sameSizeIn(newestRevision));
             }}
             type="button"
           >

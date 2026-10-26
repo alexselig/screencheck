@@ -4,7 +4,8 @@
 //   npm run playground -- --reset # wipe the playground and seed it again
 //
 // It uses the made-up Tidewater ferry app from the project site, with two
-// builds (build-41 and build-42), and keeps its own data in
+// builds (build-41 and build-42, the latter at 390 / 768 / 1440), and keeps
+// its own data in
 // ~/.screencheck-playground. Your real ~/.screencheck is never touched.
 // The walkthrough is docs/PLAYGROUND.md.
 import { spawn } from "node:child_process";
@@ -24,7 +25,14 @@ import {
   PROJECT_NAME,
   REGISTERED_SCREENS,
 } from "./project.mjs";
-import { APPROVED, SEED, VERSIONS } from "./scenario.mjs";
+import {
+  APPROVED,
+  EXTRA_SIZES,
+  SEED,
+  SIZE_APPROVED,
+  SIZE_SEED,
+  VERSIONS,
+} from "./scenario.mjs";
 
 const ROOT = path.resolve(
   path.dirname(fileURLToPath(import.meta.url)),
@@ -38,30 +46,59 @@ const HOME =
 const reset = process.argv.includes("--reset");
 const noOpen = process.argv.includes("--no-open");
 
-async function renderCaptures(browser, captureRoot) {
-  const page = await browser.newPage({
-    viewport: { width: 1440, height: 1000 },
-  });
+// The demo app is desktop-only; this lets its narrow captures reflow.
+const NARROW_CSS = `
+.top { padding: 0 16px; gap: 16px; } .top nav { display: none; }
+main { padding: 24px 16px; }
+.g2, .side { grid-template-columns: 1fr; }
+.sail { grid-template-columns: 72px 1fr; }
+.hero { height: auto; padding: 24px; } .hero h1 { font-size: 28px; }
+.steps { flex-wrap: wrap; }`;
+
+// Every capture to render: build-41 and build-42 at 1440, plus build-42's
+// extra sizes as versions of the same revision.
+function captureVersions() {
+  const list = [];
   for (const [version, screens] of Object.entries(VERSIONS)) {
-    await mkdir(path.join(captureRoot, version), { recursive: true });
+    for (const width of EXTRA_SIZES[version] ?? []) {
+      list.push({
+        id: `${version}-${width}`,
+        revision: version,
+        width,
+        screens,
+      });
+    }
+    list.push({ id: version, revision: version, width: 1440, screens });
+  }
+  return list;
+}
+
+async function renderCaptures(browser, captureRoot) {
+  for (const { id, width, screens } of captureVersions()) {
+    const page = await browser.newPage({ viewport: { width, height: 1000 } });
+    await mkdir(path.join(captureRoot, id), { recursive: true });
     for (const screen of screens) {
       await page.setContent(screen.html);
+      if (width < 1024) await page.addStyleTag({ content: NARROW_CSS });
       await captureFullPage(page, {
-        path: path.join(captureRoot, version, `${screen.id}.png`),
+        path: path.join(captureRoot, id, `${screen.id}.png`),
         elements: true,
       });
     }
+    await page.close();
   }
-  await page.close();
 }
 
 async function writeRegistration(projectsRoot, captureRoot) {
   const registration = {
     id: PROJECT,
     name: PROJECT_NAME,
-    versions: Object.keys(VERSIONS).map((id) => ({
+    // The 1440 version comes last in its revision, so it opens first.
+    versions: captureVersions().map(({ id, revision, width }) => ({
       id,
       captureRoot: path.join(captureRoot, id),
+      revision,
+      label: String(width),
     })),
     screens: REGISTERED_SCREENS,
   };
@@ -109,7 +146,10 @@ async function api(method, route, body, headers = {}) {
 }
 
 async function seed() {
-  for (const [version, comments] of Object.entries(SEED)) {
+  for (const [version, comments] of Object.entries({
+    ...SEED,
+    ...SIZE_SEED,
+  })) {
     for (const comment of comments) {
       let record = (
         await api("POST", "/feedback", {
@@ -151,7 +191,11 @@ async function seed() {
       }
     }
   }
+  const approved = { ...SIZE_APPROVED };
   for (const [version, screens] of Object.entries(APPROVED)) {
+    approved[version] = [...screens, ...(approved[version] ?? [])];
+  }
+  for (const [version, screens] of Object.entries(approved)) {
     for (const screenId of screens) {
       await api(
         "PUT",
