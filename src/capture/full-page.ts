@@ -629,7 +629,7 @@ export function collectElementsInPage(): ElementMap {
 
 // The parts of a Playwright Page this needs, so any Playwright version works.
 export type CapturePage = {
-  evaluate<R>(pageFunction: () => R): Promise<R>;
+  evaluate<R>(pageFunction: (() => R) | string): Promise<R>;
   screenshot(options?: object): Promise<Uint8Array>;
 };
 
@@ -655,11 +655,18 @@ export function elementMapPath(capturePath: string) {
   return `${capturePath.replace(/\.[^./\\]*$/, "")}.elements.json`;
 }
 
+// tsx and other esbuild runners compile with keepNames, wrapping named
+// functions in __name(); the page has no such helper, so give it a no-op.
+// A string, because any function here could be wrapped the same way.
+const DEFINE_NAME_HELPER =
+  "globalThis.__name = globalThis.__name || function (target) { return target; }";
+
 export async function captureFullPage(
   page: CapturePage,
   options: CaptureOptions = {},
 ): Promise<CaptureResult> {
   const { elements: elementsOption, ...screenshotOptions } = options;
+  await page.evaluate(DEFINE_NAME_HELPER);
   const { pinned } = await page.evaluate(pinBottomChromeInPage);
   try {
     const image = await page.screenshot({

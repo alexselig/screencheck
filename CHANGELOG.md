@@ -57,6 +57,11 @@ provenance.
   screen moves to the nearest screen still to review.
 - The compact screen index has no pin button; the expand arrows keep it open.
 
+### Fixed
+
+- `capture` works when run through tsx (`npm run screencheck`); page
+  functions no longer fail with `__name is not defined`.
+
 ## [0.2.0] - 2026-10-22
 
 ### Added

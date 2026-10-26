@@ -172,3 +172,26 @@ describe("captureFullPage", () => {
     await tab.close();
   });
 });
+
+describe("page functions compiled with keepNames", () => {
+  // tsx/esbuild wrap named functions in __name(), which the page lacks;
+  // this stand-in page calls __name the way that compiled code would.
+  it("defines __name in the page before running its own functions", async () => {
+    const tab = await open(page("<main></main>"));
+    try {
+      const compiled = {
+        evaluate: <R>(fn: (() => R) | string) =>
+          tab.evaluate(
+            typeof fn === "string"
+              ? fn
+              : `(() => { const f = ${fn.toString()}; __name(f, "f"); return f(); })()`,
+          ) as Promise<R>,
+        screenshot: (options?: object) => tab.screenshot(options),
+      };
+      const result = await captureFullPage(compiled, { elements: false });
+      expect(result.image.byteLength).toBeGreaterThan(0);
+    } finally {
+      await tab.close();
+    }
+  });
+});
