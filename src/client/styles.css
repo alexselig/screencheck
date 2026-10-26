@@ -331,7 +331,7 @@ h1 {
 }
 
 .before-after button {
-  min-height: var(--size-touch);
+  min-height: calc(var(--size-touch) - 10px);
   margin: calc(var(--space-1) - 1px) 0;
   padding: 0 var(--space-3);
   border: 1px solid var(--ink);
