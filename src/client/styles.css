@@ -3153,3 +3153,78 @@ button.tag-chip:hover {
   font-weight: 600;
   cursor: not-allowed;
 }
+
+/* AI assist (#14): quiet text buttons; results wait for the reviewer. */
+.assist-tools {
+  display: grid;
+  gap: var(--space-1);
+}
+
+.assist-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+}
+
+.assist-link {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--bauhaus-blue);
+  font-size: 11px;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.assist-link:disabled {
+  color: var(--ink-muted);
+  text-decoration: none;
+  cursor: default;
+}
+
+.assist-link:focus-visible {
+  outline: 2px solid var(--bauhaus-blue);
+  outline-offset: 2px;
+}
+
+.assist-hint {
+  margin: 0;
+  color: var(--ink-muted);
+  font-size: 11px;
+}
+
+.assist-error {
+  color: var(--bauhaus-orange);
+}
+
+.assist-suggestion {
+  display: grid;
+  gap: var(--space-1);
+  padding: var(--space-2);
+  border: 1px solid var(--line-strong);
+  background: var(--surface-alt);
+  font-size: 13px;
+}
+
+.assist-suggestion p {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1);
+  margin: 0;
+}
+
+.assist-summary-dialog {
+  width: min(640px, 100%);
+}
+
+.assist-summary-text {
+  min-height: 280px;
+  padding: var(--space-2);
+  border: 1px solid var(--ink);
+  border-radius: 0;
+  background: var(--surface);
+  color: var(--ink);
+  font-family: ui-monospace, "SF Mono", Menlo, monospace;
+  font-size: 13px;
+  resize: vertical;
+}
