@@ -15,6 +15,8 @@ import { ElementLine } from "./element-line";
 import { SHORTCUTS, type ApproveShortcut } from "../shortcuts";
 import { ApprovalBar, type SizeApproval } from "./approval-bar";
 import { VerifyActions } from "./verify-actions";
+import { PlacementLine, PlacementOk, ScopeChoice } from "./placement-note";
+import { pinnedAtOf } from "../all-sizes";
 import { MentionText, ReviewerNameField } from "./reviewer-name";
 import {
   FEEDBACK_STATUSES,
@@ -26,7 +28,9 @@ import {
   normalizeTags,
   normalizedCoordinateSchema,
   priorityTag,
+  scopeOf,
   type CreateFeedbackInput,
+  type FeedbackScope,
   type FeedbackMessage,
   type FeedbackRecord,
   type FeedbackStatus,
@@ -223,6 +227,9 @@ export function pinDotClassName(item: FeedbackRecord, selected: boolean) {
     item.status === "VERIFIED" ? "is-verified" : "",
     item.status === "WONT_FIX" ? "is-closed" : "",
     selected ? "is-selected" : "",
+    // An all-sizes comment shown on a size other than the one it was pinned on.
+    pinnedAtOf(item) ? "is-other-size" : "",
+    item.checkPlacement === true ? "needs-placement" : "",
   ]
     .filter(Boolean)
     .join(" ");
@@ -259,6 +266,7 @@ export function FeedbackInspector({
   adding = false,
   onAddFeedback,
   onSelectScreen,
+  multipleSizes = false,
 }: {
   projectId: string;
   screens: ReviewScreen[];
@@ -293,6 +301,8 @@ export function FeedbackInspector({
   // The empty state's inline Add feedback and its jump to the next screen.
   onAddFeedback?: () => void;
   onSelectScreen?: (screenId: string) => void;
+  // The revision has several sizes: comments may cover all of them.
+  multipleSizes?: boolean;
 }) {
   const emptyHeadingId = useId();
   const initialRecoveries = useMemo(
@@ -415,6 +425,10 @@ export function FeedbackInspector({
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const editorSectionRef = useRef<HTMLElement>(null);
   const previousDraftPinRef = useRef<Pin | null>(null);
+  // This size / All sizes for the comment being drafted.
+  const [draftScope, setDraftScope] = useState<FeedbackScope>("size");
+  const draftScopeRef = useRef<FeedbackScope>("size");
+  draftScopeRef.current = draftScope;
   const pendingDraftFocusRef = useRef(false);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const revisionRef = useRef(0);
@@ -538,6 +552,7 @@ export function FeedbackInspector({
     const previousDraftPin = previousDraftPinRef.current;
     previousDraftPinRef.current = draftPin;
     if (!draftPin || previousDraftPin === draftPin) return;
+    setDraftScope("size");
 
     const recovery =
       readRecoveryEntries(projectId)[
@@ -740,6 +755,9 @@ export function FeedbackInspector({
           x: pin.x,
           y: pin.y,
           ...(pin.box ? { box: pin.box } : {}),
+          ...(multipleSizes && draftScopeRef.current === "all"
+            ? { scope: "all" as const }
+            : {}),
           note: nextEditor.note.trim(),
           tags: nextEditor.tags,
           status: "OPEN",
@@ -992,6 +1010,37 @@ export function FeedbackInspector({
             ? `Retry required: ${error.message}`
             : "Retry required",
       });
+    }
+  }
+
+  // A saved comment changes scope at once; a draft sends it on create, or
+  // updates the record its first save already made.
+  async function changeScope(scope: FeedbackScope) {
+    const pin = effectiveDraftPin;
+    const record =
+      latestRecordRef.current ?? (pin ? createdRef.current.get(pin) : null);
+    if (!record) {
+      setDraftScope(scope);
+      return;
+    }
+    setSaveMessage("Saving…");
+    try {
+      const updated = await onUpdate(record.id, {
+        expectedUpdatedAt: record.updatedAt,
+        patch: { scope },
+      });
+      if (latestRecordRef.current?.id === updated.id) {
+        latestRecordRef.current = updated;
+      }
+      if (pin) createdRef.current.set(pin, updated);
+      setDraftScope(scope);
+      setSaveMessage("Saved");
+    } catch (error) {
+      setSaveMessage(
+        error instanceof Error
+          ? `Retry required: ${error.message}`
+          : "Retry required",
+      );
     }
   }
 
@@ -1272,6 +1321,7 @@ export function FeedbackInspector({
             </span>
           ) : null}
           <ElementLine projectId={projectId} pin={item} />
+          <PlacementLine item={item} />
           {otherTags.length ? (
             <span className="feedback-comment-tags">
               {otherTags.map((tag) => (
@@ -1286,6 +1336,11 @@ export function FeedbackInspector({
         {item.status === "RESOLVED" || item.status === "VERIFIED"
           ? verifyActions(item)
           : null}
+        <PlacementOk
+          item={item}
+          onConfirm={() => void updateCard(item, { checkPlacement: false })}
+          pin={pinNumbers.get(item.id) ?? 0}
+        />
         {deleteButton(item)}
         {deleteConfirm(item)}
       </li>
@@ -1412,6 +1467,22 @@ export function FeedbackInspector({
       ) : null}
       {editingRecord ? (
         <ElementLine projectId={projectId} pin={editingRecord} />
+      ) : null}
+      {editingRecord ? <PlacementLine item={editingRecord} /> : null}
+      {multipleSizes && !(editingRecord && pinnedAtOf(editingRecord)) ? (
+        <ScopeChoice
+          onChange={changeScope}
+          value={editingRecord ? scopeOf(editingRecord) : draftScope}
+        />
+      ) : null}
+      {editingRecord ? (
+        <PlacementOk
+          item={editingRecord}
+          onConfirm={() =>
+            void updateCard(editingRecord, { checkPlacement: false })
+          }
+          pin={pinNumbers.get(editingRecord.id) ?? 0}
+        />
       ) : null}
       {editingThread.length ? (
         <ol aria-label="Thread" className="feedback-thread">
