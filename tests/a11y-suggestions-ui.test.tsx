@@ -108,6 +108,31 @@ describe("suggested accessibility comments", () => {
     expect(ghosts()).toHaveLength(2);
   });
 
+  it("stacks the tabs of findings on the same element", async () => {
+    const page = { target: "html", box: { x: 0, y: 0, w: 1, h: 1 } };
+    api.setA11yReport("build-42", screenId, {
+      ...REPORT,
+      violations: [
+        {
+          id: "document-title",
+          impact: "serious",
+          help: "Title",
+          nodes: [page],
+        },
+        { id: "html-has-lang", impact: "serious", help: "Lang", nodes: [page] },
+      ],
+    });
+    render(<App />);
+    await waitFor(() => expect(ghosts()).toHaveLength(2));
+    expect(
+      ghosts().map((tab) => tab.style.getPropertyValue("--ghost-stack")),
+    ).toEqual(["0", "1"]);
+    expect(ghosts()[0]).toHaveClass("is-inside");
+    fireEvent.click(ghosts()[1]!);
+    // A page-sized box: the card sits over its top edge.
+    expect(screen.getByRole("dialog").style.top).toBe("0%");
+  });
+
   it("hides ghosts while Before shows the previous build", async () => {
     api.setA11yReport("build-42", screenId, REPORT);
     render(<App />);
@@ -138,6 +163,8 @@ describe("suggested accessibility comments", () => {
     expect(
       within(card).getByRole("link", { name: "How to fix" }),
     ).toHaveAttribute("href", REPORT.violations[0]!.helpUrl);
+    // Below a short box near the top.
+    expect(card.style.top).toBe("25%");
     fireEvent.keyDown(card, { key: "Escape" });
     expect(screen.queryByRole("dialog")).toBeNull();
     expect(ghosts()).toHaveLength(2);
@@ -169,6 +196,12 @@ describe("suggested accessibility comments", () => {
       }),
     ]);
     expect(await screen.findAllByTestId(/^feedback-pin/)).not.toHaveLength(0);
+    // The new comment is selected.
+    await waitFor(() =>
+      expect(
+        screen.getByRole("button", { name: /^Pin 1: Elements must meet/ }),
+      ).toHaveAttribute("aria-pressed", "true"),
+    );
   });
 
   it("moderate findings promote at P2", async () => {

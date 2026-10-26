@@ -49,6 +49,9 @@ async function renderCaptures(browser, captureRoot) {
       await captureFullPage(page, {
         path: path.join(captureRoot, version, `${screen.id}.png`),
         elements: true,
+        // Writes <screen>.a11y.json for suggested comments; skipped with a
+        // notice when axe-core isn't installed.
+        a11y: true,
       });
     }
   }

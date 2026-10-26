@@ -1765,6 +1765,8 @@ h1 {
   font-size: 15px;
   font-weight: 500;
   line-height: 1.45;
+  /* Long URLs (suggested comments carry a rule link) wrap inside the card. */
+  overflow-wrap: anywhere;
 }
 
 .feedback-comment[aria-pressed="true"] .feedback-comment-note {
@@ -2557,14 +2559,14 @@ button.tag-chip:hover {
   line-height: 1.5;
   text-transform: uppercase;
   white-space: nowrap;
-  transform: translateY(-100%);
+  translate: 0 calc(-100% - var(--ghost-stack, 0) * 100%);
   pointer-events: auto;
   cursor: pointer;
 }
 
-/* A box at the very top has no room above it; the tab goes inside. */
+/* A box at the very top has no room above it; the tabs go inside. */
 .suggestion-ghost.is-inside {
-  transform: none;
+  translate: 0 calc(var(--ghost-stack, 0) * 100%);
 }
 
 .suggestion-ghost:hover,
@@ -2937,8 +2939,10 @@ button.tag-chip:hover {
     display: block;
   }
 
-  /* No room beside Prev/Next; the "…" menu carries Before/After instead. */
-  .before-after {
+  /* No room beside Prev/Next; the "…" menu carries Before/After instead.
+     Suggestions stay on, without their switch. */
+  .before-after,
+  .suggestions-switch {
     display: none;
   }
 

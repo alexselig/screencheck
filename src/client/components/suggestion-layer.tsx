@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, type CSSProperties } from "react";
 
 import type { Suggestion } from "../../shared/a11y";
 import type { SuggestionsState } from "../use-suggestions";
@@ -19,10 +19,16 @@ export function SuggestionLayer({
 }) {
   if (hidden || !state.show || !state.suggestions.length) return null;
   const { open } = state;
+  // Findings on the same element (often page-level ones on <html>) share a
+  // corner; stack their tabs rather than drawing one over another.
+  const seen = new Map<string, number>();
   return (
     <>
       {state.suggestions.map((suggestion) => {
         const isOpen = open?.id === suggestion.id;
+        const corner = `${suggestion.box.x},${suggestion.box.y}`;
+        const stack = seen.get(corner) ?? 0;
+        seen.set(corner, stack + 1);
         return [
           <PinBoxOutline
             box={suggestion.box}
@@ -39,10 +45,13 @@ export function SuggestionLayer({
             data-testid="suggestion-ghost"
             key={suggestion.id}
             onClick={() => state.setOpenId(isOpen ? null : suggestion.id)}
-            style={{
-              left: `${suggestion.box.x * 100}%`,
-              top: `${suggestion.box.y * 100}%`,
-            }}
+            style={
+              {
+                left: `${suggestion.box.x * 100}%`,
+                top: `${suggestion.box.y * 100}%`,
+                "--ghost-stack": stack,
+              } as CSSProperties
+            }
             type="button"
           >
             Suggested
@@ -75,7 +84,14 @@ function SuggestionCard({
       ?.focus();
   };
   const { box } = suggestion;
-  const below = box.y + box.h < 0.7;
+  // Below the box when there's room, above it when it sits low, and over its
+  // top edge when it's tall (page-level findings box the whole page).
+  const placement =
+    box.y + box.h < 0.7
+      ? { top: `${(box.y + box.h) * 100}%` }
+      : box.y >= 0.3
+        ? { bottom: `${(1 - box.y) * 100}%` }
+        : { top: `${box.y * 100}%` };
   return (
     <div
       aria-label="Suggested accessibility comment"
@@ -90,9 +106,7 @@ function SuggestionCard({
       role="dialog"
       style={{
         left: `min(${box.x * 100}%, calc(100% - var(--suggestion-card-width)))`,
-        ...(below
-          ? { top: `${(box.y + box.h) * 100}%` }
-          : { bottom: `${(1 - box.y) * 100}%` }),
+        ...placement,
       }}
     >
       <div className="suggestion-card-head">
