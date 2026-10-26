@@ -13,8 +13,31 @@ provenance.
 - **Before | After** toggle in the footer (and **B**): flips the canvas to the
   previous build's capture of the same screen and size. On phones it is in the
   **…** menu.
+- **Responsive review.** Versions that share a `revision` are sizes of one
+  build:
+  - A size switcher above the capture (**390 Phone · 768 Tablet · 1440
+    Desktop**), with **Shift+← / Shift+→** to step sizes. The size carries
+    across screens and revisions and is kept in the address bar.
+  - **Fit / 100%** zoom: fit the whole width, or actual pixels with a
+    scrolling canvas. Pins scale with the capture.
+  - **Compare sizes**: every size of the screen side by side at one height,
+    with its pins. Click a size to open it; Esc returns.
+  - **Approve all sizes**, with the same unverified-fixes check per size.
+  - A version's numeric `viewport` is used as its width when present.
 
 ### Changed
+
+- The screen index lists each screen once per build, not once per size: open
+  badges count across sizes, and an outlined check marks a screen approved at
+  some sizes but not all. **Hide approved screens** hides only screens approved
+  at every size.
+- The **Viewport** filter is gone; the size switcher replaces it. Shift+← / →
+  now step sizes rather than screens (plain ← / → and [ / ] still step
+  screens).
+- Builds are never called "Resolution" anywhere in the UI or docs, and the
+  footer counter and screen index numbers always agree, since each screen
+  has one row.
+- The playground captures build-42 at 390, 768 and 1440.
 
 - **Hide approved screens** is a switch, and turning it on from an approved
   screen moves to the nearest screen still to review.

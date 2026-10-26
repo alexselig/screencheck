@@ -1191,10 +1191,11 @@ await captureFullPage(page, {
 }</code></pre>
               <p>
                 Register one version per build and width, such as
-                <code>abc1234-desktop-1440</code> and
-                <code>abc1234-mobile-390</code>, and the screen index lists
-                every screen at each width. <b>Revision</b> and
-                <b>Resolution</b> pickers narrow it.
+                <code>abc1234-1440</code> and <code>abc1234-390</code>, with a
+                shared <code>revision</code> and a <code>label</code> for the
+                width. They become sizes of one build: the screen index lists
+                each screen once, and a <b>390 · 768 · 1440</b> switcher above
+                the capture picks the size.
               </p>
             </div>
           </div>
@@ -1221,6 +1222,13 @@ await captureFullPage(page, {
               <tr>
                 <th scope="row">← / → or [ / ]</th>
                 <td>Previous / next screen (ignored while typing)</td>
+              </tr>
+              <tr>
+                <th scope="row">Shift+← / Shift+→</th>
+                <td>
+                  Previous / next size of this screen, when the build has
+                  several
+                </td>
               </tr>
               <tr>
                 <th scope="row">↑ / ↓, Home / End</th>

@@ -17,11 +17,12 @@ describe("ROADMAP.md", () => {
     expect(named.filter((name) => !registered.has(name))).toEqual([]);
   });
 
-  it("describes tag-driven releases and the shipped rail", () => {
+  it("describes tag-driven releases and the shipped size review", () => {
     expect(roadmap).not.toMatch(/provenance on `v\*` tags/);
     expect(roadmap).toMatch(/tag-driven/);
-    expect(roadmap).toMatch(/Resolution\*\* filter/);
-    expect(roadmap).toMatch(/_Partly shipped:_/);
+    expect(roadmap).not.toMatch(/Resolution\*\* filter/);
+    expect(roadmap).toMatch(/size switcher/);
+    expect(roadmap).toMatch(/_Mostly shipped:_/);
   });
 
   it("keeps `screencheck capture` for one URL and ranks config capture first", () => {
