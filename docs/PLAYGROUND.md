@@ -87,9 +87,9 @@ right), which opens on the newer build-42.
     collapses and the feedback panel tucks away; ← → still work.
 13. **Export.** Click **Export**. Choose Markdown or JSON, all screens or this
     one, and which statuses to include, then **Download**.
-14. **Hide approved screens.** At the top of the screen index, click **Hide
-    approved screens** to drop approved rows so only what's left to review
-    remains.
+14. **Hide approved screens.** At the top of the screen index, flip the **Hide
+    approved screens** switch to drop approved rows so only what's left to
+    review remains.
 
 ## Part 3: Let an agent close the loop (5 min)
 

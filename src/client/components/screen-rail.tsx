@@ -95,7 +95,6 @@ export function ScreenRail({
   onHideApprovedChange?: (hide: boolean) => void;
 }) {
   const [temporaryExpanded, setTemporaryExpanded] = useState(false);
-  const [pinned, setPinned] = useState(false);
   const [hideApprovedState, setHideApproved] = useState(readHideApproved);
   const hideApproved = hideApprovedProp ?? hideApprovedState;
   const approvedCount = screens.filter((screen) =>
@@ -116,7 +115,7 @@ export function ScreenRail({
       writeHideApproved(next);
     }
   }
-  const expanded = mode === "wide" || temporaryExpanded || pinned;
+  const expanded = mode === "wide" || temporaryExpanded;
   let previousGroup = "";
   let groupIndex = -1;
   const navRef = useRef<HTMLElement>(null);
@@ -203,42 +202,16 @@ export function ScreenRail({
       data-mode={mode}
       onFocus={() => mode === "compact" && setTemporaryExpanded(true)}
       onBlur={(event) => {
-        if (!event.currentTarget.contains(event.relatedTarget) && !pinned) {
+        if (!event.currentTarget.contains(event.relatedTarget)) {
           setTemporaryExpanded(false);
         }
       }}
       onMouseEnter={() => mode === "compact" && setTemporaryExpanded(true)}
-      onMouseLeave={() => !pinned && setTemporaryExpanded(false)}
+      onMouseLeave={() => setTemporaryExpanded(false)}
     >
       <div className="rail-head">
         <div className="rail-toolbar">
           {expanded ? <h2 className="rail-title">Screen index</h2> : null}
-          {mode === "compact" && expanded ? (
-            <button
-              aria-label="Keep open"
-              aria-pressed={pinned}
-              className="rail-pin-button"
-              onClick={() => setPinned((value) => !value)}
-              title={pinned ? "Let the index collapse" : "Keep the index open"}
-              type="button"
-            >
-              {/* A thumbtack; "pin" already names feedback markers. */}
-              <svg
-                aria-hidden="true"
-                height="16"
-                viewBox="0 0 16 16"
-                width="16"
-              >
-                <path
-                  d="M6 2h4M7 2v4L4.5 9h7L9 6V2M8 9v5"
-                  fill={pinned ? "currentColor" : "none"}
-                  stroke="currentColor"
-                  strokeLinejoin="round"
-                  strokeWidth="1.5"
-                />
-              </svg>
-            </button>
-          ) : null}
           {onModeChange ? (
             <button
               aria-label={
@@ -252,7 +225,6 @@ export function ScreenRail({
                 mode === "wide" ? "Collapse to numbers" : "Expand screen index"
               }
               onClick={() => {
-                setPinned(false);
                 setTemporaryExpanded(false);
                 onModeChange(mode === "wide" ? "compact" : "wide");
               }}
@@ -280,14 +252,17 @@ export function ScreenRail({
         </div>
         {approvedCount > 0 ? (
           <button
-            aria-pressed={hideApproved}
+            aria-checked={hideApproved}
             className="rail-filter-button"
             onClick={toggleHideApproved}
+            role="switch"
             type="button"
           >
-            {hideApproved
-              ? `Show approved screens (${approvedCount})`
-              : "Hide approved screens"}
+            <span aria-hidden="true" className="rail-filter-switch" />
+            <span>Hide approved screens</span>
+            {hideApproved ? (
+              <span className="rail-filter-count">{approvedCount} hidden</span>
+            ) : null}
           </button>
         ) : null}
       </div>

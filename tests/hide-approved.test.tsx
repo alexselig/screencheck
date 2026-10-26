@@ -48,15 +48,14 @@ describe("hide approved screens", () => {
     );
     expect(rows()).toEqual(["s1", "s2", "s3", "s4"]);
 
-    const toggle = screen.getByRole("button", {
-      name: "Hide approved screens",
+    const toggle = screen.getByRole("switch", {
+      name: /Hide approved screens/,
     });
-    expect(toggle).toHaveAttribute("aria-pressed", "false");
+    expect(toggle).toHaveAttribute("aria-checked", "false");
     fireEvent.click(toggle);
     expect(rows()).toEqual(["s1", "s3", "s4"]);
-    expect(
-      screen.getByRole("button", { name: "Show approved screens (2)" }),
-    ).toHaveAttribute("aria-pressed", "true");
+    expect(toggle).toHaveAttribute("aria-checked", "true");
+    expect(toggle).toHaveTextContent("2 hidden");
 
     // ↑ from s3 skips the hidden s2.
     fireEvent.keyDown(screen.getByRole("button", { name: /Screen 3/ }), {
@@ -64,9 +63,7 @@ describe("hide approved screens", () => {
     });
     expect(onSelect).toHaveBeenCalledWith("s1");
 
-    fireEvent.click(
-      screen.getByRole("button", { name: "Show approved screens (2)" }),
-    );
+    fireEvent.click(toggle);
     expect(rows()).toEqual(["s1", "s2", "s3", "s4"]);
   });
 
@@ -81,7 +78,7 @@ describe("hide approved screens", () => {
       />,
     );
     fireEvent.click(
-      screen.getByRole("button", { name: "Hide approved screens" }),
+      screen.getByRole("switch", { name: /Hide approved screens/ }),
     );
     first.unmount();
 
@@ -107,7 +104,7 @@ describe("hide approved screens", () => {
       />,
     );
     expect(
-      screen.queryByRole("button", { name: /approved screens/ }),
+      screen.queryByRole("switch", { name: /approved screens/ }),
     ).not.toBeInTheDocument();
   });
 });
@@ -136,7 +133,11 @@ describe("hide approved screens with Prev/Next", () => {
     const rail = await screen.findByRole("navigation", {
       name: "Screen navigation",
     });
-    await within(rail).findByRole("button", { name: /Show approved screens/ });
+    expect(
+      await within(rail).findByRole("switch", {
+        name: /Hide approved screens/,
+      }),
+    ).toHaveAttribute("aria-checked", "true");
     expect(
       within(rail).queryByRole("button", { name: /Session bootstrap/ }),
     ).toBeNull();

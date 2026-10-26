@@ -194,11 +194,12 @@ describe("ScreenRail", () => {
     expect(versionTag("Mobile")).toBe("Mob");
   });
 
-  it("keeps a hovered compact rail open with an icon toggle (ds-34)", () => {
+  it("has no pin button; the expand arrows keep the rail open", () => {
+    const onModeChange = vi.fn();
     render(
       <ScreenRail
         mode="compact"
-        onModeChange={vi.fn()}
+        onModeChange={onModeChange}
         onSelect={vi.fn()}
         screens={screens}
         selectedId="one"
@@ -206,15 +207,12 @@ describe("ScreenRail", () => {
     );
     const rail = screen.getByRole("navigation", { name: "Screen navigation" });
     fireEvent.mouseEnter(rail);
-    const keep = screen.getByRole("button", { name: "Keep open" });
-    expect(keep).toHaveAttribute("aria-pressed", "false");
-    expect(keep).toHaveTextContent("");
-    expect(keep.querySelector("svg")).not.toBeNull();
-    expect(screen.queryByRole("button", { name: /^(Un)?pin$/i })).toBeNull();
-    fireEvent.click(keep);
-    expect(keep).toHaveAttribute("aria-pressed", "true");
-    fireEvent.mouseLeave(rail);
     expect(rail).toHaveAttribute("data-expanded", "true");
+    expect(screen.queryByRole("button", { name: "Keep open" })).toBeNull();
+    fireEvent.click(
+      screen.getByRole("button", { name: "Expand screen index" }),
+    );
+    expect(onModeChange).toHaveBeenCalledWith("wide");
   });
 
   it("centres the current screen in the strip, clamped to its ends (ds-27)", () => {
@@ -242,7 +240,7 @@ describe("ScreenRail", () => {
       screen.getByRole("button", { name: "Collapse screen index" }),
     );
     expect(head).toContainElement(
-      screen.getByRole("button", { name: "Hide approved screens" }),
+      screen.getByRole("switch", { name: /Hide approved screens/ }),
     );
     expect(head!.querySelector("ol")).toBeNull();
   });

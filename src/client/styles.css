@@ -522,6 +522,13 @@ h1 {
   padding-inline: var(--space-1);
 }
 
+/* Open, the title, filter and section labels share the wide rail's 16px
+   inset instead of hugging the edge. */
+.screen-rail[data-mode="compact"][data-expanded="true"] .rail-head,
+.screen-rail[data-mode="compact"][data-expanded="true"] ol h3 {
+  padding-inline: var(--space-3);
+}
+
 .screen-rail[data-mode="compact"][data-expanded="true"] {
   width: 320px;
   box-shadow: 1px 0 0 var(--ink);
@@ -549,8 +556,7 @@ h1 {
 }
 
 /* Small visible icon; the hit area extends past it to stay easy to click. */
-.rail-mode-button,
-.rail-pin-button {
+.rail-mode-button {
   position: relative;
   display: inline-flex;
   align-items: center;
@@ -780,13 +786,15 @@ h1 {
 }
 
 .screen-rail[data-mode="compact"]:not([data-expanded="true"]) .screen-name,
-.screen-rail[data-mode="compact"]:not([data-expanded="true"]) .screen-version,
-.screen-rail[data-mode="compact"]:not([data-expanded="true"]) .rail-pin-button {
+.screen-rail[data-mode="compact"]:not([data-expanded="true"]) .screen-version {
   display: none;
 }
 
+/* A switch, so it reads as something to flip rather than a heading. */
 .rail-filter-button {
-  display: block;
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
   margin: var(--space-1) 0 var(--space-2);
   padding: var(--space-1) 0;
   border: 0;
@@ -799,12 +807,50 @@ h1 {
   cursor: pointer;
   letter-spacing: 0.12em;
   text-transform: uppercase;
-  text-underline-offset: 3px;
 }
 
-.rail-filter-button:hover,
-.rail-filter-button:focus-visible {
-  text-decoration: underline;
+.rail-filter-switch {
+  position: relative;
+  flex: none;
+  width: 28px;
+  height: 16px;
+  border: 1px solid var(--line-strong);
+  border-radius: 999px;
+  background: var(--surface);
+  transition: background var(--fast) ease;
+}
+
+.rail-filter-switch::after {
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 10px;
+  height: 10px;
+  border-radius: 999px;
+  background: var(--ink-muted);
+  content: "";
+  transition: transform var(--fast) ease;
+}
+
+.rail-filter-button[aria-checked="true"] .rail-filter-switch {
+  border-color: var(--bauhaus-blue);
+  background: var(--bauhaus-blue);
+}
+
+.rail-filter-button[aria-checked="true"] .rail-filter-switch::after {
+  background: var(--on-blue);
+  transform: translateX(12px);
+}
+
+.rail-filter-button:hover .rail-filter-switch {
+  border-color: var(--ink);
+}
+
+.rail-filter-count {
+  color: var(--ink-muted);
+  font-weight: 400;
+  letter-spacing: 0.04em;
+  text-transform: none;
 }
 
 .rail-filter-button:focus-visible {
@@ -1049,7 +1095,6 @@ h1 {
 }
 
 .rail-mode-button::after,
-.rail-pin-button::after,
 .feedback-delete-x::after,
 .feedback-collapse::after {
   position: absolute;
@@ -1058,18 +1103,12 @@ h1 {
 }
 
 .icon-button:hover,
-.rail-mode-button:hover,
-.rail-pin-button:hover {
+.rail-mode-button:hover {
   background: var(--surface-alt);
   box-shadow: inset 0 0 0 1px var(--ink);
 }
 
-.rail-pin-button[aria-pressed="true"] {
-  box-shadow: inset 0 0 0 1px var(--ink);
-}
-
-.rail-mode-button:focus-visible,
-.rail-pin-button:focus-visible {
+.rail-mode-button:focus-visible {
   outline: 2px solid var(--bauhaus-blue);
   outline-offset: 0;
 }

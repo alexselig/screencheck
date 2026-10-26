@@ -99,8 +99,8 @@ through each feature, from dropping a pin to an agent replying over MCP.
 
 ## Current implementation
 
-- Wide and compact numbered navigation with hover/focus expansion and a
-  **Keep open** toggle. Between 901 and 1200px the index opens compact to give
+- Wide and compact numbered navigation with hover/focus expansion; the expand
+  arrows keep it open. Between 901 and 1200px the index opens compact to give
   the capture room. Its title, collapse control and filter stay in view while
   the list scrolls.
 - Fullscreen review: a slim numbered screen strip on the left that expands to
@@ -161,7 +161,7 @@ through each feature, from dropping a pin to an agent replying over MCP.
   collapsed and fullscreen. The open-comment count is a matching orange badge
   beside it; a screen that is approved and still has open comments shows both
   side by side.
-- **Hide approved screens**, a text button at the top of the screen index,
+- **Hide approved screens**, a switch at the top of the screen index,
   drops approved screens from the list (the current screen always stays) so
   only what's left to review remains. ↑ / ↓, ← / → and Prev / Next all skip
   the hidden rows; the choice is remembered.
