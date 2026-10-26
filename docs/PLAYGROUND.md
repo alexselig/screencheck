@@ -97,9 +97,15 @@ sizes, **390**, **768** and **1440** wide, and opens at 1440; build-41 only at 1
       pins. Click one to open it, or press Esc to go back where you were.
     - **Before / After** in the bottom bar only appears at 1440 here, the one
       size build-41 has.
+    - At 1440 a **Toggle · Overlay · Slider · Diff** picker sits above the
+      capture. On **03 Choose route**, try **Slider** (drag, or ← / →) to see
+      the "Save 10%" pill appear, or **Diff** to see it in orange. Route,
+      Pick a sailing and Review and pay have a blue dot in the index: they
+      changed since build-41.
 12. **Compare builds.** Switch the **Revision** picker to **build-41**. The Route
-    screen has no "Save 10%" pill, and the old comments are there. Switch back
-    to build-42.
+    screen has no "Save 10%" pill, and the old comments are there. The
+    Fixed card on **04 Pick a sailing** shows **Before** and **After** crops: the fix
+    landed in build-42. Switch back to build-42.
 13. **Fullscreen.** Click the corner icon at the bottom left. The rail
     collapses and the feedback panel tucks away; ← → still work.
 14. **Export.** Click **Export**. Choose Markdown or JSON, all screens or this

@@ -375,6 +375,14 @@ npx screencheck reply --project shop \
 
 From a clone, `node scripts/reply.mjs` still works with the same flags.
 
+Add `--recapture` to a reply to re-capture that one screen with the project's
+capture config (`screencheck.config.mjs`, `.js` or `.json` in the current
+directory, or `--config <file>`), the same as `capture --config --screen`. The
+capture goes into the config's `version` (or `--revision <id>`), and the verify
+card then shows before and after crops. Without a config it explains and skips;
+the reply itself is still saved. The MCP `reply` tool takes `recapture: true`
+(and `revision`), using the MCP server's working directory to find the config.
+
 `--status` accepts the same names as the MCP server (`fixed`, `wont-fix`,
 `in-progress`, `backlog`, or API values like `RESOLVED`) and may be left out to
 reply without moving the comment. Each reply is added to the comment's thread;
@@ -693,6 +701,27 @@ When an earlier build exists, the footer's **Before | After** toggle (or **B**)
 flips the canvas to the previous build's capture of the same screen at the same
 size. Pins are hidden while Before is showing, since they belong to the current
 build. On phones it is in the **…** menu.
+
+### Compare builds
+
+With an earlier build at the same size, a picker above the canvas sets how the
+two are compared:
+
+- **Toggle** (default): the footer's Before | After toggle, above.
+- **Overlay**: After drawn over Before; the slider sets After's opacity.
+- **Slider**: Before on the left, After on the right of a divider you drag,
+  or focus and move with ← / →.
+- **Diff**: changed pixels highlighted in orange, with the share of pixels
+  that changed. It is computed in the browser.
+
+Pins are hidden in every compare mode except Toggle's After. Each screen in the
+index whose capture differs from the previous build at the current size gets a
+blue dot ("Changed since build-41"); the API lists those versions in the
+screen's `changed` field.
+
+The verify card of a Fixed comment shows **Before** and **After** crops around
+its pin (or box) when a newer capture of the same size differs from the one the
+comment was made on.
 
 A capture must sit inside its version's `captureRoot`. To register a project
 from its own manifests, keep a small importer script beside the registrations

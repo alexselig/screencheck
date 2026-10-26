@@ -13,6 +13,22 @@ provenance.
 - **Before | After** toggle in the footer (and **B**): flips the canvas to the
   previous build's capture of the same screen and size. On phones it is in the
   **…** menu.
+- **Compare builds**: when a previous build exists, a picker above the canvas
+  switches between **Toggle** (the Before | After toggle), **Overlay** (After
+  over Before with an opacity slider), **Slider** (a draggable divider, arrow
+  keys move it) and **Diff** (changed pixels highlighted in the browser). Pins
+  hide while comparing.
+- A blue **changed** dot on each screen in the index whose capture differs
+  from the previous build at the same size ("Changed since build-41"). The
+  server compares file hashes, cached by size and mtime, and lists the versions
+  in a new `changed` field on each screen.
+- `screencheck reply --status fixed --recapture` (MCP `reply` with
+  `recapture: true`) re-captures that one screen with the project's
+  `screencheck.config.*` (or `--config`), so the fix has a new capture. Without
+  a config it says so and skips.
+- The verify card shows **Before** and **After** crops around the pin (or box)
+  when a newer capture of the same size differs from the one the comment was
+  made on.
 - `screencheck issues` files review comments as GitHub issues through `gh`, one
   per comment or `--per screen`, with the screen, size, priority, tags, note,
   thread, a link back and a saved crop around the pin. Re-runs skip comments
