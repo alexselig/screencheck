@@ -38,6 +38,34 @@ describe("versionModel", () => {
     ]);
     expect(model.labelOf("b7-mobile-390")).toBe("390");
   });
+
+  it("labels a version by its explicit viewport when it has no label", () => {
+    const model = versionModel({
+      versions: ["b9-a", "b9-b", "b9-c"],
+      versionDetails: [
+        { id: "b9-a", revision: "b9", viewport: 390 },
+        { id: "b9-b", revision: "b9", viewport: 768, label: "tablet" },
+        { id: "b9-c", viewport: 1440 },
+      ],
+    });
+    expect(model.labelOf("b9-a")).toBe("390");
+    expect(model.labelOf("b9-b")).toBe("tablet");
+    expect(model.revisions).toEqual(["b9", "b9-c"]);
+    expect(model.revisionOf("b9-c")).toBe("b9-c");
+  });
+
+  it("never reads a revision or size from an id suffix", () => {
+    const model = versionModel({
+      versions: ["build-43-390", "build-43-1440", "build-44-1440"],
+    });
+    expect(model.revisions).toEqual([
+      "build-43-390",
+      "build-43-1440",
+      "build-44-1440",
+    ]);
+    expect(model.labelOf("build-43-390")).toBe("build-43-390");
+    expect(model.previousVersion("build-44-1440")).toBe("build-43-1440");
+  });
 });
 
 describe("README-style build versions", () => {
