@@ -43,6 +43,11 @@ provenance.
   characters, control characters stripped); cards and threads show it with
   the time. `@agent` and `@name` in notes and replies render as chips, and MCP
   `list_feedback` takes a `mentions` filter. Older comments load unchanged.
+- **Offline review bundles.** `screencheck bundle --project <id>` writes a
+  `.screencheck.zip` with the captures, feedback, registration and a viewer
+  that opens from `index.html` with no server. Reviewers add comments there
+  and send them back with **Export review**; `screencheck import <file>`
+  merges them, skipping any already present.
 
 ### Changed
 

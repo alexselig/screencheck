@@ -59,6 +59,8 @@ and `server.json` — for a sandboxed trial, a test run or CI.
 | `screencheck add <id> <dir>`                         | Add a folder of captures as a new version                        |
 | `screencheck reply --project <id> ...`               | List open comments or reply to one (see below)                   |
 | `screencheck issues --project <id> --repo <o/r>`     | File comments as GitHub issues; `issues sync` (see below)        |
+| `screencheck bundle --project <id> [--version <id>]` | Zip captures and feedback for an offline review (see below)      |
+| `screencheck import <review.json>`                   | Merge comments exported from an offline bundle                   |
 | `screencheck mcp [--url <origin>] [--author <name>]` | Run the MCP server on stdio for coding agents                    |
 | `screencheck capture <url> --out <file>`             | Full-page screenshot without mid-page footers (needs Playwright) |
 | `screencheck capture --config <file>`                | Capture every screen at every width and register it (see below)  |
@@ -307,6 +309,39 @@ Feedback saved by earlier builds in browser `localStorage` is imported on first
 load. The browser copy is removed only after every record is accepted; anything
 unreadable is left in place and reported. Project registrations, captures,
 feedback, and injected headers must remain outside Git.
+
+## Hand off a review offline
+
+To get comments from someone who won't run ScreenCheck (a PM, a designer, a
+client), send them a bundle:
+
+```bash
+# Latest version by default; repeat --version for more than one
+npx screencheck bundle --project shop --version build-42
+# -> shop-build-42.screencheck.zip
+```
+
+The zip holds the captures, the existing feedback, the project's public
+registration (no local paths or headers) and a viewer. The reviewer unzips it
+and opens `index.html` straight from disk: no server, no install, no account.
+They see the same screens, pins and threads, and can add comments of their
+own. New comments are kept in that browser's `localStorage` (they survive a
+reload) and counted in the **Offline review** strip at the top; **Export
+review** saves them as a `<project>-review-<time>.json` file to send back.
+Feedback that came in the bundle, approvals and captions are read-only there.
+
+Merge the reply back:
+
+```bash
+npx screencheck import shop-review-2026-10-27-08-05.json
+```
+
+`import` also takes a zip holding a review file. It goes through the same
+import code as the server (the running server's import endpoint when there is
+one), so comments already present are skipped by id: importing the same file
+twice adds nothing. The project must be registered; `--project` overrides the
+one named in the file. The viewer is built by `npm run build` (`dist/viewer`),
+which ships in the npm package.
 
 ## Closing the loop (for agents)
 

@@ -3102,3 +3102,54 @@ button.tag-chip:hover {
   background: var(--surface-alt);
   font-size: 13px;
 }
+
+/* Offline review bundles: a strip above the app says where comments go. */
+.offline-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2) var(--space-3);
+  padding: var(--space-2) var(--space-3);
+  border-bottom: 1px solid var(--ink);
+  background: var(--surface-alt);
+  font-size: 13px;
+}
+
+.offline-bar-label {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.offline-bar-meta {
+  flex: 1 1 auto;
+  color: var(--ink-muted);
+}
+
+.offline-bar-count {
+  font-variant-numeric: tabular-nums;
+}
+
+.offline-bar-export {
+  min-height: var(--size-touch);
+  padding: 0 var(--space-3);
+  border: 1px solid var(--bauhaus-blue);
+  background: var(--bauhaus-blue);
+  color: var(--on-blue);
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.offline-bar-export:hover:not(:disabled) {
+  border-color: color-mix(in srgb, var(--bauhaus-blue) 85%, var(--ink));
+  background: color-mix(in srgb, var(--bauhaus-blue) 85%, var(--ink));
+}
+
+.offline-bar-export:disabled {
+  border-color: var(--line-strong);
+  background: var(--surface);
+  color: var(--ink-muted);
+  font-weight: 600;
+  cursor: not-allowed;
+}
