@@ -9,6 +9,7 @@ import { CAPTURE_USAGE, parseCaptureArgs, runCapture } from "./capture";
 import { DOCTOR_USAGE, runDoctor } from "./doctor";
 import { DEMO_USAGE, type DemoHandle, startDemo } from "./demo";
 import { ADD_USAGE, INIT_USAGE, runAdd, runInit } from "./init";
+import { ISSUES_USAGE, runIssues } from "./issues";
 import { REPLY_USAGE, runReply } from "./reply";
 
 export const VERSION = version;
@@ -24,6 +25,7 @@ Commands:
   add       Add a folder of captures as a new version of a project
   status    Show whether a server is running and where
   reply     List open comments or reply to one
+  issues    File comments as GitHub issues; sync closed ones to Fixed
   mcp       Run the MCP server on stdio for coding agents
   capture   Take a full-page screenshot without mid-page footers
   doctor    Check stored feedback and restore damaged files from backup
@@ -206,6 +208,9 @@ export async function main(
       case "reply":
         if (wantsHelp(rest)) return (log(REPLY_USAGE), 0);
         return await runReply(rest, { log, env, readRuntime });
+      case "issues":
+        if (wantsHelp(rest)) return (log(ISSUES_USAGE), 0);
+        return await runIssues(rest, { log, env, readRuntime });
       case "mcp": {
         if (wantsHelp(rest)) return (log(MCP_USAGE), 0);
         const { values } = parseArgs({

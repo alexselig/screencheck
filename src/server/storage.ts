@@ -748,7 +748,7 @@ export function createFeedbackStorage(options: FeedbackStorageOptions) {
         );
       }
       const updatedAt = nextUpdatedAt(now(), current.updatedAt);
-      const { reply, message, ...patch } = input.patch;
+      const { reply, message, issue, ...patch } = input.patch;
       const statusChange =
         patch.status && patch.status !== current.status
           ? { status: patch.status }
@@ -784,6 +784,8 @@ export function createFeedbackStorage(options: FeedbackStorageOptions) {
         updatedAt,
       };
       delete next.reply;
+      if (issue === null) delete next.issue;
+      else if (issue) next.issue = issue;
       const updated = feedbackRecordSchema.parse(next);
       const nextFeedback = [...feedback];
       nextFeedback[index] = updated;
