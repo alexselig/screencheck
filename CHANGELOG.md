@@ -10,6 +10,12 @@ provenance.
 
 ### Added
 
+- **AI assist (optional, off by default).** `screencheck serve --assist` (or
+  `SCREENCHECK_ASSIST=1`) lets the reviewer's own GitHub Copilot CLI rewrite a
+  note into an instruction for an agent, suggest a priority and tags, and
+  summarise a round; a "possible duplicate of #N" hint uses local text
+  similarity. The CLI runs tool-less with a timeout, needs no keys, and the UI
+  hides itself when the CLI is missing. Suggestions apply only when accepted.
 - **Before | After** toggle in the footer (and **B**): flips the canvas to the
   previous build's capture of the same screen and size. On phones it is in the
   **…** menu.
