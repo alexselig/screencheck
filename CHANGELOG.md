@@ -13,6 +13,12 @@ provenance.
 - **Before | After** toggle in the footer (and **B**): flips the canvas to the
   previous build's capture of the same screen and size. On phones it is in the
   **…** menu.
+- **Release gate:** `screencheck status --project <id>` reports a review
+  round without a running server: screens and approvals (rolled up across
+  sizes), open comments by priority, fixes not yet verified and what changed
+  since the previous revision. `--gate` exits 1 while a P0 is open or a screen
+  is unapproved (`--max-priority`, `--allow-unapproved`); `--json` prints a
+  stable object. The MCP server gains a matching `release_status` tool.
 
 ### Changed
 

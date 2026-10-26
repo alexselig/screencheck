@@ -54,6 +54,7 @@ and `server.json` — for a sandboxed trial, a test run or CI.
 | `screencheck serve [--port 4173] [--open]`           | Start the review server                                          |
 | `screencheck demo [--port 0] [--reset] [--open]`     | Try it on a seeded sample project                                |
 | `screencheck status`                                 | Print the running server's origin, or "not running"              |
+| `screencheck status --project <id> [--gate]`         | A review round's status; `--gate` fails CI (see Release gate)    |
 | `screencheck init <id> --captures <dir>`             | Register a project from a folder of captures (see below)         |
 | `screencheck add <id> <dir>`                         | Add a folder of captures as a new version                        |
 | `screencheck reply --project <id> ...`               | List open comments or reply to one (see below)                   |
@@ -345,6 +346,7 @@ then each tool says ScreenCheck isn't running.
 | `reply`           | Answer a comment (`note`) and optionally set `status`; retries once if the reviewer edited it meanwhile, but never overrides a status the reviewer just set                                   |
 | `set_status`      | Change status without a note (closing as fixed or won't fix still needs `reply`)                                                                                                              |
 | `approval_status` | Per-screen approval and open comments by priority for a version, e.g. `7/9 approved, 3 open (1 P0)`                                                                                           |
+| `release_status`  | The `screencheck status --gate` report for a revision (all sizes) or one `version`: approvals rolled up across sizes, open comments by priority, changes since the last round, and the gate   |
 
 Statuses take the friendly names `backlog`, `in-progress`, `fixed` and
 `wont-fix`. Agents can't set `verified`; only a reviewer can. Each project's
@@ -499,6 +501,104 @@ build. On phones it is in the **…** menu.
 A capture must sit inside its version's `captureRoot`. To register a project
 from its own manifests, keep a small importer script beside the registrations
 rather than in this repository.
+
+## Release gate (CI)
+
+`screencheck status` with any option reports where a review round stands. It
+reads `~/.screencheck` (or `SCREENCHECK_HOME`) directly, so it needs no
+running server and works in CI and pre-release scripts.
+
+```sh
+screencheck status --project shop                  # latest revision, all sizes
+screencheck status --project shop --revision build-41
+screencheck status --project shop --version b42-mobile   # one size only
+screencheck status --project shop --gate           # exit 1 if not releasable
+```
+
+```text
+shop · revision build-42 (2 sizes: 390, 1440)
+  9 screens, 7 approved
+  Open comments: 3 (P0 1, P1 1, P2 0, none 1)
+  Fixed, not verified: 2
+  Since build-41: 1 screen added (profile), 0 removed; 5 comments opened, 6 closed, 2 still open
+  Per size:
+    390   9 screens, 7 approved; open 1 (P0 1, P1 0, P2 0, none 0); 1 fixed, not verified
+    1440  9 screens, 9 approved; open 2 (P0 0, P1 1, P2 0, none 1); 1 fixed, not verified
+Gate: FAIL
+  - 1 open P0 comment
+  - 2 screens not approved: 03 Checkout (390), 05 Profile (390)
+```
+
+- A round is a **revision**: every version sharing its `revision`, one per size.
+  Without `revision` fields each version is its own round. The default is the
+  latest revision; `--project` may be left out when only one is registered.
+- A screen is **approved** only when every size that shows it is approved. A
+  version shows the screens it has captures for (plus any a comment or
+  approval points at); one with no captures at all shows every screen.
+- **Open** means Backlog or In progress, bucketed by its `P0`/`P1`/`P2` tag or
+  `none`. **Fixed, not verified** counts comments an agent marked Fixed that a
+  reviewer has not verified.
+- **Since** compares with the previous revision (per size, the same label):
+  screens added or removed, comments filed on this round ("opened"), and the
+  previous round's comments now closed (Fixed, Verified or Won't fix) or still
+  open.
+
+`--gate` exits 1 and lists the reasons while a blocking comment is open or a
+screen is unapproved, and exits 0 otherwise. `--max-priority P1` also blocks on
+P1 (`P2` on any tagged comment, `any` on every open comment; the default is
+`P0`). `--allow-unapproved` stops unapproved screens from blocking. Without
+`--gate` the command exits 0 whatever the result.
+
+`--json` prints the same report as a stable object (`schema` is bumped only
+if a field changes meaning; new fields may be added):
+
+```ts
+{
+  schema: 1,
+  project: string,
+  revision: string,
+  versions: string[],                 // the sizes in this round
+  previous: { revision: string, versions: string[] } | null,
+  screens: { total: number, approved: number, unapproved: number },
+  open: { total: number, P0: number, P1: number, P2: number, none: number },
+  fixedNotVerified: number,
+  changes: {
+    since: string,                    // previous revision (per size: version)
+    screensAdded: string[], screensRemoved: string[],
+    commentsOpened: number, commentsClosed: number, commentsStillOpen: number,
+  } | null,
+  sizes: { version, label, previous: string | null, screens, open,
+           fixedNotVerified, changes }[],
+  screenList: { id, ordinal, title, approved: boolean, open: number,
+                sizes: { version, label, approved: boolean }[] }[],
+  gate: { pass: boolean, reasons: string[],
+          maxPriority: "P0" | "P1" | "P2" | "any", allowUnapproved: boolean },
+}
+```
+
+The MCP tool `release_status` returns the same object.
+
+In GitHub Actions, check the review data into the repository (or restore it
+from an artifact) and point `SCREENCHECK_HOME` at it:
+
+```yaml
+name: Design review gate
+on: [pull_request]
+jobs:
+  screencheck:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Block the release while P0s are open or screens are unapproved
+        env:
+          # Holds projects/ and feedback/. A relative captureRoot resolves
+          # from the working directory, here the checkout.
+          SCREENCHECK_HOME: ${{ github.workspace }}/.screencheck
+        run: npx --yes screencheck status --project shop --gate
+```
 
 ## Capturing long pages
 
