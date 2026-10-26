@@ -4,6 +4,8 @@ import path from "node:path";
 
 import { z } from "zod";
 
+import { versionModel } from "../client/versions";
+import { createCaptureComparer } from "./changed";
 import { appHome } from "./home";
 import { elementMapPathFor } from "../shared/elements";
 import { parseScreens, type ReviewScreen } from "../shared/manifest";
@@ -211,6 +213,29 @@ export function createProjectCatalog({
   const readRegistrations = createRegistry(
     readRegistryFile ? { readFile: readRegistryFile } : {},
   );
+  const differ = createCaptureComparer();
+
+  // The versions of a screen whose capture differs from the same size one
+  // build back, for the index's "changed" dot.
+  async function changedVersions(
+    registration: Registration,
+    screen: ReviewScreen,
+  ) {
+    const { previousVersion } = versionModel({
+      versions: registration.versions.map((item) => item.id),
+      versionDetails: registration.versions,
+    });
+    const byId = new Map(registration.versions.map((item) => [item.id, item]));
+    const changed: string[] = [];
+    for (const version of registration.versions) {
+      const previous = byId.get(previousVersion(version.id) ?? "");
+      if (!previous) continue;
+      const now = locateCapture(version, screen).file;
+      const then = locateCapture(previous, screen).file;
+      if (now && then && (await differ(then, now))) changed.push(version.id);
+    }
+    return changed;
+  }
 
   async function find(projectId: string, versionId: string, screenId: string) {
     const { registrations } = await readRegistrations(projectsRoot);
@@ -267,6 +292,7 @@ export function createProjectCatalog({
                 screenProblems[index] =
                   `${registration.id}: screen "${screen.id}" capture ${shown} not found in version ${latest.id}.`;
               }
+              const changed = await changedVersions(registration, screen);
               return {
                 id: screen.id,
                 ordinal: screen.ordinal,
@@ -278,6 +304,7 @@ export function createProjectCatalog({
                 viewport: screen.viewport,
                 ...(screen.liveUrl ? { liveUrl: screen.liveUrl } : {}),
                 hasCapture,
+                ...(changed.length ? { changed } : {}),
               };
             }),
           ),
