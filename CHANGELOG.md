@@ -13,6 +13,11 @@ provenance.
 - **Before | After** toggle in the footer (and **B**): flips the canvas to the
   previous build's capture of the same screen and size. On phones it is in the
   **…** menu.
+- **Offline review bundles.** `screencheck bundle --project <id>` writes a
+  `.screencheck.zip` with the captures, feedback, registration and a viewer
+  that opens from `index.html` with no server. Reviewers add comments there
+  and send them back with **Export review**; `screencheck import <file>`
+  merges them, skipping any already present.
 
 ### Changed
 
