@@ -221,13 +221,36 @@ export function AssistEditorTools({
   );
 }
 
-// "Summarise round…" in the "…" menu; hidden unless assist is available.
+// "Summarise round…" in the phone "…" menu; hidden unless assist is available.
 export function SummariseRoundMenuItem({ onOpen }: { onOpen: () => void }) {
   const available = useAssist();
   if (!available) return null;
   return (
     <button onClick={onOpen} role="menuitem" type="button">
       Summarise round…
+    </button>
+  );
+}
+
+// The same action beside Export in the desktop footer, which has no "…" menu.
+export function SummariseRoundButton({
+  disabled,
+  onOpen,
+}: {
+  disabled?: boolean;
+  onOpen: () => void;
+}) {
+  const available = useAssist();
+  if (!available) return null;
+  return (
+    <button
+      aria-haspopup="dialog"
+      className="action-bar-export"
+      disabled={disabled}
+      onClick={onOpen}
+      type="button"
+    >
+      Summarise
     </button>
   );
 }

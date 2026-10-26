@@ -11,6 +11,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   AssistEditorTools,
   RoundSummaryDialog,
+  SummariseRoundButton,
   SummariseRoundMenuItem,
 } from "../src/client/components/assist";
 import { resetAssistStatus } from "../src/client/use-assist";
@@ -73,11 +74,13 @@ describe("AI assist UI", () => {
       const fetchMock = stubAssist(status);
       tools();
       render(<SummariseRoundMenuItem onOpen={() => {}} />);
+      render(<SummariseRoundButton onOpen={() => {}} />);
       await waitFor(() => expect(fetchMock).toHaveBeenCalled());
       await act(async () => {});
       expect(screen.queryByRole("button", { name: /rewrite/i })).toBeNull();
       expect(screen.queryByRole("button", { name: /suggest/i })).toBeNull();
       expect(screen.queryByRole("menuitem")).toBeNull();
+      expect(screen.queryByRole("button", { name: "Summarise" })).toBeNull();
       cleanup();
     }
   });
@@ -165,7 +168,10 @@ describe("AI assist UI", () => {
     fireEvent.click(
       await screen.findByRole("menuitem", { name: "Summarise round…" }),
     );
-    expect(onOpen).toHaveBeenCalled();
+    expect(onOpen).toHaveBeenCalledTimes(1);
+    render(<SummariseRoundButton onOpen={onOpen} />);
+    fireEvent.click(await screen.findByRole("button", { name: "Summarise" }));
+    expect(onOpen).toHaveBeenCalledTimes(2);
     cleanup();
 
     const writeText = vi.fn(async () => {});

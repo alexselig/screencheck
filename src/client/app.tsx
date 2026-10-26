@@ -16,6 +16,7 @@ import {
 import { ExportDialog } from "./components/export-dialog";
 import {
   RoundSummaryDialog,
+  SummariseRoundButton,
   SummariseRoundMenuItem,
 } from "./components/assist";
 import {
@@ -1341,6 +1342,10 @@ function Workbench({
         >
           Export
         </button>
+        <SummariseRoundButton
+          disabled={!ready}
+          onOpen={() => setSummaryOpen(true)}
+        />
         <button
           aria-keyshortcuts={SHORTCUTS.addFeedback.aria}
           aria-pressed={addingFeedback}
