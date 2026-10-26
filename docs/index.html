@@ -1158,43 +1158,41 @@
               <pre><code>npx screencheck serve --open</code></pre>
             </div>
             <div>
-              <h3>2. Capture your screens</h3>
+              <h3>2. List your screens</h3>
               <p>
-                Use Playwright and the bundled helper, so long pages end at
-                their footer.
+                Save as <code>screencheck.config.mjs</code>: each screen is a
+                URL, with optional steps to reach its state.
               </p>
-              <pre><code>import { captureFullPage } from "screencheck/capture";
-
-await page.goto("http://localhost:3000/checkout");
-await captureFullPage(page, {
-  path: "captures/build-42/checkout.png",
-});</code></pre>
+              <pre><code>export default {
+  project: { id: "shop", name: "Shop" },
+  baseUrl: "http://localhost:3000",
+  viewports: [390, 1440],
+  screens: [
+    { id: "home", title: "Home", url: "/" },
+    { id: "checkout", title: "Checkout",
+      url: "/cart", section: "Buy",
+      caption: "Step 2 of 3, saved card",
+      steps: [{ click: "text=Check out" }] },
+  ],
+};</code></pre>
             </div>
             <div>
-              <h3>3. Register the project</h3>
+              <h3>3. Capture and register</h3>
               <p>
-                Save as
-                <code>~/.screencheck/projects/shop.json</code>.
+                Needs Playwright (<code>npm i -D playwright</code>, then
+                <code>npx playwright install chromium</code>). One run captures
+                every screen at every width, with element maps, and registers
+                the project.
               </p>
-              <pre><code>{
-  "id": "shop",
-  "name": "Shop",
-  "versions": [{ "id": "build-42",
-    "captureRoot": "/path/to/captures/build-42" }],
-  "screens": [{
-    "id": "checkout", "ordinal": 1,
-    "title": "Checkout", "group": "Buy",
-    "description": "Step 2 of 3, saved card",
-    "capturePath": "checkout.png",
-    "viewport": { "width": 1440, "height": 1000 }
-  }]
-}</code></pre>
+              <pre><code>npx screencheck capture \
+  --config screencheck.config.mjs \
+  --version build-42</code></pre>
               <p>
-                Register one version per build and width, such as
-                <code>abc1234-desktop-1440</code> and
-                <code>abc1234-mobile-390</code>, and the screen index lists
-                every screen at each width. <b>Revision</b> and
-                <b>Resolution</b> pickers narrow it.
+                Each width becomes a version of revision
+                <code>build-42</code>, and a <b>Viewport</b> filter switches
+                between them. <code>--screen checkout</code> re-captures one
+                screen. Already have captures? Run
+                <code>npx screencheck init shop --captures ./captures</code>.
               </p>
             </div>
           </div>

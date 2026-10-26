@@ -13,9 +13,18 @@ provenance.
 - **Before | After** toggle in the footer (and **B**): flips the canvas to the
   previous build's capture of the same screen and size. On phones it is in the
   **…** menu.
+- `screencheck capture --config <file>` captures every screen in a
+  `screencheck.config.mjs` (or `.json`) at every viewport, with element maps,
+  into one version per width sharing a revision, and writes or updates the
+  project registration. `--version` sets the revision; `--screen <id>`
+  re-captures one screen. Example in `examples/screencheck.config.mjs`.
+- Versions in a registration may carry an explicit `viewport` width beside
+  `revision` and `label`; it labels the version when there is no `label`.
 
 ### Changed
 
+- The site's install steps show `capture --config` instead of a partial
+  capture snippet, and name the **Viewport** filter correctly.
 - **Hide approved screens** is a switch, and turning it on from an approved
   screen moves to the nearest screen still to review.
 - The compact screen index has no pin button; the expand arrows keep it open.
