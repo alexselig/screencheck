@@ -13,6 +13,11 @@ provenance.
 - **Before | After** toggle in the footer (and **B**): flips the canvas to the
   previous build's capture of the same screen and size. On phones it is in the
   **…** menu.
+- **Box pins:** while placing a pin, drag to draw a rectangle; a click still
+  drops a point. Stored as an optional `box` (fractions of the capture) with
+  `x`/`y` at its centre, so older files and point-only consumers are
+  unaffected. The element map, `get_comment` crop and Markdown/agent exports
+  use the region.
 
 ### Changed
 
