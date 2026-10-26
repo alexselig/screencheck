@@ -38,10 +38,10 @@ export const ADD_USAGE = `Usage:
 Adds <dir> as a new version of a registered project (version id defaults to
 the folder name). Images whose screen isn't registered yet become new screens.`;
 
-const PROJECT_ID = /^[a-z0-9][a-z0-9-]{0,63}$/;
+export const PROJECT_ID = /^[a-z0-9][a-z0-9-]{0,63}$/;
 const IMAGE = /\.(png|jpe?g|webp)$/i;
 
-type Screen = {
+export type Screen = {
   id: string;
   ordinal: number;
   title: string;
@@ -49,12 +49,20 @@ type Screen = {
   description: string;
   capturePath: string;
   viewport: { width: number; height: number };
+  liveUrl?: string;
+  [key: string]: unknown;
 };
 
-type Registration = {
+export type Registration = {
   id: string;
   name: string;
-  versions: { id: string; captureRoot: string }[];
+  versions: {
+    id: string;
+    captureRoot: string;
+    revision?: string;
+    label?: string;
+    viewport?: number;
+  }[];
   screens: Screen[];
   [key: string]: unknown;
 };
@@ -65,7 +73,10 @@ export type InitIo = {
   cwd?: string;
 };
 
-function projectsRoot(option: string | undefined, env: NodeJS.ProcessEnv) {
+export function projectsRoot(
+  option: string | undefined,
+  env: NodeJS.ProcessEnv,
+) {
   return path.resolve(
     option ??
       env.SCREENCHECK_PROJECTS ??
@@ -146,7 +157,10 @@ async function versionsIn(root: string) {
   return files.length ? [{ id: "v1", dir: root, files }] : [];
 }
 
-async function writeRegistration(file: string, registration: Registration) {
+export async function writeRegistration(
+  file: string,
+  registration: Registration,
+) {
   parseScreens(registration.screens);
   await mkdir(path.dirname(file), { recursive: true });
   const temp = `${file}.${process.pid}.${Date.now()}.tmp`;

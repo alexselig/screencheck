@@ -1,6 +1,6 @@
 // `screencheck capture <url> --out <file>`: one full-page shot through the
-// bottom-bar-safe helper. Options are parsed into a plain object so a config
-// file of many shots can feed runCapture later.
+// bottom-bar-safe helper. `screencheck capture --config <file>` captures a
+// whole project (see capture-config.ts).
 import { randomUUID } from "node:crypto";
 import { mkdir, rename, rm, writeFile } from "node:fs/promises";
 import path from "node:path";
@@ -17,11 +17,31 @@ export type CaptureJob = {
   waitFor?: string;
 };
 
+// `capture --config`: every screen in a config file at every viewport.
+export type ConfigCaptureJob = {
+  config: string;
+  version?: string;
+  screen?: string;
+  projects?: string;
+};
+
 export const CAPTURE_USAGE = `Usage:
   screencheck capture <url> --out <file> [--width 1440] [--height 1000] [--wait-for <selector>]
+  screencheck capture --config <file> [--version <id>] [--screen <id>] [--projects <dir>]
 
-Writes a full-page screenshot (.png, .jpg or .webp) with bottom-anchored bars
-moved to the end of the page. Needs Playwright:
+The first form writes one full-page screenshot (.png, .jpg or .webp) with
+bottom-anchored bars moved to the end of the page, plus its element map
+(<file>.elements.json).
+
+The second reads screencheck.config.mjs (or .json) and captures every screen
+at every viewport into one version per width, all sharing the revision
+--version (default: the config's "version"), then writes or updates the
+project's registration.
+  --screen    Re-capture one screen only
+  --projects  Registry folder (default $SCREENCHECK_PROJECTS, else
+              ~/.screencheck/projects)
+
+Needs Playwright:
   npm i -D playwright && npx playwright install chromium`;
 
 const PLAYWRIGHT_HINT =
@@ -40,7 +60,9 @@ function positiveInt(
   return parsed;
 }
 
-export function parseCaptureArgs(argv: string[]): CaptureJob | "help" {
+export function parseCaptureArgs(
+  argv: string[],
+): CaptureJob | ConfigCaptureJob | "help" {
   const { values, positionals } = parseArgs({
     args: argv,
     allowPositionals: true,
@@ -49,10 +71,39 @@ export function parseCaptureArgs(argv: string[]): CaptureJob | "help" {
       width: { type: "string" },
       height: { type: "string" },
       "wait-for": { type: "string" },
+      config: { type: "string", short: "c" },
+      version: { type: "string" },
+      screen: { type: "string" },
+      projects: { type: "string" },
       help: { type: "boolean", short: "h" },
     },
   });
   if (values.help) return "help";
+  if (values.config !== undefined) {
+    if (positionals.length) {
+      throw new Error(
+        `capture --config takes no URL (got ${positionals[0]}); the config lists the screens.`,
+      );
+    }
+    for (const flag of ["out", "width", "height", "wait-for"] as const) {
+      if (values[flag] !== undefined) {
+        throw new Error(
+          `--${flag} is for a single capture; with --config, set it in the config file.`,
+        );
+      }
+    }
+    return {
+      config: values.config,
+      ...(values.version ? { version: values.version } : {}),
+      ...(values.screen ? { screen: values.screen } : {}),
+      ...(values.projects ? { projects: values.projects } : {}),
+    };
+  }
+  for (const flag of ["version", "screen", "projects"] as const) {
+    if (values[flag] !== undefined) {
+      throw new Error(`--${flag} only works with --config <file>.`);
+    }
+  }
   const [url, ...extra] = positionals;
   if (!url) throw new Error("capture needs a URL.");
   if (extra.length) throw new Error(`Unexpected argument: ${extra[0]}`);
@@ -66,7 +117,7 @@ export function parseCaptureArgs(argv: string[]): CaptureJob | "help" {
   };
 }
 
-function imageType(file: string) {
+export function imageType(file: string) {
   const extension = path.extname(file).toLowerCase();
   if (extension === ".png") return "png";
   if (extension === ".jpg" || extension === ".jpeg") return "jpeg";
@@ -122,6 +173,22 @@ async function writeAtomically(file: string, bytes: Uint8Array) {
   }
 }
 
+export type ShotPage = Parameters<typeof captureFullPage>[0];
+
+// One full-page shot of an open page: the image (swapped in whole) and its
+// element map beside it, where the server and the inspector look for it.
+export async function shoot(page: ShotPage, out: string) {
+  const type = imageType(out);
+  await mkdir(path.dirname(path.resolve(out)), { recursive: true });
+  const { image, pinned } = await captureFullPage(page, {
+    type: type === "jpeg" ? "jpeg" : "png",
+    elements: { path: elementMapPathFor(out) },
+  });
+  const bytes = type === "webp" ? await toWebp(image) : image;
+  await writeAtomically(out, bytes);
+  return { pinned };
+}
+
 export async function runCapture(
   job: CaptureJob,
   {
@@ -132,7 +199,7 @@ export async function runCapture(
     playwright?: () => Promise<Pick<typeof import("playwright"), "chromium">>;
   } = {},
 ) {
-  const type = imageType(job.out);
+  imageType(job.out);
   const { chromium } = await playwright();
   const browser = await chromium.launch();
   try {
@@ -141,15 +208,7 @@ export async function runCapture(
     });
     await page.goto(job.url, { waitUntil: "networkidle" });
     if (job.waitFor) await page.waitForSelector(job.waitFor);
-    await mkdir(path.dirname(path.resolve(job.out)), { recursive: true });
-    // The element map goes beside the capture, where the server and the
-    // inspector look for it.
-    const { image, pinned } = await captureFullPage(page, {
-      type: type === "jpeg" ? "jpeg" : "png",
-      elements: { path: elementMapPathFor(job.out) },
-    });
-    const bytes = type === "webp" ? await toWebp(image) : image;
-    await writeAtomically(job.out, bytes);
+    const { pinned } = await shoot(page, job.out);
     log(
       `Captured ${job.url} -> ${job.out}${pinned.length ? ` (pinned ${pinned.join(", ")})` : ""}`,
     );
