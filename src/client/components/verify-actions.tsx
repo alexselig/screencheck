@@ -1,3 +1,5 @@
+import type { ReactNode } from "react";
+
 import type { FeedbackStatus } from "../../shared/feedback";
 
 // Verify / Reopen on a fixed or verified comment. Reopening asks why, since
@@ -13,6 +15,7 @@ export function VerifyActions({
   onStartReopen,
   onConfirmReopen,
   onCancelReopen,
+  preview,
 }: {
   pin: number;
   status: FeedbackStatus;
@@ -24,6 +27,8 @@ export function VerifyActions({
   onStartReopen: () => void;
   onConfirmReopen: (note: string) => void;
   onCancelReopen: () => void;
+  // Before and after crops, when a newer capture differs.
+  preview?: ReactNode;
 }) {
   return (
     <div
@@ -31,6 +36,7 @@ export function VerifyActions({
       className="feedback-verify"
       role="group"
     >
+      {preview}
       {reopening ? (
         <label>
           Why reopen?

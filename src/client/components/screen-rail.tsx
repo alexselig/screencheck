@@ -80,6 +80,8 @@ export function ScreenRail({
   onSelect,
   hideApproved: hideApprovedProp,
   onHideApprovedChange,
+  changedIds,
+  changedSince,
 }: {
   // versionLabel is set when the rail lists one row per version.
   screens: (ReviewScreen & { versionLabel?: string })[];
@@ -96,6 +98,9 @@ export function ScreenRail({
   // rail keeps the choice itself.
   hideApproved?: boolean;
   onHideApprovedChange?: (hide: boolean) => void;
+  // Screens whose capture differs from the previous build at this size.
+  changedIds?: ReadonlySet<string>;
+  changedSince?: string;
 }) {
   const [temporaryExpanded, setTemporaryExpanded] = useState(false);
   const [hideApprovedState, setHideApproved] = useState(readHideApproved);
@@ -291,6 +296,10 @@ export function ScreenRail({
             ? undefined
             : partialApprovals?.get(screen.id);
           const openCount = openCounts?.get(screen.id) ?? 0;
+          const changed =
+            changedIds?.has(screen.id) && changedSince
+              ? `Changed since ${changedSince}`
+              : "";
           return (
             <li key={screen.id}>
               {showGroup ? (
@@ -305,7 +314,7 @@ export function ScreenRail({
                 tabIndex={
                   screen.id === rovingId || (!rovingId && index === 0) ? 0 : -1
                 }
-                aria-label={`${String(screen.ordinal).padStart(2, "0")}. ${screen.title}${screen.versionLabel ? ` · ${screen.versionLabel}` : ""}${approved ? " (approved)" : ""}${partial ? ` (${partial})` : ""}${openCount ? `, ${openCount} open` : ""}`}
+                aria-label={`${String(screen.ordinal).padStart(2, "0")}. ${screen.title}${screen.versionLabel ? ` · ${screen.versionLabel}` : ""}${approved ? " (approved)" : ""}${partial ? ` (${partial})` : ""}${openCount ? `, ${openCount} open` : ""}${changed ? `, changed since ${changedSince}` : ""}`}
                 onClick={() => onSelect(screen.id)}
                 title={[
                   screen.title,
@@ -313,6 +322,7 @@ export function ScreenRail({
                   approved ? "Approved" : "",
                   partial ?? "",
                   openCount ? `${openCount} open` : "",
+                  changed,
                 ]
                   .filter(Boolean)
                   .join(" · ")}
@@ -338,6 +348,13 @@ export function ScreenRail({
                         <circle cx="6" cy="6" r="5.25" />
                         <path d="M3.2 6.2 5.2 8.1 8.9 4.2" />
                       </svg>
+                    ) : null}
+                    {changed ? (
+                      <span
+                        className="screen-changed-dot"
+                        data-testid="screen-changed-dot"
+                        title={changed}
+                      />
                     ) : null}
                     {openCount ? (
                       <span

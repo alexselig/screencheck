@@ -15,6 +15,7 @@ import { ElementLine } from "./element-line";
 import { SHORTCUTS, type ApproveShortcut } from "../shortcuts";
 import { ApprovalBar, type SizeApproval } from "./approval-bar";
 import { VerifyActions } from "./verify-actions";
+import { FixCrops, type FixPreview } from "./fix-crops";
 import { MentionText, ReviewerNameField } from "./reviewer-name";
 import {
   FEEDBACK_STATUSES,
@@ -259,6 +260,7 @@ export function FeedbackInspector({
   adding = false,
   onAddFeedback,
   onSelectScreen,
+  fixPreview,
 }: {
   projectId: string;
   screens: ReviewScreen[];
@@ -293,6 +295,8 @@ export function FeedbackInspector({
   // The empty state's inline Add feedback and its jump to the next screen.
   onAddFeedback?: () => void;
   onSelectScreen?: (screenId: string) => void;
+  // The old and new capture around a fixed comment's pin, when they differ.
+  fixPreview?: (item: FeedbackRecord) => FixPreview | undefined;
 }) {
   const emptyHeadingId = useId();
   const initialRecoveries = useMemo(
@@ -997,8 +1001,12 @@ export function FeedbackInspector({
 
   function verifyActions(item: FeedbackRecord) {
     const pin = pinNumbers.get(item.id) ?? 0;
+    const crops = fixPreview?.(item);
     return (
       <VerifyActions
+        preview={
+          crops ? <FixCrops number={pin} pin={item} {...crops} /> : undefined
+        }
         message={cardMessage?.id === item.id ? cardMessage.text : undefined}
         onCancelReopen={() => {
           setReopeningId(null);

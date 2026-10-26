@@ -1,3 +1,5 @@
+import type { ReactNode } from "react";
+
 import type { Size } from "../sizes";
 import { SHORTCUTS } from "../shortcuts";
 
@@ -13,6 +15,7 @@ export function CanvasToolbar({
   onZoom,
   onCompare,
   comparing = false,
+  children,
 }: {
   sizes: readonly Size[];
   version: string;
@@ -21,6 +24,8 @@ export function CanvasToolbar({
   onZoom: (zoom: Zoom) => void;
   onCompare?: () => void;
   comparing?: boolean;
+  // More canvas controls, such as the compare-builds modes.
+  children?: ReactNode;
 }) {
   return (
     <div className="canvas-toolbar">
@@ -55,6 +60,7 @@ export function CanvasToolbar({
           Compare sizes
         </button>
       ) : null}
+      {children}
     </div>
   );
 }

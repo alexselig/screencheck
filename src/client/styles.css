@@ -794,6 +794,16 @@ h1 {
   overflow: visible;
 }
 
+/* Changed since the previous build: a small blue dot, apart from the
+   orange comment count and the approval tick. */
+.screen-changed-dot {
+  flex: none;
+  width: 8px;
+  height: 8px;
+  border-radius: var(--radius-pill);
+  background: var(--bauhaus-blue);
+}
+
 .screen-open-count {
   display: grid;
   min-width: 18px;
@@ -1331,6 +1341,178 @@ h1 {
 .compare-sizes-label span {
   color: var(--ink-muted);
   font-weight: 500;
+}
+
+/* Compare builds: both captures drawn over the frame at once. */
+.compare-builds {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  overflow: hidden;
+  background: var(--surface-alt);
+}
+
+.compare-builds-image {
+  position: absolute;
+  top: 0;
+  left: 0;
+  display: block;
+  width: 100%;
+  height: auto;
+  user-select: none;
+}
+
+.compare-builds-badge {
+  position: absolute;
+  top: var(--space-2);
+  left: var(--space-2);
+  z-index: 2;
+  padding: var(--space-1) var(--space-2);
+  background: var(--ink);
+  color: var(--surface);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  pointer-events: none;
+}
+
+.compare-builds-badge.is-after {
+  right: var(--space-2);
+  left: auto;
+}
+
+/* Overlay: the opacity control rides at the top of the frame. */
+.compare-builds-panel {
+  position: absolute;
+  top: var(--space-2);
+  left: 50%;
+  z-index: 2;
+  display: flex;
+  width: max-content;
+  max-width: calc(100% - 16px);
+  align-items: center;
+  gap: var(--space-2);
+  transform: translateX(-50%);
+  padding: var(--space-1) var(--space-2);
+  border: 1px solid var(--ink);
+  background: var(--surface);
+  color: var(--ink);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.compare-builds-panel input {
+  width: 160px;
+  accent-color: var(--bauhaus-blue);
+}
+
+.compare-builds-panel input:focus-visible {
+  outline: 2px solid var(--bauhaus-blue);
+  outline-offset: 2px;
+}
+
+/* Slider: the whole frame is an invisible range; the divider shows it. */
+.compare-builds-range {
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  opacity: 0;
+  cursor: ew-resize;
+  appearance: none;
+}
+
+.compare-builds-divider {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  z-index: 2;
+  width: 2px;
+  background: var(--bauhaus-blue);
+  transform: translateX(-1px);
+  pointer-events: none;
+}
+
+.compare-builds-divider::after {
+  position: absolute;
+  top: calc(50% - 12px);
+  left: -11px;
+  width: 24px;
+  height: 24px;
+  border: 1px solid var(--ink);
+  background: var(--bauhaus-blue);
+  content: "";
+}
+
+.compare-builds-range:focus-visible + .compare-builds-divider::after {
+  outline: 2px solid var(--bauhaus-blue);
+  outline-offset: 2px;
+}
+
+.compare-builds-range:hover + .compare-builds-divider::after {
+  background: var(--ink);
+}
+
+/* Before and after crops on a fixed comment's verify card. */
+.fix-crops {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--space-2);
+}
+
+.fix-crop {
+  display: grid;
+  min-width: 0;
+  gap: var(--space-1);
+  margin: 0;
+}
+
+.fix-crop-window {
+  position: relative;
+  aspect-ratio: 2 / 1;
+  overflow: hidden;
+  border: 1px solid var(--line-strong);
+  background: var(--surface-alt);
+}
+
+.fix-crop-canvas {
+  position: absolute;
+  top: 50%;
+  left: 0;
+}
+
+.fix-crop-canvas img {
+  display: block;
+  width: 100%;
+  height: auto;
+  user-select: none;
+}
+
+.fix-crop-box {
+  position: absolute;
+  border: 2px solid var(--bauhaus-blue);
+}
+
+.fix-crop-pin {
+  position: absolute;
+  width: 18px;
+  height: 18px;
+  border: 2px solid var(--bauhaus-blue);
+  border-radius: var(--radius-pill);
+  transform: translate(-50%, -50%);
+}
+
+.fix-crop figcaption {
+  color: var(--ink-muted);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
 }
 
 /* Square icon buttons: a 36px visible box with a 44px hit area. */
