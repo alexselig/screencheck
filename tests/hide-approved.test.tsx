@@ -5,6 +5,7 @@ import {
   screen,
   within,
 } from "@testing-library/react";
+import { useState } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { App } from "../src/client/app";
@@ -53,9 +54,12 @@ describe("hide approved screens", () => {
     });
     expect(toggle).toHaveAttribute("aria-checked", "false");
     fireEvent.click(toggle);
+    // Hiding from an approved screen steps to the next one to review; this
+    // rail's selection is fixed, so s3 stays listed and only s2 is hidden.
+    expect(onSelect).toHaveBeenCalledWith("s4");
     expect(rows()).toEqual(["s1", "s3", "s4"]);
     expect(toggle).toHaveAttribute("aria-checked", "true");
-    expect(toggle).toHaveTextContent("2 hidden");
+    expect(toggle).toHaveTextContent("1 hidden");
 
     // ↑ from s3 skips the hidden s2.
     fireEvent.keyDown(screen.getByRole("button", { name: /Screen 3/ }), {
@@ -65,6 +69,32 @@ describe("hide approved screens", () => {
 
     fireEvent.click(toggle);
     expect(rows()).toEqual(["s1", "s2", "s3", "s4"]);
+  });
+
+  it("drops the current approved row by moving to the nearest open screen", () => {
+    function Harness({ start }: { start: string }) {
+      const [selected, setSelected] = useState(start);
+      return (
+        <ScreenRail
+          approvedIds={new Set(["s1", "s4"])}
+          mode="wide"
+          onSelect={setSelected}
+          screens={screens}
+          selectedId={selected}
+        />
+      );
+    }
+    const first = render(<Harness start="s1" />);
+    fireEvent.click(screen.getByRole("switch", { name: /Hide approved/ }));
+    expect(rows()).toEqual(["s2", "s3"]);
+    expect(screen.getByRole("switch")).toHaveTextContent("2 hidden");
+    first.unmount();
+    localStorage.clear();
+
+    // From the last screen it looks backwards.
+    render(<Harness start="s4" />);
+    fireEvent.click(screen.getByRole("switch", { name: /Hide approved/ }));
+    expect(rows()).toEqual(["s2", "s3"]);
   });
 
   it("remembers the choice and hides the button when nothing is approved", () => {

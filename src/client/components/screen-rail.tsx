@@ -106,8 +106,20 @@ export function ScreenRail({
     approvedIds,
     hideApproved,
   );
+  // The current screen is kept listed while hidden, so count only real drops.
+  const hiddenCount = screens.length - visibleScreens.length;
   function toggleHideApproved() {
     const next = !hideApproved;
+    // Hiding while on an approved screen would leave its row in place, so
+    // step to the nearest screen still to review, looking forward first.
+    if (next && approvedIds?.has(selectedId)) {
+      const at = screens.findIndex((screen) => screen.id === selectedId);
+      const open = (screen: { id: string }) => !approvedIds.has(screen.id);
+      const target =
+        screens.slice(at + 1).find(open) ??
+        screens.slice(0, Math.max(at, 0)).reverse().find(open);
+      if (target) onSelect(target.id);
+    }
     if (onHideApprovedChange) {
       onHideApprovedChange(next);
     } else {
@@ -261,7 +273,7 @@ export function ScreenRail({
             <span aria-hidden="true" className="rail-filter-switch" />
             <span>Hide approved screens</span>
             {hideApproved ? (
-              <span className="rail-filter-count">{approvedCount} hidden</span>
+              <span className="rail-filter-count">{hiddenCount} hidden</span>
             ) : null}
           </button>
         ) : null}

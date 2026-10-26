@@ -162,8 +162,8 @@ through each feature, from dropping a pin to an agent replying over MCP.
   beside it; a screen that is approved and still has open comments shows both
   side by side.
 - **Hide approved screens**, a switch at the top of the screen index,
-  drops approved screens from the list (the current screen always stays) so
-  only what's left to review remains. ↑ / ↓, ← / → and Prev / Next all skip
+  drops approved screens from the list so only what's left to review remains.
+  Turning it on from an approved screen moves you to the nearest open one. ↑ / ↓, ← / → and Prev / Next all skip
   the hidden rows; the choice is remembered.
 - A **Showing** strip above each capture says exactly what it shows (for
   example "Step 3 of 5, manual path selected"). Click it to edit; Enter saves,
