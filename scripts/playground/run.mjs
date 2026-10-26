@@ -27,6 +27,7 @@ import {
 } from "./project.mjs";
 import {
   APPROVED,
+  CARRY_SEED,
   EXTRA_SIZES,
   SEED,
   SIZE_APPROVED,
@@ -146,10 +147,10 @@ async function api(method, route, body, headers = {}) {
 }
 
 async function seed() {
-  for (const [version, comments] of Object.entries({
-    ...SEED,
-    ...SIZE_SEED,
-  })) {
+  for (const [version, comments] of [
+    ...Object.entries({ ...SEED, ...SIZE_SEED }),
+    ...Object.entries(CARRY_SEED),
+  ]) {
     for (const comment of comments) {
       let record = (
         await api("POST", "/feedback", {
@@ -161,6 +162,7 @@ async function seed() {
           note: comment.note,
           tags: comment.tags,
           status: comment.status,
+          ...(comment.scope ? { scope: comment.scope } : {}),
         })
       ).feedback;
       const patch = async (change, headers) => {
