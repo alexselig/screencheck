@@ -176,3 +176,27 @@ export const SEED = {
 
 // Settings stays blank and unapproved so you can pin and approve it yourself.
 export const APPROVED = { "build-42": ["sign-in"] };
+
+// Playground only: build-42 is also captured at phone and tablet widths, as
+// sizes of the same revision, so the size switcher, Compare sizes and
+// Approve all sizes have something to show. The bundled demo keeps one size.
+export const EXTRA_SIZES = { "build-42": [390, 768] };
+export const SIZE_SEED = {
+  "build-42-390": [
+    {
+      screen: "home",
+      x: 0.5,
+      y: 0.3,
+      note: "At 390 the hero headline wraps to four lines; shorten it.",
+      tags: ["P2", "Layout"],
+      status: "OPEN",
+    },
+  ],
+};
+// Sign in is approved at every size; Booking confirmed only at 1440, so the
+// index shows a partial tick.
+export const SIZE_APPROVED = {
+  "build-42": ["confirmation"],
+  "build-42-390": ["sign-in"],
+  "build-42-768": ["sign-in"],
+};

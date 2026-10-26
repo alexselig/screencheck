@@ -32,7 +32,7 @@ import {
 } from "./components/screen-rail";
 import { isApproved, type ScreenApproval } from "../shared/approvals";
 import { rollUpSizes } from "./sizes";
-import { useSizes } from "./use-sizes";
+import { useSizes, viewportLookup } from "./use-sizes";
 import { captionFor, type ScreenCaption as Caption } from "../shared/captions";
 import { createPinNumbers } from "../shared/export";
 import {
@@ -591,9 +591,14 @@ function Workbench({
     setDraftPin(null);
     setSelectedFeedbackId(null);
   }, []);
+  const viewportOf = useMemo(
+    () => viewportLookup(project.versionDetails),
+    [project.versionDetails],
+  );
   const sizing = useSizes({
     revisionVersions,
     labelOf,
+    viewportOf,
     version,
     onChange: chooseSize,
   });

@@ -33,21 +33,43 @@ export function CompareSizes({
     Record<string, { width: number; height: number }>
   >({});
   const closeRef = useRef<HTMLButtonElement>(null);
+  const rowRef = useRef<HTMLOListElement>(null);
+  const [rowWidth, setRowWidth] = useState(0);
   useEffect(() => closeRef.current?.focus({ preventScroll: true }), []);
+  useEffect(() => {
+    const row = rowRef.current;
+    if (!row || typeof ResizeObserver === "undefined") return;
+    const observer = new ResizeObserver(() => setRowWidth(row.clientWidth));
+    observer.observe(row);
+    return () => observer.disconnect();
+  }, []);
+  const boxes = sizes.map(
+    (size) =>
+      natural[size.version] ?? {
+        width: size.width ?? 1440,
+        height: fallbackHeight,
+      },
+  );
+  const height = fitHeight(rowWidth, boxes);
   return (
-    <section aria-label="Compare sizes" className="compare-sizes">
+    <section
+      aria-label="Compare sizes"
+      className="compare-sizes"
+      style={
+        height
+          ? ({ "--compare-height": `${height}px` } as CSSProperties)
+          : undefined
+      }
+    >
       <header className="compare-sizes-head">
         <span className="eyebrow">Compare sizes · {title}</span>
         <button onClick={onClose} ref={closeRef} type="button">
           Close
         </button>
       </header>
-      <ol className="compare-sizes-row">
-        {sizes.map((size) => {
-          const box = natural[size.version] ?? {
-            width: size.width ?? 1440,
-            height: fallbackHeight,
-          };
+      <ol className="compare-sizes-row" ref={rowRef}>
+        {sizes.map((size, index) => {
+          const box = boxes[index];
           const src = captureSrc(size.version);
           return (
             <li key={size.version}>
@@ -109,4 +131,22 @@ export function CompareSizes({
       </ol>
     </section>
   );
+}
+
+const MAX_HEIGHT = 560;
+const MIN_HEIGHT = 240;
+// Room for the gaps, borders and current-size outline between shots.
+const GUTTER = 32;
+
+// The shared height that lets every shot fit the row side by side, capped so
+// a short screen is not blown up, and floored so a narrow window scrolls
+// rather than shrinking captures to thumbnails.
+export function fitHeight(
+  rowWidth: number,
+  boxes: readonly { width: number; height: number }[],
+) {
+  if (!rowWidth || boxes.length === 0) return undefined;
+  const ratio = boxes.reduce((sum, box) => sum + box.width / box.height, 0);
+  const room = rowWidth - GUTTER * boxes.length;
+  return Math.round(Math.min(MAX_HEIGHT, Math.max(MIN_HEIGHT, room / ratio)));
 }

@@ -1238,7 +1238,7 @@ h1 {
 
 /* Compare sizes: every size at one height, side by side. */
 .compare-sizes {
-  --compare-height: min(70vh, 640px);
+  --compare-height: min(60vh, 560px);
 }
 
 .compare-sizes-head {

@@ -26,14 +26,16 @@ export function sizeName(width: number | undefined): Size["name"] {
   return "Desktop";
 }
 
+// A registered numeric viewport is the width; otherwise a width-shaped label.
 export function sizesOf(
   versions: readonly string[],
   labelOf: (version: string) => string,
+  viewportOf: (version: string) => number | undefined = () => undefined,
 ): Size[] {
   return versions
     .map((version, index) => {
       const label = labelOf(version);
-      const width = sizeWidth(label);
+      const width = viewportOf(version) ?? sizeWidth(label);
       return { size: { version, label, width, name: sizeName(width) }, index };
     })
     .sort(

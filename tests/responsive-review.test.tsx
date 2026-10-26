@@ -17,6 +17,8 @@ import {
   sizesOf,
   sizeWidth,
 } from "../src/client/sizes";
+import { viewportLookup } from "../src/client/use-sizes";
+import { fitHeight } from "../src/client/components/compare-sizes";
 import { EXAMPLE_PROJECT } from "../src/server/projects";
 import type { FeedbackStatus } from "../src/shared/feedback";
 import { installFakeFeedbackApi } from "./helpers/fake-feedback-api";
@@ -34,6 +36,24 @@ describe("sizes", () => {
     expect(sizeName(1024)).toBe("Tablet");
     expect(sizeName(1440)).toBe("Desktop");
     expect(sizeName(undefined)).toBeUndefined();
+  });
+
+  it("fits compare shots to the row, within a readable height", () => {
+    const phone = { width: 390, height: 1000 };
+    const desktop = { width: 1440, height: 1000 };
+    expect(fitHeight(0, [phone])).toBeUndefined();
+    expect(fitHeight(800, [phone, desktop])).toBe(402);
+    expect(fitHeight(5000, [phone, desktop])).toBe(560);
+    expect(fitHeight(300, [phone, desktop])).toBe(240);
+  });
+
+  it("prefers a registered viewport width over the label", () => {
+    const [size] = sizesOf(
+      ["web-mobile"],
+      () => "Mobile",
+      viewportLookup([{ id: "web-mobile", viewport: 375 }]),
+    );
+    expect(size).toMatchObject({ label: "Mobile", width: 375, name: "Phone" });
   });
 
   it("orders sizes narrowest first", () => {
