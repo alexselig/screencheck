@@ -722,6 +722,7 @@ export function createFeedbackStorage(options: FeedbackStorageOptions) {
         note: input.note,
         tags: input.tags,
         status: input.status,
+        ...(input.author ? { author: input.author } : {}),
         createdAt: timestamp,
         updatedAt: timestamp,
       });

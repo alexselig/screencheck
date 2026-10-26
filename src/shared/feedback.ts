@@ -35,6 +35,23 @@ export const STATUS_LABELS: Record<(typeof FEEDBACK_STATUSES)[number], string> =
     WONT_FIX: "Won't fix",
   };
 export const REPLY_MAX_LENGTH = 2000;
+export const AUTHOR_MAX_LENGTH = 60;
+
+// Control characters (and bidi overrides, which can disguise a name) are
+// stripped; runs of whitespace collapse to one space.
+const AUTHOR_UNSAFE =
+  /[\u0000-\u001f\u007f-\u009f\u200e\u200f\u202a-\u202e\u2066-\u2069]/g;
+
+export function cleanAuthorName(value: string): string {
+  return value.replace(AUTHOR_UNSAFE, " ").replace(/\s+/g, " ").trim();
+}
+
+function authorSchema(max: number) {
+  return z.string().transform(cleanAuthorName).pipe(z.string().min(1).max(max));
+}
+
+// The reviewer's name from their browser, stamped on a new comment.
+export const authorNameSchema = authorSchema(AUTHOR_MAX_LENGTH);
 export const THREAD_MAX_MESSAGES = 500;
 
 // Only a person sets Verified. The browser client sends this header on every
@@ -71,7 +88,7 @@ export const feedbackMessageSchema = z.looseObject({
 // A message posted through the API; the server stamps `id` and `at`.
 export const messageInputSchema = z.object({
   note: z.string().trim().min(1).max(REPLY_MAX_LENGTH),
-  author: z.string().trim().min(1).max(64).optional(),
+  author: authorSchema(64).optional(),
   role: messageRoleSchema.optional().default("reviewer"),
 });
 
@@ -144,8 +161,17 @@ export function migrateLegacyThread(value: unknown): unknown {
   return { ...value, thread };
 }
 
+// `author` is optional and advisory: a record carrying one this build can't
+// accept loses the name rather than the whole comment.
+function cleanStoredAuthor(value: unknown): unknown {
+  if (!isRecordObject(value) || !("author" in value)) return value;
+  const author = authorNameSchema.safeParse(value.author);
+  const { author: _dropped, ...rest } = value;
+  return author.success ? { ...rest, author: author.data } : rest;
+}
+
 function migrateLegacyRecord(value: unknown): unknown {
-  return migrateLegacyThread(migrateLegacyTags(value));
+  return cleanStoredAuthor(migrateLegacyThread(migrateLegacyTags(value)));
 }
 
 // The on-disk record. Unknown keys pass through, so a field added by a newer
@@ -161,6 +187,8 @@ const feedbackRecordObjectSchema = z.looseObject({
   note: z.string().trim().min(1),
   tags: feedbackTagsSchema,
   status: feedbackStatusSchema,
+  // Who left the comment: the reviewer's name from their browser, if set.
+  author: z.string().min(1).max(AUTHOR_MAX_LENGTH).optional(),
   // Derived from `thread` (the latest agent message) for older clients.
   reply: feedbackReplySchema.optional(),
   // Optional in the type so hand-built records stay valid; parsing always
@@ -184,6 +212,7 @@ export const createFeedbackInputSchema = z.object({
   note: z.string().trim().min(1),
   tags: feedbackTagsSchema.optional().default([]),
   status: feedbackStatusSchema.optional().default("OPEN"),
+  author: authorNameSchema.optional(),
 });
 
 export const feedbackPatchSchema = z

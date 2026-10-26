@@ -2,6 +2,7 @@
 // pin numbers, labels and wording whichever one it uses.
 import type { FeedbackRecord } from "../shared/feedback";
 import { priorityTag } from "../shared/feedback";
+import { mentionsName } from "../shared/mentions";
 import type { PublicProject } from "../shared/projects";
 import { ToolError, type ApiFeedback } from "./client";
 import { isOpenStatus, statusLabel, toApiStatus } from "./status";
@@ -79,6 +80,8 @@ export function summarize(
     tags: record.tags,
     priority: priorityTag(record.tags),
     note: record.note,
+    // Who left the comment, when their browser had a name set.
+    author: typeof record.author === "string" ? record.author : null,
     position: { x: record.x, y: record.y },
     latestReply: latest,
     // The reviewer spoke last (a reopen with a reason, a follow-up), so the
@@ -196,6 +199,8 @@ export type CommentFilter = {
   statuses?: string[];
   tag?: string;
   includeClosed?: boolean;
+  // Only comments whose note or thread mentions this name ("agent", "@Alex").
+  mentions?: string;
 };
 
 // Open comments (Backlog, In progress) by default; `statuses` overrides that.
@@ -207,6 +212,7 @@ export function matchesFilter(item: ApiFeedback, filter: CommentFilter) {
     (filter.statuses
       ? filter.statuses.includes(item.status)
       : filter.includeClosed || isOpenStatus(item.status)) &&
-    (!tag || item.tags.some((value) => value.toLowerCase() === tag))
+    (!tag || item.tags.some((value) => value.toLowerCase() === tag)) &&
+    (!filter.mentions?.trim() || mentionsName(item, filter.mentions))
   );
 }
