@@ -341,8 +341,13 @@ h1 {
   cursor: pointer;
 }
 
+/* No stroke on the inner edge, so the unselected half joins the selected. */
 .before-after button + button {
   border-left: 0;
+}
+
+.before-after button:first-child:not([aria-pressed="true"]) {
+  border-right: 0;
 }
 
 /* Same blue as the selected rail row, so the hover is unmistakable.
