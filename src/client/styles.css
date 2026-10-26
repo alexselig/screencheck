@@ -161,12 +161,16 @@ h1 {
   position: sticky;
   top: 0;
   max-height: calc(100vh - var(--action-bar-height));
+  overflow-x: hidden;
   overflow-y: auto;
   border-right: 0;
   background: var(--surface-alt);
 }
 
+/* Opened over the canvas, the rail runs the full window height like the
+   strip it opens from, not just the length of its list. */
 .rail-column > .screen-rail[data-mode="compact"][data-expanded="true"] {
+  min-height: calc(100vh - var(--action-bar-height));
   border-right: 1px solid var(--ink);
 }
 
@@ -1106,6 +1110,7 @@ h1 {
 
 .fullscreen-rail .screen-rail {
   height: 100%;
+  overflow-x: hidden;
   overflow-y: auto;
   border-right: 1px solid var(--line-strong);
   background: var(--surface-alt);
@@ -1119,7 +1124,7 @@ h1 {
   width: 320px;
 }
 
-/* Fullscreen: the collapsed strip hugs the numbers to give the screen room. */
+/* Desktop rail rows, and the fullscreen strip that hugs the numbers. */
 @media (min-width: 901px) {
   .fullscreen-rail
     .screen-rail[data-mode="compact"]:not([data-expanded="true"]) {
@@ -1135,31 +1140,34 @@ h1 {
     padding-inline: var(--space-1);
   }
 
-  /* Rows keep one layout collapsed and expanded: a 46px number column
-     (what the 64px strip leaves after padding), so numbers hold their
-     position when the strip opens. */
-  .fullscreen-rail .screen-rail[data-mode="compact"] li button {
+  /* Every desktop rail, wide, compact or fullscreen, collapsed or open,
+     puts the number in the same 46px column (what the 64px strip leaves
+     after padding), so numbers never move when the rail opens or switches
+     mode. */
+  .screen-rail li button {
     grid-template-columns: 46px minmax(0, 1fr) auto;
-    padding-inline: var(--space-3);
+    padding-left: var(--space-3);
   }
 
-  .fullscreen-rail
-    .screen-rail[data-mode="compact"]:not([data-expanded="true"])
-    li
-    button {
+  .screen-rail[data-mode="compact"] li button {
+    grid-template-columns: 46px minmax(0, 1fr) auto;
+    padding-inline: var(--space-3) var(--space-1);
+  }
+
+  .screen-rail[data-mode="compact"]:not([data-expanded="true"]) li button {
     grid-template-columns: minmax(0, 1fr);
     padding-right: 2px;
   }
 
   /* The number stays centred with small badges hung off its left edge, so
      badges and the number fit the 64px strip together. */
-  .fullscreen-rail .screen-rail[data-mode="compact"] .screen-number {
+  .screen-rail .screen-number {
     position: relative;
     display: block;
     justify-self: center;
   }
 
-  .fullscreen-rail .screen-rail[data-mode="compact"] .screen-badges {
+  .screen-rail .screen-badges {
     position: absolute;
     top: 50%;
     right: calc(100% + 4px);
@@ -1170,15 +1178,15 @@ h1 {
     transform: translateY(-50%);
   }
 
-  .fullscreen-rail .screen-rail[data-mode="compact"] .screen-approved-mark {
+  .screen-rail .screen-approved-mark {
     width: 14px;
+    height: 14px;
   }
 
-  .fullscreen-rail .screen-rail[data-mode="compact"] .screen-open-count {
+  .screen-rail .screen-open-count {
     height: 14px;
     min-width: 14px;
     padding: 0 2px;
-    font-size: 11px;
   }
 }
 

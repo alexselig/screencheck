@@ -187,14 +187,22 @@ describe("feedback cards", () => {
 });
 
 describe("rail rows", () => {
-  it("sets badges side by side in a 40px slot at 18px (ds-11)", () => {
-    expect(ruleBody(".screen-number")).toMatch(
-      /grid-template-columns: 40px 24px;/,
+  it("keeps numbers in one column with small badges hung to their left", () => {
+    // Every desktop rail mode shares the 46px number column, so numbers never
+    // move when the rail opens or switches mode, and fit the 64px strip.
+    expect(rules).toMatch(
+      /\.screen-rail li button \{\s*grid-template-columns: 46px minmax\(0, 1fr\) auto;/,
     );
-    expect(ruleBody(".screen-badges")).not.toMatch(/column|absolute/);
-    expect(ruleBody(".screen-open-count")).toMatch(/font-size: 11px;/);
+    expect(rules).toMatch(
+      /\.screen-rail\[data-mode="compact"\] li button \{\s*grid-template-columns: 46px minmax\(0, 1fr\) auto;/,
+    );
+    expect(rules).toMatch(
+      /\.screen-rail \.screen-badges \{\s*position: absolute;/,
+    );
+    expect(rules).toMatch(
+      /\.screen-rail \.screen-approved-mark \{\s*width: 14px;/,
+    );
     expect(ruleBody(".screen-open-count")).not.toMatch(/outline/);
-    expect(ruleBody(".screen-approved-mark")).toMatch(/width: 18px;/);
   });
 
   it("keeps the version outside the truncating title (ds-12)", () => {
