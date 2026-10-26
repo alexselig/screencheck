@@ -53,6 +53,14 @@ export const feedbackReplySchema = z.object({
   at: z.iso.datetime(),
 });
 
+// The tracker issue a comment was filed as (`screencheck issues`), so a re-run
+// doesn't file it twice and `issues sync` knows what to ask GitHub about.
+export const issueLinkSchema = z.object({
+  repo: z.string().regex(/^[\w.-]+\/[\w.-]+$/),
+  number: z.number().int().positive(),
+  url: z.url(),
+});
+
 export const MESSAGE_ROLES = ["reviewer", "agent"] as const;
 export const messageRoleSchema = z.enum(MESSAGE_ROLES);
 
@@ -166,6 +174,7 @@ const feedbackRecordObjectSchema = z.looseObject({
   // Optional in the type so hand-built records stay valid; parsing always
   // fills it. Read it through `feedbackThread`.
   thread: z.array(feedbackMessageSchema).max(THREAD_MAX_MESSAGES).optional(),
+  issue: issueLinkSchema.optional(),
   createdAt: z.iso.datetime(),
   updatedAt: z.iso.datetime(),
 });
@@ -195,6 +204,8 @@ export const feedbackPatchSchema = z
     reply: replyInputSchema.nullable().optional(),
     // Appends a message (reviewer unless `role` says otherwise).
     message: messageInputSchema.optional(),
+    // Links the comment to a tracker issue; null unlinks it.
+    issue: issueLinkSchema.nullable().optional(),
   })
   .superRefine((patch, context) => {
     if (patch.reply !== undefined && patch.message !== undefined) {
@@ -232,6 +243,7 @@ export type UpdateFeedbackInput = z.infer<typeof updateFeedbackInputSchema>;
 export type FeedbackReply = z.infer<typeof feedbackReplySchema>;
 export type FeedbackPatch = z.infer<typeof feedbackPatchSchema>;
 export type FeedbackMessage = z.infer<typeof feedbackMessageSchema>;
+export type IssueLink = z.infer<typeof issueLinkSchema>;
 export type MessageRole = z.infer<typeof messageRoleSchema>;
 
 export type FrameRect = {
