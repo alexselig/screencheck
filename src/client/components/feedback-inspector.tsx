@@ -32,9 +32,10 @@ import {
   type UpdateFeedbackInput,
 } from "../../shared/feedback";
 import type { ReviewScreen } from "../../shared/manifest";
+import { pinBoxSchema, type BoxPin } from "../../shared/pin-box";
 import { z } from "zod";
 
-type Pin = { x: number; y: number };
+type Pin = BoxPin;
 
 const recoveryEntrySchema = z.preprocess(
   migrateLegacyTags,
@@ -45,6 +46,7 @@ const recoveryEntrySchema = z.preprocess(
     feedbackId: z.string().optional(),
     x: normalizedCoordinateSchema.optional(),
     y: normalizedCoordinateSchema.optional(),
+    box: pinBoxSchema.optional(),
     note: z.string(),
     tags: z.array(z.string()),
   }),
@@ -152,7 +154,7 @@ function recoveryPin(entry: RecoveryEntry | undefined): Pin | null {
   return entry?.kind === "create" &&
     typeof entry.x === "number" &&
     typeof entry.y === "number"
-    ? { x: entry.x, y: entry.y }
+    ? { x: entry.x, y: entry.y, ...(entry.box ? { box: entry.box } : {}) }
     : null;
 }
 
@@ -635,6 +637,7 @@ export function FeedbackInspector({
       feedbackId: target.record?.id,
       x: target.pin?.x,
       y: target.pin?.y,
+      box: target.pin?.box,
       note: nextEditor.note,
       tags: nextEditor.tags,
     });
@@ -724,6 +727,7 @@ export function FeedbackInspector({
           version: target.version,
           x: pin.x,
           y: pin.y,
+          ...(pin.box ? { box: pin.box } : {}),
           note: nextEditor.note.trim(),
           tags: nextEditor.tags,
           status: "OPEN",

@@ -12,11 +12,18 @@ import { fetchElementMap } from "../element-map-api";
 // when the screen's capture has an element map.
 export function ElementLine({
   projectId,
-  pin: { version, screenId, x, y },
+  pin,
 }: {
   projectId: string;
-  pin: { version: string; screenId: string; x: number; y: number };
+  pin: {
+    version: string;
+    screenId: string;
+    x: number;
+    y: number;
+    box?: unknown;
+  };
 }) {
+  const { version, screenId } = pin;
   const [loaded, setLoaded] = useState<{
     key: string;
     map: ElementMap;
@@ -34,7 +41,7 @@ export function ElementLine({
   }, [key, projectId, version, screenId]);
 
   const element =
-    loaded?.key === key ? resolvePinElement(loaded.map, { x, y }) : null;
+    loaded?.key === key ? resolvePinElement(loaded.map, pin) : null;
   // A bare `main` or `div` says nothing a reviewer can act on.
   if (!element || !(element.name || element.testId || element.source)) {
     return null;

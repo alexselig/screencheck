@@ -18,6 +18,11 @@ import {
   FullscreenReview,
   type FullscreenDrawer,
 } from "./components/fullscreen-review";
+import {
+  PinBoxOutline,
+  pinBoxClassName,
+  usePinDrag,
+} from "./components/pin-layer";
 import { ScreenCaption } from "./components/screen-caption";
 import {
   ScreenRail,
@@ -34,10 +39,10 @@ import { createPinNumbers } from "../shared/export";
 import {
   FEEDBACK_STATUSES,
   isOpenFeedback,
-  normalizePinCoordinates,
   type FeedbackRecord,
   type FeedbackStatus,
 } from "../shared/feedback";
+import { pinAnchor, pinBoxOf, type BoxPin } from "../shared/pin-box";
 import {
   captureUrl,
   type ProjectList,
@@ -396,9 +401,7 @@ function Workbench({
   // Keyboard pin placement: a crosshair the arrow keys move over the frame.
   const [crosshair, setCrosshair] = useState({ x: 0.5, y: 0.5 });
   const frameRef = useRef<HTMLDivElement>(null);
-  const [draftPin, setDraftPin] = useState<{ x: number; y: number } | null>(
-    null,
-  );
+  const [draftPin, setDraftPin] = useState<BoxPin | null>(null);
   const [selectedFeedbackId, setSelectedFeedbackId] = useState<string | null>(
     null,
   );
@@ -559,10 +562,14 @@ function Workbench({
     frameRef.current?.focus({ preventScroll: true });
   }, [placingPin]);
 
-  const placePin = useCallback((pin: { x: number; y: number }) => {
+  const placePin = useCallback((pin: BoxPin) => {
     setDraftPin(pin);
     setSelectedFeedbackId(null);
   }, []);
+  const pinDrag = usePinDrag({
+    enabled: addingFeedback && ready,
+    onPlace: placePin,
+  });
 
   const clearSelectionOnDelete = useCallback((id: string) => {
     setSelectedFeedbackId((current) => (current === id ? null : current));
@@ -978,20 +985,7 @@ function Workbench({
       <div
         className="screen-frame"
         data-testid="screen-frame"
-        onClick={(event) => {
-          if (
-            !addingFeedback ||
-            !ready ||
-            (event.target instanceof HTMLElement &&
-              event.target.closest("button"))
-          ) {
-            return;
-          }
-          // Pins are stored relative to the screen frame, which keeps the
-          // screen's aspect ratio, so they land on the same spot at any size.
-          const rect = event.currentTarget.getBoundingClientRect();
-          placePin(normalizePinCoordinates(event.clientX, event.clientY, rect));
-        }}
+        {...pinDrag.handlers}
         onKeyDown={(event) => {
           if (!placingPin || !ready) return;
           const step = event.shiftKey ? 0.1 : 0.01;
@@ -1077,7 +1071,18 @@ function Workbench({
                 (!hiddenPinStatuses.includes(item.status) ||
                   item.id === selectedFeedbackId),
             )
-            .map((item) => (
+            .map((item) => [
+              pinBoxOf(item) ? (
+                <PinBoxOutline
+                  box={pinBoxOf(item)!}
+                  className={pinBoxClassName(
+                    item.status,
+                    item.id === selectedFeedbackId,
+                  )}
+                  key={`${item.id}-box`}
+                  testId="feedback-box"
+                />
+              ) : null,
               <button
                 aria-controls={`feedback-comment-${item.id}`}
                 aria-label={`Pin ${pinNumbers.get(item.id) ?? 0}${item.status === "RESOLVED" ? " (fixed)" : item.status === "VERIFIED" ? " (verified)" : ""}: ${item.note}`}
@@ -1088,12 +1093,15 @@ function Workbench({
                 key={item.id}
                 // The feedback panel moves focus into the opened editor.
                 onClick={() => setSelectedFeedbackId(item.id)}
-                style={{ left: `${item.x * 100}%`, top: `${item.y * 100}%` }}
+                style={{
+                  left: `${pinAnchor(item).x * 100}%`,
+                  top: `${pinAnchor(item).y * 100}%`,
+                }}
                 type="button"
               >
                 {pinNumbers.get(item.id) ?? 0}
-              </button>
-            ))}
+              </button>,
+            ])}
           {placingPin ? (
             <span
               aria-hidden="true"
@@ -1104,13 +1112,27 @@ function Workbench({
               }}
             />
           ) : null}
+          {pinDrag.preview ? (
+            <PinBoxOutline
+              box={pinDrag.preview}
+              className="is-draft"
+              testId="pin-box-preview"
+            />
+          ) : null}
+          {draftPin?.box ? (
+            <PinBoxOutline
+              box={draftPin.box}
+              className="is-draft"
+              testId="draft-box"
+            />
+          ) : null}
           {draftPin ? (
             <span
               className="feedback-pin pin-dot feedback-pin-draft"
               data-testid="draft-pin"
               style={{
-                left: `${draftPin.x * 100}%`,
-                top: `${draftPin.y * 100}%`,
+                left: `${pinAnchor(draftPin).x * 100}%`,
+                top: `${pinAnchor(draftPin).y * 100}%`,
               }}
             >
               +
