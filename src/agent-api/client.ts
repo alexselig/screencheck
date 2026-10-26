@@ -175,6 +175,16 @@ export function createApiClient({
       );
       return parsed.success ? parsed.data : null;
     },
+    // Whether the version has a capture for this screen, without reading it.
+    async hasCapture(projectId: string, version: string, screenId: string) {
+      const response = await send(captureUrl(projectId, version, screenId));
+      await response.body?.cancel().catch(() => undefined);
+      if (response.status === 404) return false;
+      if (!response.ok) {
+        throw new ApiError(response.status, `HTTP ${response.status}`);
+      }
+      return true;
+    },
     // Null when the version has no capture for this screen.
     async capture(projectId: string, version: string, screenId: string) {
       const response = await send(captureUrl(projectId, version, screenId));

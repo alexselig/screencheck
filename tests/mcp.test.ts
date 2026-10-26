@@ -266,6 +266,7 @@ describe("MCP server", () => {
       "get_comment",
       "list_feedback",
       "list_projects",
+      "release_status",
       "reply",
       "set_status",
     ]);
@@ -661,6 +662,62 @@ describe("MCP server", () => {
     expect(latest.structuredContent!.summary).toBe(
       "0/2 approved, 1 open (1 P1)",
     );
+  });
+
+  it("reports the release status and gate like the CLI", async () => {
+    const client = await connect();
+    const latest = await call(client, "release_status", {});
+    expect(latest.isError).toBeFalsy();
+    expect(latest.structuredContent).toMatchObject({
+      schema: 1,
+      project: "demo",
+      revision: "v2",
+      versions: ["v2"],
+      previous: { revision: "v1", versions: ["v1"] },
+      screens: { total: 2, approved: 0, unapproved: 2 },
+      open: { total: 1, P0: 0, P1: 1, P2: 0, none: 0 },
+      fixedNotVerified: 0,
+      changes: {
+        since: "v1",
+        screensAdded: [],
+        screensRemoved: [],
+        commentsOpened: 1,
+        commentsClosed: 1,
+        commentsStillOpen: 3,
+      },
+      gate: {
+        pass: false,
+        reasons: ["2 screens not approved: 01 Home, 02 Checkout"],
+      },
+    });
+    expect(text(latest)).toContain("demo · version v2");
+    expect(text(latest)).toContain("Gate: FAIL");
+
+    const v1 = await call(client, "release_status", {
+      version: "v1",
+      allowUnapproved: true,
+      maxPriority: "P1",
+    });
+    expect(v1.structuredContent!.screens).toEqual({
+      total: 2,
+      approved: 1,
+      unapproved: 1,
+    });
+    expect(v1.structuredContent!.gate.reasons).toEqual([
+      "2 open P0 comments",
+      "1 open P1 comment",
+    ]);
+
+    const both = await call(client, "release_status", {
+      version: "v1",
+      revision: "v1",
+    });
+    expect(both.isError).toBe(true);
+    // approval_status is unchanged by the new tool.
+    expect(
+      (await call(client, "approval_status", { version: "v1" }))
+        .structuredContent!.summary,
+    ).toBe("1/2 approved, 3 open (2 P0, 1 P1), 1 fixed awaiting verification");
   });
 
   it("serves the Markdown export as a resource and offers a prompt", async () => {
