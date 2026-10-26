@@ -169,6 +169,12 @@ h1 {
 
 /* Opened over the canvas, the rail runs the full window height like the
    strip it opens from, not just the length of its list. */
+/* Collapsed, the rail fills the column inside its border rather than its
+   fixed 64px, which would paint over the column's right rule. */
+.rail-column > .screen-rail[data-mode="compact"]:not([data-expanded="true"]) {
+  width: 100%;
+}
+
 .rail-column > .screen-rail[data-mode="compact"][data-expanded="true"] {
   min-height: calc(100vh - var(--action-bar-height));
   border-right: 1px solid var(--ink);
