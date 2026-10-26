@@ -10,6 +10,7 @@ import { DOCTOR_USAGE, runDoctor } from "./doctor";
 import { DEMO_USAGE, type DemoHandle, startDemo } from "./demo";
 import { ADD_USAGE, INIT_USAGE, runAdd, runInit } from "./init";
 import { REPLY_USAGE, runReply } from "./reply";
+import { runReleaseStatus, STATUS_USAGE } from "./status";
 
 export const VERSION = version;
 
@@ -22,7 +23,8 @@ Commands:
   demo      Try ScreenCheck on a seeded sample project
   init      Register a project from a folder of captures
   add       Add a folder of captures as a new version of a project
-  status    Show whether a server is running and where
+  status    Show whether a server is running, or with --project/--gate
+            a review round's status (a release gate for CI)
   reply     List open comments or reply to one
   mcp       Run the MCP server on stdio for coding agents
   capture   Take a full-page screenshot without mid-page footers
@@ -41,11 +43,6 @@ records it in ~/.screencheck/server.json so other commands find it. If
 ScreenCheck is already running, prints where and exits 0.
   --port 0  Use any free port
   --open    Open the review page in your browser`;
-
-const STATUS_USAGE = `Usage:
-  screencheck status
-
-Prints the origin of the running server, or "not running" (exit 1).`;
 
 const MCP_USAGE = `Usage:
   screencheck mcp [--url <origin>] [--author <name>]
@@ -192,6 +189,7 @@ export async function main(
       }
       case "status": {
         if (wantsHelp(rest)) return (log(STATUS_USAGE), 0);
+        if (rest.length) return await runReleaseStatus(rest, { log, env });
         const info = readRuntime();
         if (!info) {
           log("ScreenCheck is not running.");
