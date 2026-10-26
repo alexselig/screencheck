@@ -843,11 +843,11 @@ h1 {
   color: var(--ink);
   font: inherit;
   font-size: 11px;
-  font-weight: 700;
+  font-weight: 400;
   text-align: left;
   cursor: pointer;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
 }
 
 .rail-filter-switch {
@@ -889,9 +889,6 @@ h1 {
 
 .rail-filter-count {
   color: var(--ink-muted);
-  font-weight: 400;
-  letter-spacing: 0.04em;
-  text-transform: none;
 }
 
 .rail-filter-button:focus-visible {
