@@ -5,6 +5,7 @@ import { version } from "../../package.json";
 import { serve } from "../server/index";
 import { DataRootInUseError } from "../server/lock";
 import { readRuntimeInfo, type RuntimeInfo } from "../server/runtime";
+import { BUNDLE_USAGE, IMPORT_USAGE, runBundle, runImport } from "./bundle";
 import { CAPTURE_USAGE, parseCaptureArgs, runCapture } from "./capture";
 import { DOCTOR_USAGE, runDoctor } from "./doctor";
 import { DEMO_USAGE, type DemoHandle, startDemo } from "./demo";
@@ -24,6 +25,8 @@ Commands:
   add       Add a folder of captures as a new version of a project
   status    Show whether a server is running and where
   reply     List open comments or reply to one
+  bundle    Pack captures and feedback into a zip reviewable offline
+  import    Merge comments exported from an offline bundle
   mcp       Run the MCP server on stdio for coding agents
   capture   Take a full-page screenshot without mid-page footers
   doctor    Check stored feedback and restore damaged files from backup
@@ -82,6 +85,8 @@ export type CliIo = {
   env?: NodeJS.ProcessEnv;
   // Built client to serve; when missing the server falls back to Vite dev.
   clientRoot?: string;
+  // Built offline viewer (dist/viewer) for `bundle`.
+  viewerRoot?: string;
   loadMcp?: () => Promise<McpModule>;
   readRuntime?: () => RuntimeInfo | null;
   open?: (url: string) => void;
@@ -206,6 +211,16 @@ export async function main(
       case "reply":
         if (wantsHelp(rest)) return (log(REPLY_USAGE), 0);
         return await runReply(rest, { log, env, readRuntime });
+      case "bundle":
+        if (wantsHelp(rest)) return (log(BUNDLE_USAGE), 0);
+        return await runBundle(rest, {
+          log,
+          env,
+          ...(io.viewerRoot ? { viewerRoot: io.viewerRoot } : {}),
+        });
+      case "import":
+        if (wantsHelp(rest)) return (log(IMPORT_USAGE), 0);
+        return await runImport(rest, { log, env, readRuntime });
       case "mcp": {
         if (wantsHelp(rest)) return (log(MCP_USAGE), 0);
         const { values } = parseArgs({
