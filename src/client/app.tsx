@@ -26,6 +26,10 @@ import {
 import { ReviewerNameMenuItem } from "./components/reviewer-name";
 import { ScreenCaption } from "./components/screen-caption";
 import {
+  SuggestionLayer,
+  SuggestionsToggle,
+} from "./components/suggestion-layer";
+import {
   ScreenRail,
   readHideApproved,
   visibleRailScreens,
@@ -61,6 +65,7 @@ import {
 import { captureSrc } from "./offline-api";
 import { SHORTCUTS, useShortcuts } from "./shortcuts";
 import { useFeedbackStore } from "./use-feedback-store";
+import { useSuggestions } from "./use-suggestions";
 import { versionModel } from "./versions";
 
 type Place = { project?: string; version?: string; screen?: string };
@@ -579,6 +584,13 @@ function Workbench({
     projectId: project.id,
     setRecords: setFeedbackRecords,
     onDeleted: clearSelectionOnDelete,
+  });
+  const suggestions = useSuggestions({
+    projectId: project.id,
+    version,
+    screenId: selectedId,
+    createFeedback,
+    onPromoted: (record) => setSelectedFeedbackId(record.id),
   });
 
   const togglePinStatus = useCallback((status: FeedbackStatus) => {
@@ -1103,6 +1115,10 @@ function Workbench({
                 {pinNumbers.get(item.id) ?? 0}
               </button>,
             ])}
+          <SuggestionLayer
+            hidden={comparing || addingFeedback}
+            state={suggestions}
+          />
           {placingPin ? (
             <span
               aria-hidden="true"
@@ -1227,6 +1243,10 @@ function Workbench({
               ))}
             </div>
           ) : null}
+          <SuggestionsToggle
+            hidden={placingPin || comparing}
+            state={suggestions}
+          />
         </div>
         <button
           aria-label="Next screen"

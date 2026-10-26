@@ -29,6 +29,9 @@ export async function installFakeFeedbackApi(
   const requests: { method: string; path: string }[] = [];
   let failNext: { status: number; error: string; path?: RegExp } | null = null;
   let gate: Promise<void> | null = null;
+  // Accessibility reports by "version/screenId"; none unless a test adds one.
+  const a11yReports = new Map<string, unknown>();
+  const dismissalWrites: unknown[] = [];
 
   const fetchMock = vi.fn(async (url: string, init: RequestInit = {}) => {
     const method = init.method ?? "GET";
@@ -40,6 +43,38 @@ export async function installFakeFeedbackApi(
     // Element maps are optional reads; the example project has none.
     if (/^\/api\/projects\/[^/]+\/elements\//.test(path)) {
       return reply(404, { error: "Element map not found." });
+    }
+    const a11yMatch = /^\/api\/projects\/[^/]+\/a11y\/([^/]+)\/([^/]+)$/.exec(
+      path,
+    );
+    if (a11yMatch) {
+      const report = a11yReports.get(
+        `${decodeURIComponent(a11yMatch[1]!)}/${decodeURIComponent(a11yMatch[2]!)}`,
+      );
+      return report
+        ? reply(200, report)
+        : reply(404, { error: "Accessibility report not found." });
+    }
+    const suggestionsMatch = /^\/api\/projects\/([^/]+)\/suggestions$/.exec(
+      path,
+    );
+    if (suggestionsMatch) {
+      const projectId = decodeURIComponent(suggestionsMatch[1]!);
+      if (method === "PUT") {
+        if (failNext?.path?.test(path)) {
+          const failure = failNext;
+          failNext = null;
+          return reply(failure.status, { error: failure.error });
+        }
+        const input = JSON.parse(String(init.body));
+        dismissalWrites.push(input);
+        return reply(200, {
+          dismissed: await storage.setSuggestionDismissal(projectId, input),
+        });
+      }
+      return reply(200, {
+        dismissed: await storage.listDismissedSuggestions(projectId),
+      });
     }
     requests.push({ method, path });
     if (gate) await gate;
@@ -144,6 +179,10 @@ export async function installFakeFeedbackApi(
     root,
     storage,
     requests,
+    dismissalWrites,
+    setA11yReport(version: string, screenId: string, report: unknown) {
+      a11yReports.set(`${version}/${screenId}`, report);
+    },
     // Fails the next feedback request, or the next request matching path.
     failNext(status: number, error: string, path?: RegExp) {
       failNext = { status, error, path };

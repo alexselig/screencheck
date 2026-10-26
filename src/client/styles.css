@@ -2532,6 +2532,187 @@ button.tag-chip:hover {
   border: 1px dashed var(--bauhaus-blue);
 }
 
+/* Suggested comments: automated accessibility findings drawn as ghosts, a
+   dashed box plus a "Suggested" tab. Nothing is a comment until a reviewer
+   adds it. */
+.feedback-box.is-suggested {
+  border: 1px dashed var(--bauhaus-orange);
+  outline: 1px dashed var(--surface);
+}
+
+.feedback-box.is-suggested.is-selected {
+  border-color: var(--bauhaus-blue);
+  outline-color: var(--surface);
+}
+
+.suggestion-ghost {
+  position: absolute;
+  padding: 0 var(--space-1);
+  border: 1px dashed var(--ink);
+  background: var(--surface);
+  color: var(--ink);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  line-height: 1.5;
+  text-transform: uppercase;
+  white-space: nowrap;
+  transform: translateY(-100%);
+  pointer-events: auto;
+  cursor: pointer;
+}
+
+/* A box at the very top has no room above it; the tab goes inside. */
+.suggestion-ghost.is-inside {
+  transform: none;
+}
+
+.suggestion-ghost:hover,
+.suggestion-ghost[aria-expanded="true"] {
+  border-style: solid;
+  border-color: var(--bauhaus-blue);
+  background: var(--bauhaus-blue);
+  color: var(--on-blue);
+}
+
+.suggestion-ghost:focus-visible,
+.suggestion-card button:focus-visible,
+.suggestion-card a:focus-visible,
+.suggestions-switch:focus-visible {
+  outline: 2px solid var(--bauhaus-blue);
+  outline-offset: 2px;
+}
+
+.suggestion-card {
+  --suggestion-card-width: min(320px, 100%);
+  position: absolute;
+  z-index: 4;
+  display: grid;
+  width: var(--suggestion-card-width);
+  gap: var(--space-2);
+  padding: var(--space-3);
+  border: 1px solid var(--ink);
+  background: var(--surface);
+  color: var(--ink);
+  font-size: 13px;
+  pointer-events: auto;
+}
+
+.suggestion-card p {
+  margin: 0;
+}
+
+.suggestion-card-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+}
+
+.suggestion-card-eyebrow {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.suggestion-card-close {
+  width: var(--size-touch);
+  height: var(--size-touch);
+  margin: calc(var(--space-2) * -1) calc(var(--space-2) * -1) 0 0;
+  border: 0;
+  background: transparent;
+  color: var(--ink);
+  font-size: 22px;
+  cursor: pointer;
+}
+
+.suggestion-card-help {
+  font-size: 15px;
+  font-weight: 700;
+}
+
+.suggestion-card-meta,
+.suggestion-card-summary {
+  color: var(--ink-muted);
+  overflow-wrap: anywhere;
+}
+
+.suggestion-card-link {
+  color: var(--bauhaus-blue);
+}
+
+.suggestion-card-error {
+  color: var(--bauhaus-orange);
+}
+
+.suggestion-card-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+.suggestion-card-promote,
+.suggestion-card-dismiss {
+  min-height: var(--size-touch);
+  padding: 0 var(--space-3);
+  border: 1px solid var(--ink);
+  background: var(--surface);
+  color: var(--ink);
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.suggestion-card-promote {
+  border-color: var(--bauhaus-blue);
+  background: var(--bauhaus-blue);
+  color: var(--on-blue);
+}
+
+.suggestion-card-dismiss:hover:not(:disabled) {
+  background: var(--surface-hover);
+}
+
+.suggestion-card-promote:disabled,
+.suggestion-card-dismiss:disabled {
+  cursor: wait;
+}
+
+/* Suggestions on/off, beside Before | After. */
+.suggestions-switch {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  gap: var(--space-2);
+  min-height: calc(var(--size-touch) - 10px);
+  padding: 0 var(--space-2);
+  border: 1px solid var(--ink);
+  background: var(--surface);
+  color: var(--ink);
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.suggestions-switch-track {
+  width: 12px;
+  height: 12px;
+  border: 1px dashed var(--ink);
+}
+
+.suggestions-switch[aria-checked="true"] .suggestions-switch-track {
+  border: 1px solid var(--bauhaus-orange);
+  background: var(--bauhaus-orange);
+}
+
+.suggestions-switch-count {
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+}
+
+.action-bar-nav .suggestions-switch:hover {
+  border-color: var(--bauhaus-blue);
+}
+
 @media (max-width: 1200px) {
   .workbench-grid {
     grid-template-columns: 232px minmax(0, 1fr) 300px;
