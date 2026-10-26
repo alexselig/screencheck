@@ -1,5 +1,7 @@
 import { z } from "zod";
 
+import { pinBoxSchema } from "./pin-box";
+
 // Priority lives in tags: suggested P0-P2, plus any free-text tag.
 export const PRIORITY_TAGS = ["P0", "P1", "P2"] as const;
 export type PriorityTag = (typeof PRIORITY_TAGS)[number];
@@ -166,6 +168,9 @@ const feedbackRecordObjectSchema = z.looseObject({
   version: z.string().min(1),
   x: normalizedCoordinateSchema,
   y: normalizedCoordinateSchema,
+  // A box pin also carries `box`, its region (x/y are then its centre). It
+  // is left undeclared so a box another tool wrote in a different shape
+  // survives a rewrite; read it through `pinBoxOf` (shared/pin-box.ts).
   note: z.string().trim().min(1),
   tags: feedbackTagsSchema,
   status: feedbackStatusSchema,
@@ -190,6 +195,8 @@ export const createFeedbackInputSchema = z.object({
   version: z.string().min(1),
   x: normalizedCoordinateSchema,
   y: normalizedCoordinateSchema,
+  // Box pins: the region drawn, with x/y at its centre.
+  box: pinBoxSchema.optional(),
   note: z.string().trim().min(1),
   tags: feedbackTagsSchema.optional().default([]),
   status: feedbackStatusSchema.optional().default("OPEN"),

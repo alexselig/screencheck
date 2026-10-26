@@ -1,5 +1,7 @@
 import { z } from "zod";
 
+import { pinBoxOf } from "./pin-box";
+
 // The element map written beside a capture: what sat where on the page when
 // it was captured, so a pin can name the element under it. Pure and shared by
 // the capture helper, server, client and agents.
@@ -59,12 +61,45 @@ export function elementMapKey(version: string, screenId: string) {
 // Boxes are rounded fractions, so edges get a hair of slack.
 const EDGE = 1e-6;
 
+type Box = { x: number; y: number; w: number; h: number };
+
+function overlap(a: Box, b: Box) {
+  const w = Math.min(a.x + a.w, b.x + b.w) - Math.max(a.x, b.x);
+  const h = Math.min(a.y + a.h, b.y + b.h) - Math.max(a.y, b.y);
+  return w > 0 && h > 0 ? w * h : 0;
+}
+
+// The element that best matches a drawn box: the highest intersection over
+// union, so a box around a card names the card rather than the page around
+// it or a button inside it. Later in document order wins a tie.
+function resolveBoxElement(
+  elements: readonly MappedElement[],
+  box: Box,
+): MappedElement | null {
+  let best: MappedElement | null = null;
+  let bestScore = 0;
+  for (const element of elements) {
+    const shared = overlap(element.box, box);
+    if (shared <= 0) continue;
+    const score =
+      shared / (element.box.w * element.box.h + box.w * box.h - shared);
+    if (score >= bestScore) {
+      best = element;
+      bestScore = score;
+    }
+  }
+  return best;
+}
+
 // The innermost element under a pin: the smallest box containing the point,
 // and on equal areas the one later in document order (usually the child).
+// A box pin resolves to the element best covering its box instead.
 export function resolvePinElement(
   map: Pick<ElementMap, "elements"> | null | undefined,
-  point: { x: number; y: number },
+  point: { x: number; y: number; box?: unknown },
 ): MappedElement | null {
+  const box = pinBoxOf(point);
+  if (box) return resolveBoxElement(map?.elements ?? [], box);
   let best: MappedElement | null = null;
   let bestArea = Infinity;
   for (const element of map?.elements ?? []) {

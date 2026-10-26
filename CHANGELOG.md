@@ -32,6 +32,11 @@ provenance.
   re-captures one screen. Example in `examples/screencheck.config.mjs`.
 - Versions in a registration may carry an explicit `viewport` width beside
   `revision` and `label`; it labels the version when there is no `label`.
+- **Box pins:** while placing a pin, drag to draw a rectangle; a click still
+  drops a point. Stored as an optional `box` (fractions of the capture) with
+  `x`/`y` at its centre, so older files and point-only consumers are
+  unaffected. The element map, `get_comment` crop and Markdown/agent exports
+  use the region.
 
 ### Changed
 

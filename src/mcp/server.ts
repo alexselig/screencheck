@@ -416,6 +416,13 @@ export function createMcpServer(options: McpServerOptions = {}): McpServer {
         lines.push(
           `Image: the whole ${image.capture.width}x${image.capture.height} capture as stored, without the pin drawn (install sharp for a crop with the pin circled); the pin is at (${image.pin.x}, ${image.pin.y}).`,
         );
+      } else if (image?.box) {
+        const { left, top, width, height } = image.box;
+        lines.push(
+          args.fullCapture
+            ? `Image: whole ${image.capture.width}x${image.capture.height} capture at ${image.width}x${image.height}; the region is outlined at (${left}, ${top}), ${width}x${height}.`
+            : `Image: ${image.width}x${image.height} crop of the ${image.capture.width}x${image.capture.height} capture from (${image.region.left}, ${image.region.top}); the region is outlined at (${left}, ${top}), ${width}x${height}.`,
+        );
       } else if (image) {
         lines.push(
           args.fullCapture
@@ -447,6 +454,7 @@ export function createMcpServer(options: McpServerOptions = {}): McpServer {
               region: image.region,
               capture: image.capture,
               pin: image.pin,
+              ...(image.box ? { box: image.box } : {}),
             }
           : null,
         record,

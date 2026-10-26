@@ -115,6 +115,16 @@ through each feature, from dropping a pin to an agent replying over MCP.
   Pins scale with the capture (20 to 30px) and keep a 44px target. While
   adding, the frame gets a blue outline and a strip above it names the pin the
   click will place.
+- Box pins for "this whole card" feedback: while placing a pin, drag (more
+  than 6px) to draw a rectangle instead of clicking a point. The box is drawn
+  with a 1px ink outline (blue when selected) and the numbered badge on its
+  top-left corner, which stays the keyboard focus target. Touch keeps
+  tap-to-pin. It is stored as `box: { x, y, w, h }` in fractions of the
+  capture, like pin coordinates (Pinpoint's `box` is the same rectangle in
+  percent), and `x`/`y` are set to its centre so anything that only reads
+  points still lands inside it. The element line, MCP crop (the whole box plus
+  48px, outlined) and exports (`region 10%, 20%, 40% wide × 30% tall`) use the
+  box.
 - Free-text tags with suggested P0/P1/P2 priorities (one at a time; new pins
   default to P1), a status of Backlog, In progress, Fixed, Verified or
   Won't fix, autosaved notes and two-step delete. Fixed pins turn teal with a
@@ -387,7 +397,7 @@ then each tool says ScreenCheck isn't running.
 | ----------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `list_projects`   | Projects, versions and screens, with open-comment counts                                                                                                                                      |
 | `list_feedback`   | Comments with pin number, screen, status, tags, note, latest message (labelled Reviewer or Agent) and pin position. Filters: `project`, `version`, `screen`, `status`, `tag`, `includeClosed` |
-| `get_comment`     | One comment in full, the screen's caption, and a crop of the capture around the pin with the pin circled (`fullCapture: true` for the whole screen)                                           |
+| `get_comment`     | One comment in full, the screen's caption, and a crop of the capture around the pin with the pin circled, or a box pin's region outlined (`fullCapture: true` for the whole screen)           |
 | `reply`           | Answer a comment (`note`) and optionally set `status`; retries once if the reviewer edited it meanwhile, but never overrides a status the reviewer just set                                   |
 | `set_status`      | Change status without a note (closing as fixed or won't fix still needs `reply`)                                                                                                              |
 | `approval_status` | Per-screen approval and open comments by priority for a version, e.g. `7/9 approved, 3 open (1 P0)`                                                                                           |
@@ -760,7 +770,8 @@ most 2000 (interactive and tagged elements first). Pass `elements: false` to
 skip the map or `elements: { path }` to write it elsewhere; the map is also
 returned as `result.elements`.
 
-A pin then names the element under it (the smallest box containing it): the
+A pin then names the element under it (the smallest box containing it; for a
+box pin, the element whose box best overlaps the drawn one): the
 comment card shows `↳ button "Continue to vehicle" · Footer.tsx:42`, and
 exports add `Element: button "Continue to vehicle" (src/booking/Footer.tsx:42)`
 in Markdown and an `element` object in JSON. Screens without a map simply show

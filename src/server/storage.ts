@@ -204,6 +204,7 @@ function sameCreate(
     record.version === input.version &&
     record.x === input.x &&
     record.y === input.y &&
+    JSON.stringify(record.box ?? null) === JSON.stringify(input.box ?? null) &&
     record.note === input.note &&
     record.tags.join("\0") === input.tags.join("\0") &&
     record.status === input.status
@@ -719,6 +720,7 @@ export function createFeedbackStorage(options: FeedbackStorageOptions) {
         version: input.version,
         x: input.x,
         y: input.y,
+        ...(input.box ? { box: input.box } : {}),
         note: input.note,
         tags: input.tags,
         status: input.status,

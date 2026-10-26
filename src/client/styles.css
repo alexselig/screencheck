@@ -2413,6 +2413,46 @@ button.tag-chip:hover {
   color: var(--bauhaus-blue);
 }
 
+/* Box pins: the region a reviewer drew, with the numbered badge on its
+   top-left corner. The badge is the control; the box only shows the area. */
+.review-canvas[data-adding-feedback="true"] .screen-frame {
+  user-select: none;
+}
+
+.feedback-box {
+  position: absolute;
+  border: 1px solid var(--ink);
+  outline: 1px solid var(--surface);
+  pointer-events: none;
+  transition:
+    border-color var(--fast),
+    outline-color var(--fast);
+}
+
+.feedback-box.is-fixed,
+.feedback-box.is-verified {
+  border-color: var(--success);
+}
+
+.feedback-box.is-closed {
+  border-color: var(--ink-muted);
+  border-style: dashed;
+}
+
+.feedback-box:has(+ .feedback-pin:hover),
+.feedback-box:has(+ .feedback-pin:focus-visible) {
+  outline-color: var(--ink);
+}
+
+.feedback-box.is-selected {
+  border-color: var(--bauhaus-blue);
+  outline-color: var(--bauhaus-blue);
+}
+
+.feedback-box.is-draft {
+  border: 1px dashed var(--bauhaus-blue);
+}
+
 @media (max-width: 1200px) {
   .workbench-grid {
     grid-template-columns: 232px minmax(0, 1fr) 300px;

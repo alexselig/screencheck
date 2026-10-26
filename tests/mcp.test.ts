@@ -400,6 +400,63 @@ describe("MCP server", () => {
     expect(result.structuredContent!.image.pin).toEqual({ x: 600, y: 300 });
   });
 
+  it("crops around a box pin and names the element best covering it", async () => {
+    await writeFile(
+      join(root, "captures", "v1", "home.elements.json"),
+      JSON.stringify({
+        version: 1,
+        capture: { width: 1600, height: 1200 },
+        elements: [
+          { box: { x: 0, y: 0, w: 1, h: 1 }, tag: "main", selector: "main" },
+          {
+            box: { x: 0.25, y: 0.25, w: 0.5, h: 0.5 },
+            role: "article",
+            name: "Plan card",
+            tag: "article",
+            selector: "main > article",
+          },
+          {
+            box: { x: 0.45, y: 0.45, w: 0.1, h: 0.1 },
+            role: "button",
+            name: "Choose",
+            tag: "button",
+            selector: "main > article > button",
+          },
+        ],
+      }),
+    );
+    await api("POST", "/api/projects/demo/feedback/import", {
+      records: [
+        {
+          ...record("box1", { createdAt: "2026-10-01T10:05:00.000Z" }),
+          box: { x: 0.25, y: 0.25, w: 0.5, h: 0.5 },
+        },
+      ],
+    });
+    const client = await connect();
+    const result = await call(client, "get_comment", { id: "box1" });
+    expect(text(result)).toContain(
+      'Element under the pin: article "Plan card"',
+    );
+    expect(text(result)).toContain(
+      "· region 25%, 25%, 50% wide × 50% tall · id box1",
+    );
+    // An 800x600 box plus 48px padding each side, scaled to 800 wide.
+    expect(result.structuredContent!.image).toMatchObject({
+      region: { left: 352, top: 252, width: 896, height: 696 },
+      box: { left: 43, top: 43, width: 714, height: 536 },
+    });
+    expect(text(result)).toContain(
+      "the region is outlined at (43, 43), 714x536.",
+    );
+    expect(result.structuredContent!.comment.region).toEqual({
+      x: 0.25,
+      y: 0.25,
+      w: 0.5,
+      h: 0.5,
+    });
+  });
+
   it("returns text only when the screen has no capture", async () => {
     const client = await connect();
     const result = await call(client, "get_comment", { id: "b1" });
