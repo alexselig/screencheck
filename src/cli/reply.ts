@@ -189,7 +189,7 @@ async function listComments(
     log(
       [
         item.id,
-        `${item.version}/${item.screenId} pin ${numbers.get(item.id)}`,
+        `${item.version}/${item.screenId} pin ${numbers.get(item.id)}${listMarks(item)}`,
         statusLabel(item.status),
         item.tags.join(",") || "-",
         oneLine(item.note),
@@ -309,4 +309,14 @@ export async function runReply(
     `${options.clear ? "Cleared reply on" : "Replied to"} ${current.id} (${statusLabel(updated.status)}).`,
   );
   return 0;
+}
+
+// Flags a plain list line with what --json reports as scope / checkPlacement.
+function listMarks(feedback: ApiFeedback): string {
+  const item = feedback as { scope?: unknown; checkPlacement?: unknown };
+  const marks = [
+    item.scope === "all" ? "all sizes" : "",
+    item.checkPlacement === true ? "check placement" : "",
+  ].filter(Boolean);
+  return marks.length ? ` (${marks.join(", ")})` : "";
 }

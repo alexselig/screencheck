@@ -353,6 +353,22 @@ describe("MCP server", () => {
       scope: "all",
       checkPlacement: true,
     });
+    const lines: string[] = [];
+    await runReply(
+      [
+        "--url",
+        server.origin,
+        "--project",
+        "demo",
+        "--list",
+        "--version",
+        "v2",
+      ],
+      { log: (line) => lines.push(line) },
+    );
+    expect(lines.join("\n")).toMatch(
+      /^d1\tv2\/checkout pin \d+ \(all sizes, check placement\)\t/m,
+    );
   });
 
   it("filters by status, tag, screen and version", async () => {

@@ -32,13 +32,15 @@ export function PlacementOk({
   item,
   pin,
   onConfirm,
+  framed = false,
 }: {
   item: FeedbackRecord;
   pin: number;
   onConfirm: () => void;
+  framed?: boolean;
 }) {
   if (item.checkPlacement !== true) return null;
-  return (
+  const button = (
     <button
       aria-label={`Placement OK for pin ${pin}`}
       className="feedback-placement-ok"
@@ -47,6 +49,12 @@ export function PlacementOk({
     >
       Placement OK
     </button>
+  );
+  // On a closed card the button hangs under it, inside the same frame.
+  return framed ? (
+    <div className="feedback-placement-actions">{button}</div>
+  ) : (
+    button
   );
 }
 

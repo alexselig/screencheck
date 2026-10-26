@@ -1942,6 +1942,11 @@ h1 {
   grid-row: 1 / span 3;
 }
 
+/* Below the dot's three rows (note, element, placement) tags stay in the text column. */
+.feedback-comment > .feedback-comment-tags {
+  grid-column: 2;
+}
+
 /* Notes read as body text; only the selected card's note is bold. */
 .feedback-comment-note {
   color: var(--ink);
@@ -2245,6 +2250,16 @@ button.tag-chip:hover {
   background: color-mix(in srgb, var(--bauhaus-yellow) 25%, var(--surface));
   color: var(--ink);
   font-weight: 700;
+}
+
+/* Same frame as the Verify block under a Fixed card. */
+.feedback-placement-actions {
+  display: grid;
+  padding: var(--space-2) var(--space-3) var(--space-2)
+    calc(var(--space-3) + 30px + var(--space-3));
+  border: 1px solid var(--line-strong);
+  border-top: 0;
+  background: var(--surface);
 }
 
 .feedback-placement-ok {

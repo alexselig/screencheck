@@ -1337,6 +1337,7 @@ export function FeedbackInspector({
           ? verifyActions(item)
           : null}
         <PlacementOk
+          framed
           item={item}
           onConfirm={() => void updateCard(item, { checkPlacement: false })}
           pin={pinNumbers.get(item.id) ?? 0}
