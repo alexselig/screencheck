@@ -132,16 +132,18 @@ describe("action bar", () => {
     const bar = actionBar();
     const prev = within(bar).getByRole("button", { name: "Previous screen" });
     const next = within(bar).getByRole("button", { name: "Next screen" });
-    expect(bar).toHaveTextContent("01 / 3");
+    expect(bar).toHaveTextContent("1/3");
     expect(prev).toBeDisabled();
 
     fireEvent.click(next);
-    expect(bar).toHaveTextContent("02 / 3 Session bootstrap");
+    expect(bar).toHaveTextContent("2/3");
+    expect(bar).not.toHaveTextContent("Session bootstrap");
     fireEvent.keyDown(window, { key: "ArrowRight" });
-    expect(bar).toHaveTextContent("03 / 3 Populated dashboard");
+    expect(bar).toHaveTextContent("3/3");
     expect(next).toBeDisabled();
     fireEvent.keyDown(window, { key: "ArrowLeft" });
-    expect(bar).toHaveTextContent("02 / 3");
+    expect(bar).toHaveTextContent("2/3");
+    expect(bar).not.toHaveTextContent("Session bootstrap");
     await waitFor(() =>
       expect(window.location.hash).toContain("screen=bootstrap"),
     );
@@ -172,14 +174,12 @@ describe("action bar", () => {
     fireEvent.click(frame, { clientX: 400, clientY: 300 });
     const note = screen.getByRole("textbox", { name: "Feedback note" });
     fireEvent.keyDown(note, { key: "ArrowRight" });
-    expect(actionBar()).toHaveTextContent("01 / 3");
+    expect(actionBar()).toHaveTextContent("1/3");
   });
 
   it("opens the screen named in the address", async () => {
     window.history.replaceState(null, "", "#project=example&screen=dashboard");
     await renderApp();
-    await waitFor(() =>
-      expect(actionBar()).toHaveTextContent("03 / 3 Populated dashboard"),
-    );
+    await waitFor(() => expect(actionBar()).toHaveTextContent("3/3"));
   });
 });

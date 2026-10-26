@@ -594,19 +594,19 @@ h1 {
   text-overflow: clip;
 }
 
-/* Collapsed: the tinted band keeps its height and swaps the full label for
-   a short one, so groups read apart without hovering. */
-.screen-rail[data-mode="compact"]:not([data-expanded="true"]) ol h3 .group-full,
-.screen-rail .group-short,
+/* Collapsed: the tinted band keeps its height but drops its label, so
+   groups read apart by colour without hovering. */
 .screen-rail .screen-version-tag {
   display: none;
 }
 
+/* Hidden, not removed, so the band keeps its expanded height and rows never
+   shift when the rail opens. */
 .screen-rail[data-mode="compact"]:not([data-expanded="true"])
   ol
   h3
-  .group-short {
-  display: inline;
+  .group-full {
+  visibility: hidden;
 }
 
 /* Collapsed with one row per version: a small tag under the number names
@@ -622,11 +622,21 @@ h1 {
   grid-column: 2;
 }
 
-/* Section bands are neutral: blue means selected and orange means a loud
-   action, so a tinted band would read as state. A 4px ink tick marks each. */
-.screen-rail ol h3 {
-  background: var(--surface);
-  box-shadow: inset 4px 0 0 var(--ink);
+/* Each section gets a quiet tint so sections read apart, even collapsed. */
+.screen-rail ol h3[data-tone="0"] {
+  background: color-mix(in srgb, var(--bauhaus-blue) 12%, var(--surface));
+}
+
+.screen-rail ol h3[data-tone="1"] {
+  background: color-mix(in srgb, var(--bauhaus-orange) 20%, var(--surface));
+}
+
+.screen-rail ol h3[data-tone="2"] {
+  background: color-mix(in srgb, var(--bauhaus-yellow) 25%, var(--surface));
+}
+
+.screen-rail ol h3[data-tone="3"] {
+  background: var(--line);
 }
 
 /* Rows bleed to the rail edges like the section bands; the padding adds the
@@ -798,9 +808,12 @@ h1 {
   outline-offset: 2px;
 }
 
+/* Hidden, not removed, so the list below stays put when the rail opens. */
 .screen-rail[data-mode="compact"]:not([data-expanded="true"])
   .rail-filter-button {
-  display: none;
+  overflow: hidden;
+  visibility: hidden;
+  white-space: nowrap;
 }
 
 .review-canvas {
@@ -1122,14 +1135,50 @@ h1 {
     padding-inline: var(--space-1);
   }
 
+  /* Rows keep one layout collapsed and expanded: a 46px number column
+     (what the 64px strip leaves after padding), so numbers hold their
+     position when the strip opens. */
+  .fullscreen-rail .screen-rail[data-mode="compact"] li button {
+    grid-template-columns: 46px minmax(0, 1fr) auto;
+    padding-inline: var(--space-3);
+  }
+
   .fullscreen-rail
     .screen-rail[data-mode="compact"]:not([data-expanded="true"])
     li
     button {
-    width: calc(100% + 6px);
-    margin-inline: calc(var(--space-1) * -1);
     grid-template-columns: minmax(0, 1fr);
-    padding-inline: var(--space-3) var(--space-1);
+    padding-right: 2px;
+  }
+
+  /* The number stays centred with small badges hung off its left edge, so
+     badges and the number fit the 64px strip together. */
+  .fullscreen-rail .screen-rail[data-mode="compact"] .screen-number {
+    position: relative;
+    display: block;
+    justify-self: center;
+  }
+
+  .fullscreen-rail .screen-rail[data-mode="compact"] .screen-badges {
+    position: absolute;
+    top: 50%;
+    right: calc(100% + 4px);
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 2px;
+    padding-right: 0;
+    transform: translateY(-50%);
+  }
+
+  .fullscreen-rail .screen-rail[data-mode="compact"] .screen-approved-mark {
+    width: 14px;
+  }
+
+  .fullscreen-rail .screen-rail[data-mode="compact"] .screen-open-count {
+    height: 14px;
+    min-width: 14px;
+    padding: 0 2px;
+    font-size: 11px;
   }
 }
 
@@ -2402,14 +2451,13 @@ button.tag-chip:hover {
     display: inline;
   }
 
-  /* One task at a time: ‹ 03 / 9 › in the centre, Feedback, a menu for the
+  /* One task at a time: ‹ 3/9 › in the centre, Feedback, a menu for the
      rest, and Add feedback as a + (ds-25). */
   .action-bar-place {
     font-size: 13px;
     white-space: nowrap;
   }
 
-  .action-bar-place-title,
   .action-bar-nav-label,
   .feedback-add-label,
   .action-bar .action-bar-fullscreen,

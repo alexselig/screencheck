@@ -1155,15 +1155,14 @@ function Workbench({
           <span aria-hidden="true">‹</span>
           <span className="action-bar-nav-label">Prev</span>
         </button>
-        <span className="action-bar-place" aria-live="polite">
+        <span
+          aria-label={`Screen ${selected.ordinal} of ${screens.length}`}
+          aria-live="polite"
+          className="action-bar-place"
+        >
           <strong>
-            {String(selected.ordinal).padStart(2, "0")} / {screens.length}
+            {selected.ordinal}/{screens.length}
           </strong>
-          <span className="action-bar-place-title">
-            {" "}
-            {selected.title}
-            {flatMode ? ` · ${labelOf(version)}` : ""}
-          </span>
         </span>
         <button
           aria-label="Next screen"

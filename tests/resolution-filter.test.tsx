@@ -67,8 +67,7 @@ describe("resolution filter", () => {
     fireEvent.click(row);
     const total = EXAMPLE_PROJECT.screens.length;
     const place = document.querySelector(".action-bar-place")!;
-    expect(place).toHaveTextContent(`02 / ${total}`);
-    expect(place).toHaveTextContent("390");
+    expect(place).toHaveTextContent(new RegExp(`^2/${total}$`));
     // The version is its own element, so the title never truncates it away.
     expect(row.querySelector(".screen-name")).toHaveTextContent(
       new RegExp(`^${second!.title}$`),

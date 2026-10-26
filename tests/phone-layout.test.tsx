@@ -124,7 +124,7 @@ describe("phone layout (ds-25)", () => {
       "Prev",
     );
     expect(bar().querySelector(".action-bar-place strong")).toHaveTextContent(
-      /^01 \/ \d+$/,
+      /^1\/\d+$/,
     );
   });
 });

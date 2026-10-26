@@ -69,16 +69,6 @@ export function versionTag(label: string) {
   return label.trim().slice(0, 3);
 }
 
-// "Sign in" → "SI", "Onboarding" → "O".
-export function groupAbbreviation(group: string) {
-  return group
-    .split(/[\s/_-]+/)
-    .filter(Boolean)
-    .slice(0, 2)
-    .map((word) => word[0]!.toUpperCase())
-    .join("");
-}
-
 export function ScreenRail({
   screens,
   selectedId,
@@ -128,6 +118,7 @@ export function ScreenRail({
   }
   const expanded = mode === "wide" || temporaryExpanded || pinned;
   let previousGroup = "";
+  let groupIndex = -1;
   const navRef = useRef<HTMLElement>(null);
 
   // Keep the current screen visible in the list without moving the page.
@@ -303,17 +294,15 @@ export function ScreenRail({
       <ol onKeyDown={onListKeyDown}>
         {visibleScreens.map((screen, index) => {
           const showGroup = screen.group !== previousGroup;
+          if (showGroup) groupIndex += 1;
           previousGroup = screen.group;
           const approved = approvedIds?.has(screen.id) ?? false;
           const openCount = openCounts?.get(screen.id) ?? 0;
           return (
             <li key={screen.id}>
               {showGroup ? (
-                <h3 title={screen.group}>
+                <h3 data-tone={groupIndex % 4} title={screen.group}>
                   <span className="group-full">{screen.group}</span>
-                  <span aria-hidden="true" className="group-short">
-                    {groupAbbreviation(screen.group)}
-                  </span>
                 </h3>
               ) : null}
               <button

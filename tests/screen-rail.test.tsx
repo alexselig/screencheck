@@ -3,7 +3,6 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 
 import {
   centeredScrollLeft,
-  groupAbbreviation,
   ScreenRail,
   versionTag,
 } from "../src/client/components/screen-rail";
@@ -168,7 +167,8 @@ describe("ScreenRail", () => {
         (tag) => tag.textContent,
       ),
     ).toEqual(["1440", "390"]);
-    expect(container.querySelector(".group-short")).toHaveTextContent("A");
+    expect(container.querySelector(".group-short")).toBeNull();
+    expect(container.querySelector("ol h3")).toHaveAttribute("data-tone", "0");
     // Tags are visual only; the accessible names already carry the version.
     expect(container.querySelector(".screen-version-tag")).toHaveAttribute(
       "aria-hidden",
@@ -188,12 +188,10 @@ describe("ScreenRail", () => {
     expect(container.querySelector(".screen-version-tag")).toBeNull();
   });
 
-  it("shortens version and group labels", () => {
+  it("shortens version labels", () => {
     expect(versionTag("build-42")).toBe("42");
     expect(versionTag("1440 × 1000")).toBe("1440");
     expect(versionTag("Mobile")).toBe("Mob");
-    expect(groupAbbreviation("Sign in")).toBe("SI");
-    expect(groupAbbreviation("Portfolio")).toBe("P");
   });
 
   it("keeps a hovered compact rail open with an icon toggle (ds-34)", () => {

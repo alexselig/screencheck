@@ -78,7 +78,7 @@ describe("keyboard pin placement (ux-8)", () => {
     expect(frame).toHaveAccessibleName(/53% across, 60% down/);
     expect(
       screen.getByRole("contentinfo", { name: "Review actions" }),
-    ).toHaveTextContent("01 / 3");
+    ).toHaveTextContent("1/3");
 
     fireEvent.keyDown(frame, { key: "Enter" });
     const note = await screen.findByRole("textbox", { name: "Feedback note" });
