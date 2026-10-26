@@ -21,6 +21,11 @@ import {
   REPLY_MAX_LENGTH,
 } from "../shared/feedback";
 import { createPinNumbers, serializeMarkdown } from "../shared/export";
+import {
+  formatRelease,
+  GATE_PRIORITIES,
+  summarizeRelease,
+} from "../shared/release";
 import type { PublicProject, PublicScreen } from "../shared/projects";
 import {
   createApiClient,
@@ -596,6 +601,76 @@ export function createMcpServer(options: McpServerOptions = {}): McpServer {
         unverified,
         screens,
       });
+    }),
+  );
+
+  server.registerTool(
+    "release_status",
+    {
+      title: "Release status",
+      description:
+        "Where a review round stands, the same report as `screencheck status --gate`: screens and how many are approved (a screen counts only when every size in the revision is approved), open comments by priority, fixes not yet verified, what changed since the previous revision, per-size counts, and whether the release gate passes with its reasons. Defaults to the latest revision.",
+      inputSchema: {
+        project: z
+          .string()
+          .optional()
+          .describe("Project id. Optional when only one project exists."),
+        revision: z
+          .string()
+          .optional()
+          .describe("Revision id (all its sizes). Defaults to the latest."),
+        version: z
+          .string()
+          .optional()
+          .describe("A single version (one size) instead of a revision."),
+        maxPriority: z
+          .enum(GATE_PRIORITIES)
+          .optional()
+          .describe(
+            "Open priorities that block the gate: P0 (default), P1 (P0 and P1), P2 (any tagged) or any.",
+          ),
+        allowUnapproved: z
+          .boolean()
+          .optional()
+          .describe("Do not block the gate on unapproved screens."),
+      },
+      annotations: { readOnlyHint: true },
+    },
+    guarded(async (args) => {
+      if (args.version && args.revision) {
+        throw new ToolError("Pass either version or revision, not both.");
+      }
+      const project = pickProject(await projects(), args.project);
+      const [approvals, feedback] = await Promise.all([
+        api.listApprovals(project.id),
+        api.listFeedback(project.id),
+      ]);
+      const captures: Record<string, string[]> = {};
+      for (const version of project.versions) {
+        const present = await Promise.all(
+          project.screens.map(async (screen) =>
+            (await api.hasCapture(project.id, version, screen.id))
+              ? screen.id
+              : null,
+          ),
+        );
+        captures[version] = present.filter((id): id is string => id !== null);
+      }
+      const status = summarizeRelease({
+        project,
+        feedback,
+        approvals,
+        captures,
+        target: {
+          ...(args.version ? { version: args.version } : {}),
+          ...(args.revision ? { revision: args.revision } : {}),
+        },
+        gate: {
+          ...(args.maxPriority ? { maxPriority: args.maxPriority } : {}),
+          allowUnapproved: Boolean(args.allowUnapproved),
+        },
+      });
+      return textResult(formatRelease(status, true), status);
     }),
   );
 
