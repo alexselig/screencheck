@@ -51,7 +51,7 @@ and `server.json` — for a sandboxed trial, a test run or CI.
 
 | Command                                              | What it does                                                     |
 | ---------------------------------------------------- | ---------------------------------------------------------------- |
-| `screencheck serve [--port 4173] [--open]`           | Start the review server                                          |
+| `screencheck serve [--port 4173] [--open]`           | Start the review server (`--assist` turns on AI assist)          |
 | `screencheck demo [--port 0] [--reset] [--open]`     | Try it on a seeded sample project                                |
 | `screencheck status`                                 | Print the running server's origin, or "not running"              |
 | `screencheck status --project <id> [--gate]`         | A review round's status; `--gate` fails CI (see Release gate)    |
@@ -348,6 +348,43 @@ one), so comments already present are skipped by id: importing the same file
 twice adds nothing. The project must be registered; `--project` overrides the
 one named in the file. The viewer is built by `npm run build` (`dist/viewer`),
 which ships in the npm package.
+
+## AI assist (optional)
+
+ScreenCheck can ask your own GitHub Copilot for help while you review. It is
+**off by default**; turn it on per server:
+
+```bash
+npx screencheck serve --assist      # or SCREENCHECK_ASSIST=1
+```
+
+It uses the [Copilot CLI](https://github.com/github/copilot-cli) (`copilot`)
+you are already logged into, so it runs on your own Copilot entitlement: no API
+keys, no extra bill, nothing to configure. The server runs one non-interactive
+`copilot -p … --available-tools=` per request, the same shape as CopilotBridge:
+**tool-less**, so the model can only return text; it cannot read or change
+files or run commands. Each call times out after 60 seconds (`COPILOT_BIN`
+points at another binary). If the CLI is missing or not logged in, assist is
+simply hidden; nothing else changes.
+
+With assist on, the feedback editor shows:
+
+- **Rewrite for agent** turns a vague note ("button hard to see") into one
+  instruction an agent can act on.
+- **Suggest tags** proposes a priority (P0–P2) and up to a few topic tags.
+- **Possible duplicate of #N** appears under the note when it reads like
+  another comment on the same screen (local text similarity, no model call).
+
+Rewrites and tags are suggestions: nothing changes until you choose **Use
+this** or **Apply**, and you can edit the result. **Summarise** (beside
+Export; in the **…** menu on phones) writes a markdown summary of the
+version's comments that you can copy.
+
+The routes are `GET /api/assist` (`{enabled, available}`) and `POST
+/api/assist/rewrite`, `/suggest`, `/duplicates` and `/summary`. Like every
+other write they answer only on 127.0.0.1 and only to requests from the
+ScreenCheck page's own Origin, so another site can't spend your Copilot
+requests.
 
 ## Closing the loop (for agents)
 

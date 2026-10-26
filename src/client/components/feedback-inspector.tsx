@@ -14,6 +14,7 @@ import { createPinNumbers } from "../../shared/export";
 import { ElementLine } from "./element-line";
 import { SHORTCUTS, type ApproveShortcut } from "../shortcuts";
 import { ApprovalBar, type SizeApproval } from "./approval-bar";
+import { AssistEditorTools } from "./assist";
 import { VerifyActions } from "./verify-actions";
 import { MentionText, ReviewerNameField } from "./reviewer-name";
 import {
@@ -1397,6 +1398,17 @@ export function FeedbackInspector({
           value={editor.note}
         />
       </label>
+      <AssistEditorTools
+        editingId={editingRecord?.id ?? null}
+        note={editor.note}
+        onApplyNote={(note) => updateEditor({ note })}
+        onApplyTags={(tags) => updateEditor({ tags })}
+        pinNumbers={pinNumbers}
+        projectId={projectId}
+        screenId={selectedScreenId}
+        tags={editor.tags}
+        version={version}
+      />
       <ReviewerNameField />
       <span aria-live="polite" className="feedback-save-state" role="status">
         {saveMessage}

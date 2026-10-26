@@ -15,6 +15,11 @@ import {
 } from "./components/feedback-inspector";
 import { ExportDialog } from "./components/export-dialog";
 import {
+  RoundSummaryDialog,
+  SummariseRoundButton,
+  SummariseRoundMenuItem,
+} from "./components/assist";
+import {
   FullscreenReview,
   type FullscreenDrawer,
 } from "./components/fullscreen-review";
@@ -388,6 +393,7 @@ function Workbench({
     useState<FeedbackRecord[]>(feedbackRecords);
   const [addingFeedback, setAddingFeedback] = useState(false);
   const [exportOpen, setExportOpen] = useState(false);
+  const [summaryOpen, setSummaryOpen] = useState(false);
   // null until loaded; the approve toggle stays disabled until then.
   const [approvals, setApprovals] = useState<ScreenApproval[] | null>(null);
   const approvalRequest = useRef(0);
@@ -861,6 +867,7 @@ function Workbench({
   useShortcuts({
     escape: [
       { active: exportOpen, run: () => {}, block: true, whileTyping: true },
+      { active: summaryOpen, run: () => {}, block: true, whileTyping: true },
       { active: moreOpen, run: () => setMoreOpen(false), whileTyping: true },
       {
         active: addingFeedback && !draftPin,
@@ -1388,6 +1395,12 @@ function Workbench({
                 {fullscreen ? "Exit fullscreen" : "View fullscreen"}
               </button>
               <ReviewerNameMenuItem onDone={() => setMoreOpen(false)} />
+              <SummariseRoundMenuItem
+                onOpen={() => {
+                  setMoreOpen(false);
+                  setSummaryOpen(true);
+                }}
+              />
               {beforeVersion ? (
                 <button
                   onClick={() => {
@@ -1414,6 +1427,10 @@ function Workbench({
         >
           Export
         </button>
+        <SummariseRoundButton
+          disabled={!ready}
+          onOpen={() => setSummaryOpen(true)}
+        />
         <button
           aria-keyshortcuts={SHORTCUTS.addFeedback.aria}
           aria-pressed={addingFeedback}
@@ -1437,6 +1454,13 @@ function Workbench({
           selectedScreenId={selectedId}
           version={version}
           versions={exportVersions}
+        />
+      ) : null}
+      {summaryOpen ? (
+        <RoundSummaryDialog
+          onClose={() => setSummaryOpen(false)}
+          projectId={project.id}
+          version={version}
         />
       ) : null}
     </footer>

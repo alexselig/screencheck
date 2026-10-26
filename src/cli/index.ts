@@ -42,13 +42,15 @@ projects and server.json); SCREENCHECK_DATA and SCREENCHECK_PROJECTS move
 one folder each.`;
 
 const SERVE_USAGE = `Usage:
-  screencheck serve [--port 4173] [--open]
+  screencheck serve [--port 4173] [--open] [--assist]
 
 Starts ScreenCheck on http://127.0.0.1:<port> (default $PORT, else 4173) and
 records it in ~/.screencheck/server.json so other commands find it. If
 ScreenCheck is already running, prints where and exits 0.
   --port 0  Use any free port
-  --open    Open the review page in your browser`;
+  --open    Open the review page in your browser
+  --assist  Turn on AI assist through your own GitHub Copilot CLI (off by
+            default; SCREENCHECK_ASSIST=1 does the same)`;
 
 const MCP_USAGE = `Usage:
   screencheck mcp [--url <origin>] [--author <name>]
@@ -139,6 +141,7 @@ export async function main(
           options: {
             port: { type: "string", short: "p" },
             open: { type: "boolean" },
+            assist: { type: "boolean" },
           },
         });
         const port = Number(values.port ?? env.PORT ?? "4173");
@@ -150,6 +153,7 @@ export async function main(
           const running = await (io.serve ?? serve)({
             port,
             ...(io.clientRoot ? { clientRoot: io.clientRoot } : {}),
+            ...(values.assist ? { assist: true } : {}),
           });
           if (values.open) open(running.origin);
           return "running";
