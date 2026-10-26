@@ -69,17 +69,17 @@ updates the registration. `--screen <id>` re-captures a single screen.
 - **Zoom:** Fit (default: the whole width fits the canvas) or 100% (actual
   pixels, scrolls). Pins scale with the capture, as they already do.
 - **Compare sizes:** a view that shows every size of the current screen side
-  by side, scaled to the same height, each with its pins. Clicking a size
-  opens it in the normal view. Read-only: you add pins in the single view.
+  by side, scaled to the same height, each with its pins. Read-only: you add
+  pins in the single view. Clicking a size flips to that size; closing the
+  view returns to the size you were on (decided by Alex).
 - A device frame for phone captures is left out (YAGNI); revisit if asked.
 
 ### 4. Comments that cover every size
 
 - New optional field `scope` on feedback: `"size"` (default; today's
   behaviour) or `"all"`. Existing data needs no migration.
-- The pin editor gets a **This size / All sizes** choice. **(decide)** Default
-  is This size; the alternative is defaulting to All sizes on the widest
-  capture.
+- The pin editor gets a **This size / All sizes** choice. It defaults to the
+  size being viewed (decided by Alex).
 - An all-sizes comment is stored once, against the size it was pinned on. Other
   sizes show it as a dashed pin, placed by element-map match and falling back
   to the % position, with "Pinned at 1440" in its card. This uses the same
@@ -102,6 +102,10 @@ updates the registration. `--screen <id>` re-captures a single screen.
 
 ## Feature order
 
+0. **Before | After toggle in the footer** (high priority, per Alex). Flips the
+   canvas to the previous build's capture of the same screen and size; **B**
+   toggles; pins hide while Before shows. Shipped first, ahead of the full
+   compare-builds work (#7), which later adds overlay and slider modes.
 1. **Release 0.2.0** to npm (blocked on the npm token or Trusted Publisher).
 2. **Leftover fixes:** don't label builds as "Resolution" (ux-3, ds-36); make
    counters match the index numbering (pr-10, ux-9); have `capture` write the
@@ -135,6 +139,5 @@ updates the registration. `--screen <id>` re-captures a single screen.
 
 ## Open questions
 
-- **(decide)** Default comment scope: This size, or All sizes?
-- **(decide)** Should the switcher offer "All" (Compare sizes) as a fourth
-  option, or keep Compare as a separate button?
+None open. Decided: comments default to the size being viewed; Compare sizes
+flips back to the current, or clicked, size.

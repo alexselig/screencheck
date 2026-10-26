@@ -32,6 +32,7 @@ export const SHORTCUTS = {
   previous: { label: "←", aria: "ArrowLeft [" },
   next: { label: "→", aria: "ArrowRight ]" },
   escape: { label: "Esc", aria: "Escape" },
+  beforeAfter: { label: "B", aria: "B" },
 } as const;
 
 // Escape undoes only the innermost thing. Layers are checked in order; the
@@ -54,6 +55,8 @@ export type ShortcutHandlers = {
   // select-all still runs.
   approve?: () => boolean;
   step?: (delta: 1 | -1) => void;
+  // Flips the canvas between this build and the previous one.
+  beforeAfter?: () => void;
 };
 
 function command(event: KeyboardEvent, key: string) {
@@ -92,6 +95,11 @@ export function routeShortcut(
     return;
   }
   if (event.metaKey || event.ctrlKey || event.altKey || typing) return;
+  if (event.key.toLowerCase() === "b" && handlers.beforeAfter) {
+    event.preventDefault();
+    handlers.beforeAfter();
+    return;
+  }
   if (!handlers.step) return;
   if (event.key === "ArrowRight" || event.key === "]") {
     event.preventDefault();

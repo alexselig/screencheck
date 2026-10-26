@@ -203,6 +203,7 @@ through each feature, from dropping a pin to an agent replying over MCP.
 | ↑ / ↓, Home / End | In the screen index: previous / next, first / last screen                                                                                                                                           |
 | Tab               | The screen index is one tab stop; Skip to capture and Skip to feedback links come first                                                                                                             |
 | ⌘A / Ctrl+A       | Approve / unapprove the screen (ignored while typing)                                                                                                                                               |
+| B                 | Before / After: show the previous build's capture of this screen and size, and back                                                                                                                 |
 | Enter / Esc       | In the Showing caption: save / cancel the edit                                                                                                                                                      |
 | Enter or ,        | In Add tag: add the tag (Backspace when empty removes the last)                                                                                                                                     |
 | Esc               | Undo the innermost thing only: close a dialog or confirm, cancel placing a pin, close the fullscreen feedback panel, then leave fullscreen. While typing, Esc never closes the panel or fullscreen. |
@@ -489,6 +490,11 @@ index shows each screen once per viewport (`Checkout · 390`):
   { "id": "b42-mobile", "revision": "build-42", "label": "390", "captureRoot": "…/b42/mobile" }
 ]
 ```
+
+When an earlier build exists, the footer's **Before | After** toggle (or **B**)
+flips the canvas to the previous build's capture of the same screen at the same
+size. Pins are hidden while Before is showing, since they belong to the current
+build. On phones it is in the **…** menu.
 
 A capture must sit inside its version's `captureRoot`. To register a project
 from its own manifests, keep a small importer script beside the registrations

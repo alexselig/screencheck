@@ -8,6 +8,18 @@ provenance.
 
 ## [Unreleased]
 
+### Added
+
+- **Before | After** toggle in the footer (and **B**): flips the canvas to the
+  previous build's capture of the same screen and size. On phones it is in the
+  **…** menu.
+
+### Changed
+
+- **Hide approved screens** is a switch, and turning it on from an approved
+  screen moves to the nearest screen still to review.
+- The compact screen index has no pin button; the expand arrows keep it open.
+
 ## [0.2.0] - 2026-10-22
 
 ### Added

@@ -327,6 +327,8 @@ function Workbench({
   const [selectedChoice, setSelectedId] = useState(initialPlace.screen ?? "");
   // "all" lists every resolution in the rail; a version narrows it to one.
   const [resolutionChoice, setResolutionChoice] = useState("all");
+  // Before shows the previous build's capture of the same screen and size.
+  const [showBefore, setShowBefore] = useState(false);
   const project =
     projects.find((item) => item.id === projectId) ?? projects[0]!;
   const screens: PublicScreen[] = project.screens;
@@ -364,6 +366,9 @@ function Workbench({
       : revisionVersions.includes(versionChoice)
         ? versionChoice
         : revisionVersions.at(-1)!;
+  const beforeVersion = versions.previousVersion(version);
+  const comparing = showBefore && beforeVersion !== undefined;
+  const shownVersion = comparing ? beforeVersion : version;
   const selectedId = screens.some((item) => item.id === selectedChoice)
     ? selectedChoice
     : screens[0]!.id;
@@ -439,7 +444,10 @@ function Workbench({
     window.history.replaceState(null, "", `#${params}`);
   }, [projects, project.id, version, selectedId]);
 
-  useEffect(() => setCaptureFailed(false), [project.id, version, selectedId]);
+  useEffect(
+    () => setCaptureFailed(false),
+    [project.id, shownVersion, selectedId],
+  );
 
   // Follow links and edits to the address while the app is open.
   useEffect(() => {
@@ -801,6 +809,8 @@ function Workbench({
 
   const startPin = useCallback(() => {
     if (!ready) return;
+    // Pins belong to this build, so adding one leaves the Before view.
+    setShowBefore(false);
     setAddingFeedback(true);
     setDraftPin(null);
     setSelectedFeedbackId(null);
@@ -847,6 +857,9 @@ function Workbench({
       return Boolean(approve);
     },
     step: stepScreen,
+    beforeAfter: beforeVersion
+      ? () => setShowBefore((value) => !value)
+      : undefined,
   });
 
   const navigation = (
@@ -908,7 +921,7 @@ function Workbench({
     feedbackRecords.filter(
       (item) => item.screenId === selected.id && item.version === version,
     ).length + 1;
-  const captureKey = `${project.id}/${version}/${selected.id}`;
+  const captureKey = `${project.id}/${shownVersion}/${selected.id}`;
   const frameSize =
     captureSize?.key === captureKey ? captureSize : selected.viewport;
   const canvas = (
@@ -1031,7 +1044,7 @@ function Workbench({
                 });
               }
             }}
-            src={captureUrl(project.id, version, selected.id)}
+            src={captureUrl(project.id, shownVersion, selected.id)}
           />
         ) : (
           <div className="empty-canvas">
@@ -1049,10 +1062,16 @@ function Workbench({
             </span>
           </div>
         )}
+        {comparing ? (
+          <span className="before-badge">
+            Before · {revisionName(revisionOf(beforeVersion))}
+          </span>
+        ) : null}
         <div className="feedback-pin-layer" aria-label="Screen feedback pins">
           {visibleFeedback
             .filter(
               (item) =>
+                !comparing &&
                 item.screenId === selectedId &&
                 item.version === version &&
                 (!hiddenPinStatuses.includes(item.status) ||
@@ -1131,6 +1150,26 @@ function Workbench({
             />
           </svg>
         </button>
+        {beforeVersion && !placingPin ? (
+          <div
+            aria-label="Compare with the previous build"
+            className="before-after"
+            role="group"
+          >
+            {(["Before", "After"] as const).map((side) => (
+              <button
+                aria-keyshortcuts={SHORTCUTS.beforeAfter.aria}
+                aria-pressed={(side === "Before") === comparing}
+                key={side}
+                onClick={() => setShowBefore(side === "Before")}
+                title={`${side === "Before" ? `Show ${revisionName(revisionOf(beforeVersion))}` : `Show ${revisionName(revision)}`} (${SHORTCUTS.beforeAfter.label})`}
+                type="button"
+              >
+                {side}
+              </button>
+            ))}
+          </div>
+        ) : null}
         {placingPin ? (
           <>
             <button
@@ -1238,6 +1277,20 @@ function Workbench({
               >
                 {fullscreen ? "Exit fullscreen" : "View fullscreen"}
               </button>
+              {beforeVersion ? (
+                <button
+                  onClick={() => {
+                    setMoreOpen(false);
+                    setShowBefore((value) => !value);
+                  }}
+                  role="menuitem"
+                  type="button"
+                >
+                  {comparing
+                    ? `After · ${revisionName(revision)}`
+                    : `Before · ${revisionName(revisionOf(beforeVersion))}`}
+                </button>
+              ) : null}
             </div>
           ) : null}
         </div>

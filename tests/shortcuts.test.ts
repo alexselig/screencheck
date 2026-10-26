@@ -139,4 +139,14 @@ describe("shortcut router (ux-18)", () => {
     );
     expect(inDialog(document.body)).toBe(false);
   });
+
+  it("flips before/after with B, never while typing or with a modifier", () => {
+    const beforeAfter = vi.fn();
+    const h = handlers({ beforeAfter });
+    routeShortcut(press({ key: "b" }), h);
+    routeShortcut(press({ key: "B", shiftKey: true }), h);
+    routeShortcut(press({ key: "b" }, document.createElement("input")), h);
+    routeShortcut(press({ key: "b", metaKey: true }), h);
+    expect(beforeAfter).toHaveBeenCalledTimes(2);
+  });
 });

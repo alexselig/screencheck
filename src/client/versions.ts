@@ -16,5 +16,19 @@ export function versionModel(
   const revisions = [...new Set(project.versions.map(revisionOf))];
   const versionsOf = (revision: string) =>
     project.versions.filter((version) => revisionOf(version) === revision);
-  return { revisionOf, labelOf, revisions, versionsOf };
+  // The same screen size in the nearest earlier build that has it. Unlabelled
+  // builds hold one version each, so they match one another.
+  const previousVersion = (version: string) => {
+    const at = revisions.indexOf(revisionOf(version));
+    const single = versionsOf(revisionOf(version)).length === 1;
+    for (let index = at - 1; index >= 0; index -= 1) {
+      const candidates = versionsOf(revisions[index]!);
+      const match =
+        candidates.find((item) => labelOf(item) === labelOf(version)) ??
+        (single && candidates.length === 1 ? candidates[0] : undefined);
+      if (match) return match;
+    }
+    return undefined;
+  };
+  return { revisionOf, labelOf, revisions, versionsOf, previousVersion };
 }
