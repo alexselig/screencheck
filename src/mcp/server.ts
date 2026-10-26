@@ -26,6 +26,7 @@ import {
   GATE_PRIORITIES,
   summarizeRelease,
 } from "../shared/release";
+import { mentionsName, normalizeMention } from "../shared/mentions";
 import type { PublicProject, PublicScreen } from "../shared/projects";
 import {
   createApiClient,
@@ -66,6 +67,7 @@ export type McpServerOptions = {
 const INSTRUCTIONS = `ScreenCheck holds design-review feedback: numbered pins on screen captures, each with a note, tags (P0/P1/P2 priority plus free text) and a status.
 Typical loop: list_feedback to see open comments, get_comment for the note and a crop of the capture around the pin, fix the code, then reply with what you did and status "fixed" (or "wont-fix" with the reason).
 Each comment's latest message is labelled Reviewer or Agent; awaitingAgent means the reviewer spoke last (for example, reopened a fix with a reason).
+Reviewers can address you with @agent in a note or reply; list_feedback with mentions "agent" finds those comments.
 Only a reviewer can verify a fix or approve a screen.`;
 
 const STATUS_HELP =
@@ -279,6 +281,12 @@ export function createMcpServer(options: McpServerOptions = {}): McpServer {
           .optional()
           .default(false)
           .describe("Also list Fixed, Won't fix and other closed comments."),
+        mentions: z
+          .string()
+          .optional()
+          .describe(
+            'Only comments whose note or thread mentions this name, e.g. "agent" for comments addressed to you with @agent (case-insensitive, leading @ optional).',
+          ),
       },
       annotations: { readOnlyHint: true },
     },
@@ -304,7 +312,8 @@ export function createMcpServer(options: McpServerOptions = {}): McpServer {
             (statuses
               ? statuses.includes(item.status)
               : args.includeClosed || isOpenStatus(item.status)) &&
-            (!tag || item.tags.some((value) => value.toLowerCase() === tag)),
+            (!tag || item.tags.some((value) => value.toLowerCase() === tag)) &&
+            (!args.mentions?.trim() || mentionsName(item, args.mentions)),
         )
         .map((item) => summarize(item, project, pinNumbers))
         .sort(compareComments(project));
@@ -318,6 +327,7 @@ export function createMcpServer(options: McpServerOptions = {}): McpServer {
             ? "all statuses"
             : "open",
         args.tag,
+        args.mentions?.trim() ? `@${normalizeMention(args.mentions)}` : "",
       ]
         .filter(Boolean)
         .join(" · ");

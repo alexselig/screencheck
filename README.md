@@ -137,6 +137,15 @@ through each feature, from dropping a pin to an agent replying over MCP.
   thread, each message with its author, time and any status change it made,
   plus a **Reply** box for the reviewer. Closing a comment as Fixed or Won't fix
   from the editor needs a reply. Threads appear in exports in order.
+- **Reviewer names, no accounts.** The first time you write a comment, the
+  editor asks for **Your name** inline (no dialog); it is remembered in this
+  browser's localStorage and changed from **Change** in the editor or **Your
+  name…** in the **…** menu. New comments and your thread replies carry it as
+  `author` (up to 60 characters; control characters are stripped), and cards
+  show it with the time. Comments left before names existed show no name.
+  Write `@agent` or `@name` (one word) in a note or reply to address someone;
+  mentions show as chips, and MCP `list_feedback` with `mentions: "agent"`
+  finds comments addressed to the agent.
 - **Verify step.** A Fixed card shows **Verify** and **Reopen**; a Verified
   card shows **Reopen**. Verify moves it to Verified; Reopen moves it back to
   Backlog and needs a reason, which is added to the thread. Only a person sets Verified: the server refuses it unless the
@@ -402,6 +411,9 @@ then each tool says ScreenCheck isn't running.
 | `set_status`      | Change status without a note (closing as fixed or won't fix still needs `reply`)                                                                                                              |
 | `approval_status` | Per-screen approval and open comments by priority for a version, e.g. `7/9 approved, 3 open (1 P0)`                                                                                           |
 | `release_status`  | The `screencheck status --gate` report for a revision (all sizes) or one `version`: approvals rolled up across sizes, open comments by priority, changes since the last round, and the gate   |
+
+`list_feedback` also takes `mentions` (for example `agent`) to list only
+comments whose note or thread mentions `@agent`.
 
 Statuses take the friendly names `backlog`, `in-progress`, `fixed` and
 `wont-fix`. Agents can't set `verified`; only a reviewer can. Each project's

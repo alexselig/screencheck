@@ -625,6 +625,64 @@ describe("MCP server", () => {
     );
   });
 
+  it("finds comments that mention the agent, and shows who left them", async () => {
+    const created = await api(
+      "POST",
+      "/api/projects/demo/feedback",
+      {
+        clientMutationId: "22222222-2222-4222-8222-222222222222",
+        screenId: "home",
+        version: "v1",
+        x: 0.2,
+        y: 0.2,
+        note: "Header wraps.",
+        tags: ["P2"],
+        author: "Ada\u0000 Lovelace",
+      },
+      { "x-screencheck-actor": "reviewer" },
+    );
+    expect(created.feedback.author).toBe("Ada Lovelace");
+    await api(
+      "PATCH",
+      `/api/projects/demo/feedback/${created.feedback.id}`,
+      {
+        expectedUpdatedAt: created.feedback.updatedAt,
+        patch: {
+          message: { note: "@agent over to you", author: "Ada Lovelace" },
+        },
+      },
+      { "x-screencheck-actor": "reviewer" },
+    );
+    const tooLong = await api("POST", "/api/projects/demo/feedback", {
+      clientMutationId: "33333333-3333-4333-8333-333333333333",
+      screenId: "home",
+      version: "v1",
+      x: 0.3,
+      y: 0.3,
+      note: "Too long a name.",
+      author: "x".repeat(61),
+    });
+    expect(tooLong.error).toBeTruthy();
+
+    const client = await connect();
+    const result = await call(client, "list_feedback", { mentions: "@Agent" });
+    const items = result.structuredContent!.feedback as {
+      id: string;
+      author: string | null;
+    }[];
+    expect(items.map((item) => item.id)).toEqual([created.feedback.id]);
+    expect(items[0]!.author).toBe("Ada Lovelace");
+    expect(text(result)).toContain("@agent");
+    const nobody = await call(client, "list_feedback", { mentions: "bob" });
+    expect(nobody.structuredContent!.feedback).toEqual([]);
+    // Without the filter, everything open is listed as before; older
+    // comments have no author.
+    const all = (await call(client, "list_feedback", {})).structuredContent!
+      .feedback as { id: string; author: string | null }[];
+    expect(all.map((item) => item.id)).toContain("a1");
+    expect(all.find((item) => item.id === "a1")!.author).toBeNull();
+  });
+
   it("gives the reply CLI the same catalog: screen numbers, captions, unknown projects", async () => {
     const lines: string[] = [];
     const reply = (...args: string[]) =>

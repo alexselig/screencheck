@@ -23,6 +23,7 @@ import {
   pinBoxClassName,
   usePinDrag,
 } from "./components/pin-layer";
+import { ReviewerNameMenuItem } from "./components/reviewer-name";
 import { ScreenCaption } from "./components/screen-caption";
 import {
   ScreenRail,
@@ -1301,6 +1302,7 @@ function Workbench({
               >
                 {fullscreen ? "Exit fullscreen" : "View fullscreen"}
               </button>
+              <ReviewerNameMenuItem onDone={() => setMoreOpen(false)} />
               {beforeVersion ? (
                 <button
                   onClick={() => {

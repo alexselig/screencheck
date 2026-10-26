@@ -1945,6 +1945,85 @@ button.tag-chip:hover {
   text-transform: uppercase;
 }
 
+/* Reviewer identity: a name per browser, no accounts. */
+.feedback-comment-byline {
+  grid-column: 2;
+  color: var(--ink-muted);
+  font-size: 11px;
+}
+
+.reviewer-name-field input,
+.reviewer-name-menu-form input {
+  min-height: 36px;
+  padding: 0 var(--space-2);
+  border: 1px solid var(--line-strong);
+  background: var(--surface);
+  color: var(--ink);
+  font-size: 15px;
+  font-weight: 400;
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+.reviewer-name-field input::placeholder,
+.reviewer-name-menu-form input::placeholder {
+  color: var(--ink-muted);
+}
+
+.reviewer-name-line {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin: 0;
+  color: var(--ink-muted);
+  font-size: 11px;
+}
+
+.reviewer-name-line strong {
+  color: var(--ink);
+}
+
+.reviewer-name-change {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--bauhaus-blue);
+  font-size: 11px;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.reviewer-name-menu-form {
+  display: grid;
+  gap: var(--space-1);
+  padding: var(--space-2) var(--space-3);
+  border-top: 1px solid var(--line);
+  color: var(--ink-muted);
+  font-size: 11px;
+}
+
+.action-bar-menu .reviewer-name-menu-form button {
+  min-height: 36px;
+  border: 1px solid var(--ink);
+  background: var(--surface);
+  font-size: 13px;
+}
+
+.mention-chip {
+  padding: 0 var(--space-1);
+  border: 1px solid var(--line-strong);
+  background: var(--surface);
+  color: var(--ink);
+  font-weight: 700;
+}
+
+.mention-chip.is-agent,
+.mention-chip.is-self {
+  border-color: var(--bauhaus-blue);
+  background: var(--bauhaus-blue);
+  color: var(--on-blue);
+}
+
 /* The element under a pin, from the capture's element map. */
 .feedback-element {
   display: flex;

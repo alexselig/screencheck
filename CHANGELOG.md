@@ -37,6 +37,12 @@ provenance.
   `x`/`y` at its centre, so older files and point-only consumers are
   unaffected. The element map, `get_comment` crop and Markdown/agent exports
   use the region.
+- **Reviewer names without accounts:** a name per browser, asked for inline
+  in the feedback editor and editable from **Your name…** in the **…** menu.
+  New comments and reviewer replies carry it as an optional `author` (≤ 60
+  characters, control characters stripped); cards and threads show it with
+  the time. `@agent` and `@name` in notes and replies render as chips, and MCP
+  `list_feedback` takes a `mentions` filter. Older comments load unchanged.
 
 ### Changed
 
