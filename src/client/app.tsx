@@ -1150,26 +1150,6 @@ function Workbench({
             />
           </svg>
         </button>
-        {beforeVersion && !placingPin ? (
-          <div
-            aria-label="Compare with the previous build"
-            className="before-after"
-            role="group"
-          >
-            {(["Before", "After"] as const).map((side) => (
-              <button
-                aria-keyshortcuts={SHORTCUTS.beforeAfter.aria}
-                aria-pressed={(side === "Before") === comparing}
-                key={side}
-                onClick={() => setShowBefore(side === "Before")}
-                title={`${side === "Before" ? `Show ${revisionName(revisionOf(beforeVersion))}` : `Show ${revisionName(revision)}`} (${SHORTCUTS.beforeAfter.label})`}
-                type="button"
-              >
-                {side}
-              </button>
-            ))}
-          </div>
-        ) : null}
         {placingPin ? (
           <>
             <button
@@ -1194,15 +1174,37 @@ function Workbench({
           <span aria-hidden="true">‹</span>
           <span className="action-bar-nav-label">Prev</span>
         </button>
-        <span
-          aria-label={`Screen ${selected.ordinal} of ${screens.length}`}
-          aria-live="polite"
-          className="action-bar-place"
-        >
-          <strong>
-            {selected.ordinal}/{screens.length}
-          </strong>
-        </span>
+        <div className="action-bar-middle">
+          <span
+            aria-label={`Screen ${selected.ordinal} of ${screens.length}`}
+            aria-live="polite"
+            className="action-bar-place"
+          >
+            <strong>
+              {selected.ordinal}/{screens.length}
+            </strong>
+          </span>
+          {beforeVersion && !placingPin ? (
+            <div
+              aria-label="Compare with the previous build"
+              className="before-after"
+              role="group"
+            >
+              {(["Before", "After"] as const).map((side) => (
+                <button
+                  aria-keyshortcuts={SHORTCUTS.beforeAfter.aria}
+                  aria-pressed={(side === "Before") === comparing}
+                  key={side}
+                  onClick={() => setShowBefore(side === "Before")}
+                  title={`${side === "Before" ? `Show ${revisionName(revisionOf(beforeVersion))}` : `Show ${revisionName(revision)}`} (${SHORTCUTS.beforeAfter.label})`}
+                  type="button"
+                >
+                  {side}
+                </button>
+              ))}
+            </div>
+          ) : null}
+        </div>
         <button
           aria-label="Next screen"
           disabled={railIndex < 0 || railIndex >= railItems.length - 1}

@@ -287,9 +287,18 @@ h1 {
   cursor: not-allowed;
 }
 
-/* Fixed width so Prev/Next stay put as titles change length. */
-.action-bar-place {
+/* Fixed width so Prev/Next stay put as titles change length; the
+   Before | After toggle sits beside the number inside it. */
+.action-bar-middle {
+  display: flex;
   width: clamp(96px, 24vw, 320px);
+  min-width: 0;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+}
+
+.action-bar-place {
   min-width: 0;
   overflow: hidden;
   padding: 0 var(--space-2);
@@ -311,16 +320,21 @@ h1 {
 }
 
 /* Before | After: flips the canvas to the previous build's capture. */
+/* Equal halves: a grid of two 1fr columns sized by the wider label. The
+   unselected half sits 3px shorter top and bottom so the selected one
+   reads as raised, without shifting anything sideways. */
 .before-after {
-  display: inline-flex;
+  display: inline-grid;
   flex: none;
-  border: 1px solid var(--ink);
+  grid-template-columns: 1fr 1fr;
+  align-items: stretch;
 }
 
 .before-after button {
   min-height: var(--size-touch);
+  margin: calc(var(--space-1) - 1px) 0;
   padding: 0 var(--space-3);
-  border: 0;
+  border: 1px solid var(--ink);
   background: var(--surface);
   color: var(--ink);
   font-weight: 700;
@@ -328,14 +342,20 @@ h1 {
 }
 
 .before-after button + button {
-  border-left: 1px solid var(--ink);
+  border-left: 0;
 }
 
+/* Same blue as the selected rail row, so the hover is unmistakable. */
 .before-after button:hover:not([aria-pressed="true"]) {
-  background: var(--surface-alt);
+  border-color: var(--bauhaus-blue);
+  background: var(--bauhaus-blue);
+  color: var(--on-blue);
 }
 
 .before-after button[aria-pressed="true"] {
+  position: relative;
+  z-index: 1;
+  margin-block: 0;
   background: var(--ink);
   color: var(--surface);
 }
