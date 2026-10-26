@@ -12,6 +12,7 @@ import {
 } from "../shared/approvals";
 import { screenCaptionSchema, type SetCaptionInput } from "../shared/captions";
 import type { ProjectList } from "../shared/projects";
+import { withReviewerAuthor, withReviewerMessageAuthor } from "./reviewer";
 
 export class FeedbackApiError extends Error {
   constructor(
@@ -78,7 +79,7 @@ export async function postFeedback(
 ) {
   const { feedback } = await request<{ feedback: unknown }>(
     feedbackUrl(projectId),
-    { method: "POST", body: input },
+    { method: "POST", body: withReviewerAuthor(input) },
   );
   return feedbackRecordSchema.parse(feedback);
 }
@@ -90,7 +91,7 @@ export async function patchFeedback(
 ) {
   const { feedback } = await request<{ feedback: unknown }>(
     feedbackUrl(projectId, `/${encodeURIComponent(id)}`),
-    { method: "PATCH", body: input },
+    { method: "PATCH", body: withReviewerMessageAuthor(input) },
   );
   return feedbackRecordSchema.parse(feedback);
 }

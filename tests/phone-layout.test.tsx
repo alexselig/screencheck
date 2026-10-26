@@ -105,6 +105,7 @@ describe("phone layout (ds-25)", () => {
     expect(items.map((item) => item.textContent)).toEqual([
       "Export…",
       "View fullscreen",
+      "Your name…",
     ]);
     expect(items[0]).toHaveFocus();
 

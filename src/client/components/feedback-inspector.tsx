@@ -15,6 +15,7 @@ import { ElementLine } from "./element-line";
 import { SHORTCUTS, type ApproveShortcut } from "../shortcuts";
 import { ApprovalBar } from "./approval-bar";
 import { VerifyActions } from "./verify-actions";
+import { MentionText, ReviewerNameField } from "./reviewer-name";
 import {
   FEEDBACK_STATUSES,
   STATUS_LABELS,
@@ -205,7 +206,9 @@ function MessageNote({ message }: { message: FeedbackMessage }) {
           </span>
         ) : null}
       </span>
-      <span className="feedback-reply-note">{message.note}</span>
+      <span className="feedback-reply-note">
+        <MentionText text={message.note} />
+      </span>
     </span>
   );
 }
@@ -1244,7 +1247,17 @@ export function FeedbackInspector({
           >
             {pinNumbers.get(item.id) ?? 0}
           </span>
-          <span className="feedback-comment-note">{item.note}</span>
+          <span className="feedback-comment-note">
+            <MentionText text={item.note} />
+          </span>
+          {item.author ? (
+            <span className="feedback-comment-byline">
+              {item.author} ·{" "}
+              <time dateTime={item.createdAt}>
+                {REPLY_TIME.format(new Date(item.createdAt))}
+              </time>
+            </span>
+          ) : null}
           <ElementLine projectId={projectId} pin={item} />
           {otherTags.length ? (
             <span className="feedback-comment-tags">
@@ -1371,6 +1384,7 @@ export function FeedbackInspector({
           value={editor.note}
         />
       </label>
+      <ReviewerNameField />
       <span aria-live="polite" className="feedback-save-state" role="status">
         {saveMessage}
       </span>
