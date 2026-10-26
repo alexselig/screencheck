@@ -345,9 +345,9 @@ h1 {
   border-left: 0;
 }
 
-/* Same blue as the selected rail row, so the hover is unmistakable. */
-.before-after button:hover,
-.before-after button[aria-pressed="true"]:hover {
+/* Same blue as the selected rail row, so the hover is unmistakable.
+   Scoped under .action-bar-nav to outrank its Prev/Next hover. */
+.action-bar-nav .before-after button:hover {
   border-color: var(--bauhaus-blue);
   background: var(--bauhaus-blue);
   color: var(--on-blue);
