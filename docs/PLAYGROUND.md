@@ -105,9 +105,15 @@ one moved to build-42 as Choose route's pin 3 (see step 12). At 390,
       "All sizes · Pinned at 768". It's one comment: status and replies are
       shared, and the rail counts it once. When you drop a pin on a screen
       with several sizes, the editor asks **This size** or **All sizes**.
+    - At 1440 a **Toggle · Overlay · Slider · Diff** picker sits above the
+      capture. On **03 Choose route**, try **Slider** (drag, or ← / →) to see
+      the "Save 10%" pill appear, or **Diff** to see it in orange. Route,
+      Pick a sailing and Review and pay have a blue dot in the index: they
+      changed since build-41.
 12. **Compare builds.** Switch the **Revision** picker to **build-41**. The Route
-    screen has no "Save 10%" pill, and its old comments are Fixed. Switch back
-    to build-42.
+    screen has no "Save 10%" pill, and its old comments are Fixed. The Fixed
+    card on **04 Pick a sailing** shows **Before** and **After** crops: the fix
+    landed in build-42. Switch back to build-42.
     - Open comments follow the newest build. On **03 Choose route**, pin 3 was
       left on build-41's Return button. ScreenCheck found the same button in
       build-42 and moved the pin with it, but the button grew, so the pin has a

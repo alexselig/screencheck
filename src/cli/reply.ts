@@ -6,7 +6,7 @@
 //   screencheck reply --project shop --list [--status fixed] [--screen 3]
 //   screencheck reply --project shop --show --id <id>
 //   screencheck reply --project shop --id <id> --status fixed \
-//     --note "Moved the footer below the fold." [--author Copilot]
+//     --note "Moved the footer below the fold." [--author Copilot] [--recapture]
 import {
   ApiError,
   createApiClient,
@@ -32,11 +32,13 @@ import {
   statusLabel,
   toApiStatus,
 } from "../agent-api/status";
+import { versionModel } from "../client/versions";
 import { resolveOrigin, type RuntimeInfo } from "../server/runtime";
 import { captionFor } from "../shared/captions";
 import { describeElement, resolvePinElement } from "../shared/elements";
 import { createPinNumbers } from "../shared/export";
 import type { PublicProject } from "../shared/projects";
+import { type Capture, recaptureScreen } from "./recapture";
 
 export type ReplyOptions = {
   project?: string;
@@ -46,6 +48,9 @@ export type ReplyOptions = {
   all?: boolean;
   clear?: boolean;
   help?: boolean;
+  recapture?: boolean;
+  revision?: string;
+  config?: string;
   id?: string;
   note?: string;
   status?: string;
@@ -59,17 +64,29 @@ export type ReplyOptions = {
 
 const AGENT_STATUSES = ["OPEN", "IN_PROGRESS", "RESOLVED", "WONT_FIX"];
 
-const FLAGS = new Set(["list", "show", "json", "all", "clear", "help"]);
+const FLAGS = new Set([
+  "list",
+  "show",
+  "json",
+  "all",
+  "clear",
+  "help",
+  "recapture",
+]);
 
 export const REPLY_USAGE = `Usage:
   screencheck reply --project <id> --list [--all] [--status <s,...>] [--version <v>] [--screen <id|number|title>] [--tag <tag>] [--json]
   screencheck reply --project <id> --show --id <feedbackId> [--json]
   screencheck reply --project <id> --id <feedbackId> --note <text> [--status fixed|wont-fix|in-progress|backlog] [--author <name>]
+      [--recapture [--revision <id>] [--config <file>]]
   screencheck reply --project <id> --id <feedbackId> --clear
 --list shows open comments (Backlog, In progress); --all adds closed ones and
 --status picks exact statuses (comma-separated, e.g. fixed,verified).
 --show prints the note, what the screen shows, the element under the pin and
 the whole thread.
+--recapture captures the comment's screen again after replying, with the
+project's capture config (screencheck.config.mjs/.js/.json here, or --config),
+into the config's version or --revision, so the reviewer sees before and after.
 Options: --url <origin> or --port <n> (default $SCREENCHECK_URL, else the
 running server in ~/.screencheck/server.json, else http://127.0.0.1:$PORT,
 port 4173 if unset)`;
@@ -115,6 +132,9 @@ export type ReplyIo = {
   env?: NodeJS.ProcessEnv;
   log?: (line: string) => void;
   readRuntime?: () => RuntimeInfo | null;
+  // For --recapture: where to look for the config, and the capture to run.
+  cwd?: string;
+  recapture?: Capture;
 };
 
 // --url and --port win; otherwise the environment, then the running server.
@@ -263,12 +283,22 @@ export async function runReply(
     env = process.env,
     log = console.log,
     readRuntime,
+    cwd,
+    recapture,
   }: ReplyIo = {},
 ) {
   const options = parseReplyArgs(argv);
   if (options.help || !options.project) {
     log(REPLY_USAGE);
     return options.help ? 0 : 1;
+  }
+  if (
+    (options.recapture || options.revision) &&
+    (options.list || options.show || options.clear)
+  ) {
+    throw new Error(
+      "--recapture goes with a reply (--id <id> --note <text> --status fixed).",
+    );
   }
   const api = createApiClient({
     origin: replyOrigin(options, env, readRuntime),
@@ -308,7 +338,22 @@ export async function runReply(
   log(
     `${options.clear ? "Cleared reply on" : "Replied to"} ${current.id} (${statusLabel(updated.status)}).`,
   );
-  return 0;
+  if (!options.recapture) return 0;
+  const project = await findProject(api, projectId);
+  const result = await recaptureScreen(
+    {
+      projectId,
+      screenId: current.screenId,
+      commentRevision: project
+        ? versionModel(project).revisionOf(current.version)
+        : current.version,
+      ...(options.revision ? { revision: options.revision } : {}),
+      ...(options.config ? { config: options.config } : {}),
+    },
+    { env, ...(cwd ? { cwd } : {}), ...(recapture ? { recapture } : {}) },
+  );
+  for (const line of result.lines) log(line);
+  return result.ok ? 0 : 1;
 }
 
 // Flags a plain list line with what --json reports as scope / checkPlacement.

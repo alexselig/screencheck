@@ -46,12 +46,13 @@ export const SEED = {
     },
     {
       screen: "sailing",
-      x: 0.84,
-      y: 0.27,
-      note: "Price per what? Say per vehicle in the column header.",
+      x: 0.4,
+      y: 0.24,
+      note: "Price per what? Spell out per vehicle next to the price note.",
       tags: ["P2", "Copy"],
+      // Fixed in build-42, so its verify card shows before and after crops.
       status: "RESOLVED",
-      reply: "Fixed in build-42: the header says per vehicle.",
+      reply: 'Added "Per vehicle, 2 adults" under the price note.',
     },
   ],
   "build-42": [

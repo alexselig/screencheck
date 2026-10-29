@@ -18,6 +18,7 @@ import { AssistEditorTools } from "./assist";
 import { VerifyActions } from "./verify-actions";
 import { PlacementLine, PlacementOk, ScopeChoice } from "./placement-note";
 import { pinnedAtOf } from "../all-sizes";
+import { FixCrops, type FixPreview } from "./fix-crops";
 import { MentionText, ReviewerNameField } from "./reviewer-name";
 import {
   FEEDBACK_STATUSES,
@@ -268,6 +269,7 @@ export function FeedbackInspector({
   onAddFeedback,
   onSelectScreen,
   multipleSizes = false,
+  fixPreview,
 }: {
   projectId: string;
   screens: ReviewScreen[];
@@ -304,6 +306,8 @@ export function FeedbackInspector({
   onSelectScreen?: (screenId: string) => void;
   // The revision has several sizes: comments may cover all of them.
   multipleSizes?: boolean;
+  // The old and new capture around a fixed comment's pin, when they differ.
+  fixPreview?: (item: FeedbackRecord) => FixPreview | undefined;
 }) {
   const emptyHeadingId = useId();
   const initialRecoveries = useMemo(
@@ -1047,8 +1051,12 @@ export function FeedbackInspector({
 
   function verifyActions(item: FeedbackRecord) {
     const pin = pinNumbers.get(item.id) ?? 0;
+    const crops = fixPreview?.(item);
     return (
       <VerifyActions
+        preview={
+          crops ? <FixCrops number={pin} pin={item} {...crops} /> : undefined
+        }
         message={cardMessage?.id === item.id ? cardMessage.text : undefined}
         onCancelReopen={() => {
           setReopeningId(null);

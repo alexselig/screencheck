@@ -23,7 +23,13 @@ import {
   FullscreenReview,
   type FullscreenDrawer,
 } from "./components/fullscreen-review";
+import {
+  CompareBuilds,
+  CompareModePicker,
+  useCompareBuilds,
+} from "./components/compare-builds";
 import { CompareSizes } from "./components/compare-sizes";
+import { changedScreenIds, newerCapture } from "./compare";
 import {
   PinBoxOutline,
   pinBoxClassName,
@@ -347,8 +353,10 @@ function Workbench({
   );
   const [newerDismissed, setNewerDismissed] = useState(false);
   const [selectedChoice, setSelectedId] = useState(initialPlace.screen ?? "");
-  // Before shows the previous build's capture of the same screen and size.
-  const [showBefore, setShowBefore] = useState(false);
+  // Before shows the previous build's capture of the same screen and size;
+  // the compare modes draw both builds at once.
+  const { showBefore, setShowBefore, compareMode, setCompareMode } =
+    useCompareBuilds();
   const project =
     projects.find((item) => item.id === projectId) ?? projects[0]!;
   const screens: PublicScreen[] = project.screens;
@@ -384,6 +392,7 @@ function Workbench({
   const beforeVersion = versions.previousVersion(version);
   const comparing = showBefore && beforeVersion !== undefined;
   const shownVersion = comparing ? beforeVersion : version;
+  const blending = beforeVersion !== undefined && compareMode !== "toggle";
   const selectedId = screens.some((item) => item.id === selectedChoice)
     ? selectedChoice
     : screens[0]!.id;
@@ -938,6 +947,12 @@ function Workbench({
         openCounts={rollup.openCounts}
         screens={screens}
         selectedId={selectedId}
+        {...(beforeVersion
+          ? {
+              changedIds: changedScreenIds(screens, version),
+              changedSince: revisionName(revisionOf(beforeVersion)),
+            }
+          : {})}
       />
       {navigationMode === "wide" && !phone ? (
         <RailResizer
@@ -976,6 +991,18 @@ function Workbench({
       onVisibleFeedbackChange={setVisibleFeedback}
       hiddenPinStatuses={hiddenPinStatuses}
       onTogglePinStatus={togglePinStatus}
+      fixPreview={(item) => {
+        const shown = screens.find((screen) => screen.id === item.screenId);
+        const newer = shown?.hasCapture
+          ? newerCapture(versions, shown.changed, item.version)
+          : undefined;
+        if (!newer) return undefined;
+        const shot = (build: string) => ({
+          label: revisionName(revisionOf(build)),
+          src: captureSrc(project.id, build, item.screenId),
+        });
+        return { before: shot(item.version), after: shot(newer) };
+      }}
       approval={{
         approved: screenApproved,
         ready: approvals !== null,
@@ -1079,7 +1106,15 @@ function Workbench({
         sizes={sizes}
         version={version}
         zoom={zoom}
-      />
+      >
+        {beforeVersion && !comparingSizes ? (
+          <CompareModePicker
+            beforeLabel={revisionName(revisionOf(beforeVersion))}
+            mode={compareMode}
+            onMode={setCompareMode}
+          />
+        ) : null}
+      </CanvasToolbar>
       {comparingSizes ? (
         <CompareSizes
           captureSrc={(item) =>
@@ -1190,6 +1225,19 @@ function Workbench({
               </span>
             </div>
           )}
+          {blending && selected.hasCapture && !captureFailed ? (
+            <CompareBuilds
+              after={{
+                label: revisionName(revision),
+                src: captureSrc(project.id, version, selected.id),
+              }}
+              before={{
+                label: revisionName(revisionOf(beforeVersion)),
+                src: captureSrc(project.id, beforeVersion, selected.id),
+              }}
+              mode={compareMode as Exclude<typeof compareMode, "toggle">}
+            />
+          ) : null}
           {comparing ? (
             <span className="before-badge">
               Before · {revisionName(revisionOf(beforeVersion))}
@@ -1200,6 +1248,7 @@ function Workbench({
               .filter(
                 (item) =>
                   !comparing &&
+                  !blending &&
                   item.screenId === selectedId &&
                   item.version === version &&
                   (!hiddenPinStatuses.includes(item.status) ||

@@ -5,7 +5,12 @@ import type { ReviewScreen } from "./manifest";
 export type PublicScreen = Pick<
   ReviewScreen,
   "id" | "ordinal" | "title" | "description" | "group" | "viewport" | "liveUrl"
-> & { hasCapture: boolean };
+> & {
+  hasCapture: boolean;
+  // Versions whose capture differs from the same size one build back.
+  // Absent when none do.
+  changed?: string[];
+};
 
 // Optional grouping for a version: captures of one build at several
 // viewports share a `revision` and each carries a short `label` ("1440",

@@ -56,12 +56,18 @@ import {
   statusLabel,
   toApiStatus,
 } from "../agent-api/status";
+import { versionModel } from "../client/versions";
+import { type Capture, recaptureScreen } from "../cli/recapture";
 import { renderPinImage } from "./crop";
 
 export type McpServerOptions = {
   origin?: string;
   fetchImpl?: typeof fetch;
   author?: string;
+  // For reply's recapture: where the capture config is looked up (the
+  // folder the MCP server was started in) and the capture to run.
+  cwd?: string;
+  recapture?: Capture;
 };
 
 const INSTRUCTIONS = `ScreenCheck holds design-review feedback: numbered pins on screen captures, each with a note, tags (P0/P1/P2 priority plus free text) and a status.
@@ -507,6 +513,18 @@ export function createMcpServer(options: McpServerOptions = {}): McpServer {
           .string()
           .optional()
           .describe("Project id. Optional; every project is searched."),
+        recapture: z
+          .boolean()
+          .optional()
+          .describe(
+            "After replying, capture this comment's screen again with the project's capture config (screencheck.config.mjs in the folder the MCP server runs in), so the reviewer sees before and after. Use with status fixed.",
+          ),
+        revision: z
+          .string()
+          .optional()
+          .describe(
+            "With recapture: the revision to capture into, e.g. build-43. Defaults to the config's version.",
+          ),
       },
     },
     guarded(async (args) => {
@@ -518,9 +536,27 @@ export function createMcpServer(options: McpServerOptions = {}): McpServer {
       if (status) patch.status = status;
       const saved = await patchComment(project.id, record, patch);
       const comment = await updated(project.id, saved);
-      return textResult(`Replied.\n${formatComment(comment)}`, {
-        comment,
-      });
+      if (!args.recapture) {
+        return textResult(`Replied.\n${formatComment(comment)}`, {
+          comment,
+        });
+      }
+      const recapture = await recaptureScreen(
+        {
+          projectId: project.id,
+          screenId: record.screenId,
+          commentRevision: versionModel(project).revisionOf(record.version),
+          ...(args.revision ? { revision: args.revision } : {}),
+        },
+        {
+          ...(options.cwd ? { cwd: options.cwd } : {}),
+          ...(options.recapture ? { recapture: options.recapture } : {}),
+        },
+      );
+      return textResult(
+        `Replied.\n${formatComment(comment)}\n${recapture.lines.join("\n")}`,
+        { comment, recapture },
+      );
     }),
   );
 
