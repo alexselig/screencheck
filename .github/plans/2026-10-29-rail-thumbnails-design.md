@@ -1,6 +1,6 @@
 # Screen index thumbnails and a resizable rail
 
-Status: proposed, awaiting Alex's review. Nothing is built yet.
+Status: mock approved by Alex on 29 Oct 2026, with the toggles moved to the bottom of the list. In progress.
 
 ## What Alex asked for
 
@@ -10,16 +10,16 @@ Status: proposed, awaiting Alex's review. Nothing is built yet.
 
 ## Decisions (made autonomously; flag any to change)
 
-| Question                       | Decision                                                                                                    | Why                                                                               |
-| ------------------------------ | ----------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------- |
-| Where the toggle lives         | Top of the rail, a second switch under **Hide approved screens**, labelled **Show thumbnails**              | It controls the rail, so it sits on the rail; it reuses the existing switch style |
-| Default                        | Off                                                                                                         | Keeps today's dense list; nothing changes until someone opts in                   |
-| Remembered                     | Yes, in `localStorage` (like hidden pin statuses)                                                           | Same pattern as the rest of the client                                            |
-| What a thumbnail shows         | The **top of the screen**, cropped to the screen's viewport ratio (1440 × 1000 shows the first 1440 × 1000) | A whole full-page capture squashed into a rail is an unreadable sliver            |
-| Which capture                  | The current revision at the current size (follows the size switcher)                                        | Matches what the canvas shows                                                     |
-| Compact rail (64px) and phones | No thumbnails; the toggle is hidden                                                                         | There is no room; the phone strip is a single row                                 |
-| Rail width range               | 220px to `min(50vw, 640px)`, default 280px                                                                  | Below 220 the titles truncate; above half the window the canvas gets too small    |
-| Dragging past the minimum      | Below 160px the rail snaps to compact mode                                                                  | Makes the existing collapse a natural end of the same gesture                     |
+| Question                       | Decision                                                                                                                                                                              | Why                                                                            |
+| ------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------ |
+| Where the toggles live         | At the **bottom of the scrolling screen list**, after the last screen: **Hide approved screens** (moved from the rail head) and **Show thumbnails**, as two switches under a 1px rule | Alex's call: set-and-forget settings shouldn't take space above the list       |
+| Default                        | Off                                                                                                                                                                                   | Keeps today's dense list; nothing changes until someone opts in                |
+| Remembered                     | Yes, all three (hide approved, show thumbnails, rail width) in `localStorage`, read on load, so a reviewer sets them once                                                             | Alex: "remembered between sessions so a user can set and forget"               |
+| What a thumbnail shows         | The **top of the screen**, cropped to the screen's viewport ratio (1440 × 1000 shows the first 1440 × 1000)                                                                           | A whole full-page capture squashed into a rail is an unreadable sliver         |
+| Which capture                  | The current revision at the current size (follows the size switcher)                                                                                                                  | Matches what the canvas shows                                                  |
+| Compact rail (64px) and phones | No thumbnails and no toggles (settings keep their stored values)                                                                                                                      | There is no room; the phone strip is a single row                              |
+| Rail width range               | 220px to `min(50vw, 640px)`, default 280px                                                                                                                                            | Below 220 the titles truncate; above half the window the canvas gets too small |
+| Dragging past the minimum      | Below 160px the rail snaps to compact mode                                                                                                                                            | Makes the existing collapse a natural end of the same gesture                  |
 
 ## Performance: the goal is zero cost on the main thread
 
