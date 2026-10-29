@@ -50,9 +50,22 @@ export function CanvasToolbar({
           aria-pressed={comparing}
           className="canvas-compare-button"
           onClick={onCompare}
+          title={comparing ? "Close Compare sizes (Esc)" : undefined}
           type="button"
         >
           Compare sizes
+          {comparing ? (
+            <span aria-hidden="true" className="canvas-compare-close">
+              <svg height="14" viewBox="0 0 14 14" width="14">
+                <path
+                  d="M2 2l10 10M12 2 2 12"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="1.75"
+                />
+              </svg>
+            </span>
+          ) : null}
         </button>
       ) : null}
     </div>

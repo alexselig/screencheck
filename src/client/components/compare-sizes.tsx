@@ -17,7 +17,6 @@ export function CompareSizes({
   pinsFor,
   pinNumbers,
   onPick,
-  onClose,
 }: {
   title: string;
   sizes: readonly Size[];
@@ -28,15 +27,12 @@ export function CompareSizes({
   pinsFor: (version: string) => FeedbackRecord[];
   pinNumbers: ReadonlyMap<string, number>;
   onPick: (version: string) => void;
-  onClose: () => void;
 }) {
   const [natural, setNatural] = useState<
     Record<string, { width: number; height: number }>
   >({});
-  const closeRef = useRef<HTMLButtonElement>(null);
   const rowRef = useRef<HTMLOListElement>(null);
   const [rowWidth, setRowWidth] = useState(0);
-  useEffect(() => closeRef.current?.focus({ preventScroll: true }), []);
   useEffect(() => {
     const row = rowRef.current;
     if (!row || typeof ResizeObserver === "undefined") return;
@@ -64,23 +60,6 @@ export function CompareSizes({
     >
       <header className="compare-sizes-head">
         <span className="eyebrow">Compare sizes · {title}</span>
-        <button
-          aria-label="Close compare sizes"
-          className="icon-button"
-          onClick={onClose}
-          ref={closeRef}
-          title="Close (Esc)"
-          type="button"
-        >
-          <svg aria-hidden="true" height="14" viewBox="0 0 14 14" width="14">
-            <path
-              d="M2 2l10 10M12 2 2 12"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="1.75"
-            />
-          </svg>
-        </button>
       </header>
       <ol className="compare-sizes-row" ref={rowRef}>
         {sizes.map((size, index) => {

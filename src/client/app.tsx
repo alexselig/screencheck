@@ -1080,7 +1080,6 @@ function Workbench({
               : undefined
           }
           fallbackHeight={selected.viewport.height}
-          onClose={() => setComparingSizes(false)}
           onPick={(item) => {
             chooseSize(item);
             setComparingSizes(false);

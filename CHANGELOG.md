@@ -68,8 +68,12 @@ provenance.
 ### Changed
 
 - The size switcher and Compare sizes run widest first: **1440 Desktop · 768
-  Tablet · 390 Phone**. Shift+← / Shift+→ follow that layout. Compare sizes
-  closes with an × icon button.
+  Tablet · 390 Phone**. Shift+← / Shift+→ follow that layout. While Compare
+  sizes is on, its button carries an attached × that closes it.
+- The caption, screenshot and Compare sizes row are left-aligned with the
+  screen title at every size instead of centred.
+- A screen approved at every size shows only its check in the screen index, now
+  green with a white tick; the open count is hidden.
 - The canvas toggles (size, zoom, Compare sizes) line up with the caption and
   share the Before | After look.
 - The site's install steps show `capture --config` instead of a partial
