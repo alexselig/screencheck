@@ -813,6 +813,8 @@ h1 {
   height: 8px;
   border-radius: var(--radius-pill);
   background: var(--bauhaus-blue);
+  /* Ringed in white so it still shows on the blue selected row. */
+  box-shadow: 0 0 0 1px var(--surface);
 }
 
 .screen-open-count {
