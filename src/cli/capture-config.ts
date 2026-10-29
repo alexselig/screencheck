@@ -12,6 +12,7 @@ import { pathToFileURL } from "node:url";
 
 import { z } from "zod";
 
+import { createThumbnailCache, defaultThumbsRoot } from "../server/thumbnails";
 import { DEFAULT_GROUP } from "../shared/manifest";
 import { formatIssuePath } from "../shared/zod-format";
 import {
@@ -332,6 +333,7 @@ export async function runConfigCapture(
   const captureRoot = (width: number) =>
     path.join(outDir, revision, String(width));
 
+  const thumbs = createThumbnailCache(defaultThumbsRoot(env));
   const { chromium } = await playwright();
   const browser = await chromium.launch();
   try {
@@ -349,7 +351,14 @@ export async function runConfigCapture(
             await screen.setup(page, { viewport: width, screen: screen.id });
           }
           if (screen.waitFor) await page.waitForSelector(screen.waitFor);
-          const { pinned } = await shoot(page, out);
+          const { pinned } = await shoot(page, out, {
+            cache: thumbs,
+            ids: {
+              projectId: config.project.id,
+              version: versionId(revision, width),
+              screenId: screen.id,
+            },
+          });
           log(
             `Captured ${screen.id} at ${width}px -> ${path.relative(cwd, out) || out}${pinned.length ? ` (pinned ${pinned.join(", ")})` : ""}`,
           );
