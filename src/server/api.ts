@@ -14,6 +14,7 @@ import { setApprovalInputSchema } from "../shared/approvals";
 import { setCaptionInputSchema } from "../shared/captions";
 import { ACTOR_HEADER, REVIEWER_ACTOR } from "../shared/feedback";
 import { API_HEADERS, streamFile } from "./send-file";
+import { handleThumbnail, type ThumbnailCache } from "./thumbnails";
 import {
   FeedbackConflictError,
   FeedbackNotFoundError,
@@ -130,6 +131,9 @@ const CAPTURE_ROUTE =
 const ELEMENTS_ROUTE =
   /^\/api\/projects\/([^/]+)\/elements\/([^/]+)\/([^/]+)\/?$/;
 
+const THUMBNAIL_ROUTE =
+  /^\/api\/projects\/([^/]+)\/thumbnails\/([^/]+)\/([^/]+)\/?$/;
+
 const APPROVALS_ROUTE = /^\/api\/projects\/([^/]+)\/approvals\/?$/;
 
 const CAPTIONS_ROUTE = /^\/api\/projects\/([^/]+)\/captions\/?$/;
@@ -140,6 +144,8 @@ export type ApiOptions = {
   catalog?: ProjectCatalog;
   // AI assist (#14); undefined means it is off.
   assist?: AssistService;
+  // The screen index thumbnail cache; the route is off without it.
+  thumbs?: ThumbnailCache;
 };
 
 // Returns false when the request is not an API route, so the caller can fall
@@ -147,7 +153,7 @@ export type ApiOptions = {
 export async function handleApi(
   request: IncomingMessage,
   response: ServerResponse,
-  { storage, port, catalog, assist }: ApiOptions,
+  { storage, port, catalog, assist, thumbs }: ApiOptions,
 ): Promise<boolean> {
   const url = new URL(request.url ?? "/", "http://placeholder");
   if (!url.pathname.startsWith("/api/")) return false;
@@ -217,6 +223,43 @@ export async function handleApi(
         "content-type": file.type,
       });
       if (!sent) throw new HttpError(404, "Capture not found.");
+      return true;
+    }
+    const thumbnail = THUMBNAIL_ROUTE.exec(url.pathname);
+    if (thumbnail && catalog && thumbs) {
+      const [projectId, version, screenId] = thumbnail
+        .slice(1)
+        .map((part) => decodePart(part!));
+      const ids = {
+        projectId: projectId!,
+        version: version!,
+        screenId: screenId!,
+      };
+      await handleThumbnail(request, response, ids, url.searchParams.get("w"), {
+        cache: thumbs,
+        source: async (target) =>
+          (
+            await catalog.capture(
+              target.projectId,
+              target.version,
+              target.screenId,
+            )
+          )?.source ?? null,
+        requireRegistered: (target) =>
+          requireRegistered(target.projectId, {
+            version: target.version,
+            screenId: target.screenId,
+          }),
+        assertOrigin() {
+          try {
+            assertMutationOrigin(request.headers.origin, loopbackOrigins(port));
+          } catch (error) {
+            throw new HttpError(403, (error as Error).message);
+          }
+        },
+        fail: (status, message) => new HttpError(status, message),
+        headers: API_HEADERS,
+      });
       return true;
     }
     const elements = ELEMENTS_ROUTE.exec(url.pathname);

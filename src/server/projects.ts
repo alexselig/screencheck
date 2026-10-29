@@ -5,6 +5,7 @@ import path from "node:path";
 import { z } from "zod";
 
 import { appHome } from "./home";
+import { sourceKey } from "./thumbnails";
 import { elementMapPathFor } from "../shared/elements";
 import { parseScreens, type ReviewScreen } from "../shared/manifest";
 import { formatZodError } from "../shared/zod-format";
@@ -340,7 +341,9 @@ export function createProjectCatalog({
         type,
         // Changes whenever the file is re-captured, so browsers revalidate
         // instead of showing a stale image.
-        etag: `"${info.size.toString(16)}-${Math.floor(info.mtimeMs).toString(16)}"`,
+        etag: `"${sourceKey(info.size, info.mtimeMs)}"`,
+        // The same stamp keys the screen's thumbnails.
+        source: sourceKey(info.size, info.mtimeMs),
         open: () => createReadStream(realFile),
       };
     },
