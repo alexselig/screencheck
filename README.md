@@ -189,11 +189,25 @@ through each feature, from dropping a pin to an agent replying over MCP.
   sizes. It approves every size still pending, asking first if any of them has
   unverified fixes ("390: 1 fix not verified. Approve all anyway?"). ⌘A and
   the checkbox approve only the size on screen.
-- **Hide approved screens**, a switch at the top of the screen index,
+- **Hide approved screens**, a switch at the bottom of the screen index,
   drops approved screens from the list so only what's left to review remains.
   With several sizes it hides only screens approved at every size.
   Turning it on from an approved screen moves you to the nearest open one. ↑ / ↓, ← / → and Prev / Next all skip
   the hidden rows; the choice is remembered.
+- **Show thumbnails**, the switch under it, adds the top of each screen
+  (cropped to its viewport) under its name in the screen index, for the
+  current revision and size. Both switches sit at the bottom of the rail, or
+  after the last screen when the list scrolls. Captures made with
+  `screencheck capture` carry 400 and 800px thumbnails; for any other
+  capture the browser makes them once in a Web Worker and the server caches
+  them in `~/.screencheck/thumbs` (refreshed when the capture changes).
+  Nothing is fetched while the switch is off.
+- **Drag the rail's right edge** to resize the screen index (220px to half the
+  window, at most 640px); thumbnails grow with it. The edge is also a
+  keyboard separator: ← / → move 16px (Shift 64px), Home / End jump to the
+  ends, Enter or a double-click resets to 280px, and dragging below 160px
+  collapses the rail. The width and both switches are remembered. Phones and
+  the collapsed rail show no thumbnails, switches or handle.
 - A **Showing** strip above each capture says exactly what it shows (for
   example "Step 3 of 5, manual path selected"). Click it to edit; Enter saves,
   Esc cancels. Text is saved per version and screen in `captions.json`; a

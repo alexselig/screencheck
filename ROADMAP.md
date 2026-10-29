@@ -107,6 +107,11 @@ ahead of compare.
 | 17  | **Design reference beside the build.** Attach a Figma frame (via the Figma MCP or an exported PNG) to a screen and show it in compare mode (#7) as "Design".                                                                                                                                      | Design-vs-build review is the job Figma comments can't do.                                                                                              | M      |
 | 18  | ~~**Reviewer identity without accounts.** A name per browser, stored locally and stamped on comments and messages, with `@agent` and `@name` mentions inside threads.~~ Shipped: inline "Your name", `author` on comments, mention chips, MCP `mentions` filter.                                  | Needed once more than one person reviews (#13). Costs nothing to the privacy model.                                                                     | S      |
 
+Also shipped outside the ranking: **screen index thumbnails and a resizable
+rail** (a remembered Show thumbnails switch, a draggable rail edge, thumbnails
+made at capture time or once in a Web Worker and cached on disk; spec in
+`.github/plans/2026-10-29-rail-thumbnails-design.md`).
+
 ### Explicitly not doing
 
 Each of these is either owned by someone else or would break the thesis.

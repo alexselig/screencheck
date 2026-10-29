@@ -53,7 +53,9 @@ sizes, **390**, **768** and **1440** wide, and opens at 1440; build-41 only at 1
    Each screen is listed once. Orange badges count open comments across every
    size; a solid teal check means approved at every size, an outlined one
    approved at some (hover it to see which). Click **«** to collapse the rail
-   to numbers.
+   to numbers. At the bottom of the rail, flip **Show thumbnails** to see the
+   top of each screen under its name, then drag the rail's right edge to make
+   them bigger. Both are remembered.
 2. **Move between screens.** Use **‹ Prev / Next ›** in the bottom bar, the
    **← →** keys, or **[ ]**. After clicking a screen in the rail, **↑ ↓**
    step through the list and **Home / End** jump to the first or last screen.
@@ -104,7 +106,7 @@ sizes, **390**, **768** and **1440** wide, and opens at 1440; build-41 only at 1
     collapses and the feedback panel tucks away; ← → still work.
 14. **Export.** Click **Export**. Choose Markdown or JSON, all screens or this
     one, and which statuses to include, then **Download**.
-15. **Hide approved screens.** At the top of the screen index, flip the **Hide
+15. **Hide approved screens.** At the bottom of the screen index, flip the **Hide
     approved screens** switch to drop approved rows so only what's left to
     review remains.
 

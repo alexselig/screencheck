@@ -10,6 +10,16 @@ provenance.
 
 ### Added
 
+- **Screen index thumbnails and a resizable rail.** A **Show thumbnails**
+  switch (off by default) shows the top of each screen under its name; drag
+  the rail's right edge (or use the arrow keys on it) to make the rail and its
+  thumbnails wider, 220–640px. **Hide approved screens** moved from the rail
+  head to sit with it at the bottom of the screen index. All three settings
+  are remembered. Thumbnails are written at capture time (400 and 800px),
+  made once in a Web Worker for older captures, cached on disk under
+  `thumbs/` with a `GET`/`PUT /api/projects/:id/thumbnails/:version/:screen`
+  route, and carried in offline bundles. `scripts/perf/rail-thumbnails.mjs`
+  checks the performance budget on 120 screens.
 - **AI assist (optional, off by default).** `screencheck serve --assist` (or
   `SCREENCHECK_ASSIST=1`) lets the reviewer's own GitHub Copilot CLI rewrite a
   note into an instruction for an agent, suggest a priority and tags, and
