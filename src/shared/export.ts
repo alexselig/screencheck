@@ -8,6 +8,7 @@ import {
 import {
   STATUS_LABELS,
   feedbackThread,
+  scopeOf,
   type FeedbackMessage,
   type FeedbackRecord,
 } from "./feedback";
@@ -26,9 +27,9 @@ export type FeedbackExportInput = {
   // Element maps keyed "version/screenId"; comments then name the element
   // under their pin.
   elements?: Record<string, ElementMap>;
-  // Versions in review order, with display labels. When given and the
-  // feedback spans more than one, Markdown groups it under a heading per
-  // version.
+  // Versions (sizes) in review order, with display labels. When given and
+  // the feedback spans more than one, Markdown groups each screen's comments
+  // as All sizes, then a heading per size.
   versions?: { id: string; label: string }[];
 };
 
@@ -156,35 +157,48 @@ export function serializeMarkdown(input: FeedbackExportInput): string {
     ...(input.scope ? [`_Scope: ${escapeMarkdown(input.scope)}_`, ""] : []),
   ];
   let currentScreen = "";
-  let currentVersion = "";
-  const byVersion =
-    Boolean(input.versions) &&
-    new Set(records.map((item) => item.version)).size > 1;
+  let currentGroup = "";
   const versionLabel = (id: string) =>
     input.versions?.find((version) => version.id === id)?.label ?? id;
-  const screenLevel = byVersion ? "###" : "##";
+  const allSizes = (item: FeedbackRecord) => scopeOf(item) === "all";
+  const bySize =
+    (Boolean(input.versions) &&
+      new Set(records.map((item) => item.version)).size > 1) ||
+    records.some(allSizes);
+  const groupOf = (item: FeedbackRecord) =>
+    allSizes(item) ? "\0all" : item.version;
+  const ordered = bySize
+    ? [...records].sort(
+        (left, right) =>
+          (left.screenOrdinal ?? Number.MAX_SAFE_INTEGER) -
+            (right.screenOrdinal ?? Number.MAX_SAFE_INTEGER) ||
+          left.screenId.localeCompare(right.screenId) ||
+          Number(allSizes(right)) - Number(allSizes(left)) ||
+          records.indexOf(left) - records.indexOf(right),
+      )
+    : records;
 
-  for (const item of records) {
-    if (byVersion && item.version !== currentVersion) {
-      if (currentVersion) lines.push("");
-      lines.push(
-        `## Version ${escapeMarkdown(versionLabel(item.version))}`,
-        "",
-      );
-      currentVersion = item.version;
-      currentScreen = "";
-    }
+  for (const item of ordered) {
     const screenKey = `${item.screenOrdinal ?? "?"}:${item.screenId}`;
     if (screenKey !== currentScreen) {
       if (currentScreen) lines.push("");
       lines.push(
-        `${screenLevel} ${item.screenOrdinal === null ? "—" : String(item.screenOrdinal).padStart(2, "0")} · ${escapeMarkdown(item.screenTitle)}`,
+        `## ${item.screenOrdinal === null ? "—" : String(item.screenOrdinal).padStart(2, "0")} · ${escapeMarkdown(item.screenTitle)}`,
         ...(item.screenDescription
           ? [`_Screen: ${escapeMarkdown(item.screenDescription)}_`]
           : []),
         "",
       );
       currentScreen = screenKey;
+      currentGroup = "";
+    }
+    if (bySize && groupOf(item) !== currentGroup) {
+      if (currentGroup) lines.push("");
+      lines.push(
+        `### ${allSizes(item) ? "All sizes" : escapeMarkdown(versionLabel(item.version))}`,
+        "",
+      );
+      currentGroup = groupOf(item);
     }
     const checked =
       item.status === "RESOLVED" ||
@@ -194,6 +208,9 @@ export function serializeMarkdown(input: FeedbackExportInput): string {
         : " ";
     lines.push(
       `- [${checked}] **Pin ${item.pinNumber}${item.tags.length ? ` · ${item.tags.join(", ")}` : ""} · ${STATUS_LABELS[item.status]}** (${position(item)}): ${escapeMarkdown(item.note)} \`id: ${item.id.replace(/`/g, "")}\``,
+      ...(allSizes(item)
+        ? [`  - Pinned at ${escapeMarkdown(versionLabel(item.version))}`]
+        : []),
       ...(item.element
         ? [`  - Element: ${escapeMarkdown(item.element.description)}`]
         : []),

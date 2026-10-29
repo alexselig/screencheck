@@ -1,7 +1,8 @@
 // How the CLI and the MCP server describe comments, so an agent sees the same
 // pin numbers, labels and wording whichever one it uses.
 import type { FeedbackRecord } from "../shared/feedback";
-import { priorityTag } from "../shared/feedback";
+import { priorityTag, scopeOf } from "../shared/feedback";
+import { sizeModel } from "../shared/carry";
 import { describePinBox, pinBoxOf } from "../shared/pin-box";
 import { mentionsName } from "../shared/mentions";
 import type { PublicProject } from "../shared/projects";
@@ -67,10 +68,26 @@ export function summarize(
   const screen = project?.screens.find((item) => item.id === record.screenId);
   const latest = latestReply(record);
   const region = pinBoxOf(record);
+  const details = project?.versionDetails ?? [];
+  const sized = details.find((item) => item.id === record.version);
+  const carriedFrom = Array.isArray(record.carriedFrom)
+    ? (record.carriedFrom as unknown[]).filter(
+        (item): item is string => typeof item === "string",
+      )
+    : [];
   return {
     id: record.id,
     project: project?.id ?? record.projectId,
     version: record.version,
+    // The size the pin was placed on ("1440", "mobile"); the version id when
+    // the build has no sizes.
+    size: sized ? sizeModel(details).labelOf(record.version) : record.version,
+    // "all": one comment that applies to every size of the build.
+    scope: scopeOf(record as unknown as FeedbackRecord),
+    // Older builds this open comment was carried forward from, oldest first.
+    carriedFrom,
+    // Re-anchoring onto a newer build wasn't sure where the pin belongs.
+    checkPlacement: record.checkPlacement === true,
     screen: {
       id: record.screenId,
       title: screen?.title ?? record.screenId,
@@ -115,8 +132,16 @@ export function latestLine(latest: LatestMessage, full = false) {
 
 export function formatComment(comment: Comment) {
   const tags = comment.tags.length ? ` · ${comment.tags.join(", ")}` : "";
+  const notes = [
+    comment.scope === "all" ? `all sizes (pinned at ${comment.size})` : "",
+    comment.carriedFrom.length
+      ? `carried from ${comment.carriedFrom.join(", ")}`
+      : "",
+    comment.checkPlacement ? "check placement" : "",
+  ].filter(Boolean);
+  const extra = notes.length ? ` · ${notes.join(" · ")}` : "";
   const lines = [
-    `Pin ${comment.pin} on ${screenLabel(comment)}${tags} · ${comment.statusLabel} · at (${percent(comment.position.x)}, ${percent(comment.position.y)})${comment.region ? ` · ${describePinBox(comment.region)}` : ""} · id ${comment.id}`,
+    `Pin ${comment.pin} on ${screenLabel(comment)}${tags} · ${comment.statusLabel} · at (${percent(comment.position.x)}, ${percent(comment.position.y)})${comment.region ? ` · ${describePinBox(comment.region)}` : ""}${extra} · id ${comment.id}`,
     `  ${oneLine(comment.note)}`,
   ];
   if (comment.latestReply) lines.push(`  ${latestLine(comment.latestReply)}`);

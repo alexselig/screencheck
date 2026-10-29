@@ -52,7 +52,7 @@ import {
   useRailWidth,
 } from "./use-rail-width";
 import { captionFor, type ScreenCaption as Caption } from "../shared/captions";
-import { createPinNumbers } from "../shared/export";
+import { useAllSizesFeedback } from "./all-sizes";
 import {
   FEEDBACK_STATUSES,
   isOpenFeedback,
@@ -479,20 +479,7 @@ function Workbench({
     window.addEventListener("hashchange", follow);
     return () => window.removeEventListener("hashchange", follow);
   }, []);
-  const pinNumbers = useMemo(
-    () => createPinNumbers(feedbackRecords),
-    [feedbackRecords],
-  );
   const ready = loadState.kind === "ready";
-  const openCounts = useMemo(() => {
-    const counts = new Map<string, number>();
-    for (const item of feedbackRecords) {
-      if (item.version === version && isOpenFeedback(item)) {
-        counts.set(item.screenId, (counts.get(item.screenId) ?? 0) + 1);
-      }
-    }
-    return counts;
-  }, [feedbackRecords, version]);
 
   useEffect(() => {
     let cancelled = false;
@@ -626,6 +613,26 @@ function Workbench({
     onChange: chooseSize,
   });
   const { sizes } = sizing;
+  // Feedback as seen at this size: all-sizes comments from sibling sizes
+  // included, re-anchored.
+  const allSizes = useAllSizesFeedback({
+    projectId: project.id,
+    feedback: feedbackRecords,
+    sizes,
+    version,
+    screenId: selectedId,
+  });
+  const sizeFeedback = allSizes.feedback;
+  const { pinNumbers } = allSizes;
+  const openCounts = useMemo(() => {
+    const counts = new Map<string, number>();
+    for (const item of sizeFeedback) {
+      if (item.version === version && isOpenFeedback(item)) {
+        counts.set(item.screenId, (counts.get(item.screenId) ?? 0) + 1);
+      }
+    }
+    return counts;
+  }, [sizeFeedback, version]);
   // Changing build keeps the size you were reviewing when the build has it.
   const sameSizeIn = (next: string) =>
     versions
@@ -948,7 +955,8 @@ function Workbench({
     <FeedbackInspector
       approveShortcut={approveShortcutRef}
       draftPin={draftPin}
-      feedback={feedbackRecords}
+      feedback={sizeFeedback}
+      multipleSizes={sizing.multiple}
       onCancelDraft={() => {
         setAddingFeedback(false);
         setDraftPin(null);
@@ -1002,7 +1010,7 @@ function Workbench({
     />
   );
   const nextPinNumber =
-    feedbackRecords.filter(
+    sizeFeedback.filter(
       (item) => item.screenId === selected.id && item.version === version,
     ).length + 1;
   const captureKey = `${project.id}/${shownVersion}/${selected.id}`;
@@ -1085,13 +1093,16 @@ function Workbench({
             setComparingSizes(false);
           }}
           pinNumbers={pinNumbers}
+          pinNumbersFor={(item) => allSizes.atSize(item).pinNumbers}
           pinsFor={(item) =>
-            feedbackRecords.filter(
-              (record) =>
-                record.screenId === selectedId &&
-                record.version === item &&
-                !hiddenPinStatuses.includes(record.status),
-            )
+            allSizes
+              .atSize(item)
+              .feedback.filter(
+                (record) =>
+                  record.screenId === selectedId &&
+                  record.version === item &&
+                  !hiddenPinStatuses.includes(record.status),
+              )
           }
           sizes={sizes}
           title={selected.title}

@@ -22,7 +22,8 @@ describe("ROADMAP.md", () => {
     expect(roadmap).toMatch(/tag-driven/);
     expect(roadmap).not.toMatch(/Resolution\*\* filter/);
     expect(roadmap).toMatch(/size switcher/);
-    expect(roadmap).toMatch(/_Mostly shipped:_/);
+    expect(roadmap).toMatch(/~~\*\*Viewports per screen\.\*\*~~ _Shipped:_/);
+    expect(roadmap).toMatch(/all-sizes comments/);
   });
 
   it("keeps `screencheck capture` for one URL and ranks config capture first", () => {

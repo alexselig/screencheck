@@ -738,7 +738,14 @@ With several sizes:
 - **Compare sizes** shows every size of the screen side by side at the same
   height, each with its pins, read-only. Click a size to open it; Close or Esc
   returns to the size you were on.
-- Pins and approvals belong to one size.
+- Approvals belong to one size. A pin belongs to one size unless you choose
+  otherwise: when a screen has several sizes, the pin editor offers **This
+  size** (the default) or **All sizes**. An all-sizes comment is stored once,
+  on the size it was pinned at (`"scope": "all"`; no `scope` means this size).
+  The other sizes, and Compare sizes, show it with a dashed ring, moved onto
+  the same element when the element maps match, and its card says "All sizes
+  · Pinned at 1440". Status, thread and verify are shared, and the screen
+  index counts it once.
 
 When an earlier build exists, the footer's **Before | After** toggle (or **B**)
 flips the canvas to the previous build's capture of the same screen at the same
@@ -748,6 +755,26 @@ build. On phones it is in the **…** menu.
 A capture must sit inside its version's `captureRoot`. To register a project
 from its own manifests, keep a small importer script beside the registrations
 rather than in this repository.
+
+### Carrying comments forward
+
+When a newer build of the same size has a capture of the screen, open comments
+(not Fixed, Verified or Won't fix) move to it the next time feedback is read;
+nothing is duplicated. Each pin is re-anchored by the element it was dropped
+on (recorded as `element` when the pin is created, from the element map):
+matched by test id, then selector, then role, tag and name, and placed at the
+same spot inside the element. The record keeps `carriedFrom`, the versions it
+came from. If the element moved or resized a lot, or can't be found (or there
+is no element map), the pin keeps its relative position and is flagged
+`checkPlacement`: a dashed yellow ring on the pin and a **Check placement**
+label on its card. **Placement OK** clears the flag. Comments on an older
+build that has no newer capture of the screen stay where they are.
+
+Agents see the same fields: `list_feedback` / `get_comment` and `reply --list
+--json` return `size`, `scope`, `carriedFrom` and `checkPlacement`, and the
+plain `reply --list` line ends `(all sizes, check placement)` where they
+apply. The Markdown export groups each screen's comments under **All sizes**
+first, then one heading per size.
 
 ## Release gate (CI)
 

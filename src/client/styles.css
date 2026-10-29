@@ -2148,6 +2148,11 @@ h1 {
   grid-row: 1 / span 3;
 }
 
+/* Below the dot's three rows (note, element, placement) tags stay in the text column. */
+.feedback-comment > .feedback-comment-tags {
+  grid-column: 2;
+}
+
 /* Notes read as body text; only the selected card's note is bold. */
 .feedback-comment-note {
   color: var(--ink);
@@ -2428,6 +2433,67 @@ button.tag-chip:hover {
 
 .feedback-editor .feedback-element {
   grid-column: auto;
+}
+
+/* "All sizes · Pinned at 1440" and "Check placement" under the note. */
+.feedback-placement {
+  display: flex;
+  flex-wrap: wrap;
+  grid-column: 2;
+  gap: var(--space-1);
+  align-items: baseline;
+  color: var(--ink-muted);
+  font-size: 11px;
+}
+
+.feedback-editor .feedback-placement {
+  grid-column: auto;
+}
+
+.feedback-check-placement {
+  padding: 0 var(--space-1);
+  border: 1px dashed var(--ink);
+  background: color-mix(in srgb, var(--bauhaus-yellow) 25%, var(--surface));
+  color: var(--ink);
+  font-weight: 700;
+}
+
+/* Same frame as the Verify block under a Fixed card. */
+.feedback-placement-actions {
+  display: grid;
+  padding: var(--space-2) var(--space-3) var(--space-2)
+    calc(var(--space-3) + 30px + var(--space-3));
+  border: 1px solid var(--line-strong);
+  border-top: 0;
+  background: var(--surface);
+}
+
+.feedback-placement-ok {
+  justify-self: start;
+  min-height: calc(var(--size-touch) - 12px);
+  padding: 0 var(--space-2);
+  border: 1px solid var(--ink);
+  border-radius: 0;
+  background: var(--surface);
+  color: var(--ink);
+  font: inherit;
+  font-size: 11px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.feedback-placement-ok:hover {
+  background: var(--surface-hover);
+}
+
+.feedback-placement-ok:focus-visible {
+  outline: 2px solid var(--bauhaus-blue);
+  outline-offset: 2px;
+}
+
+.feedback-scope-choice button {
+  min-height: calc(var(--size-touch) - 12px);
+  font-size: 11px;
 }
 
 /* The source wraps under a long label; the label truncates only when it
@@ -2872,6 +2938,19 @@ button.tag-chip:hover {
 
 .feedback-pin:focus-visible {
   outline: 2px solid var(--bauhaus-blue);
+  outline-offset: 2px;
+}
+
+/* An all-sizes comment on a size other than the one it was pinned on. */
+.pin-dot.is-other-size {
+  border-style: dashed;
+  border-color: var(--ink);
+  box-shadow: none;
+}
+
+/* Carried from an older build to a spot the reviewer should confirm. */
+.pin-dot.needs-placement {
+  outline: 2px dashed var(--bauhaus-yellow);
   outline-offset: 2px;
 }
 

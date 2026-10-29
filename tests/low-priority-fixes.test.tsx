@@ -158,17 +158,20 @@ describe("export scope", () => {
     fireEvent.click(within(dialog).getByRole("button", { name: "Download" }));
     const markdown = exported[0]!;
     expect(markdown).not.toContain("Not in the rail");
-    expect(markdown.indexOf("## Version Mobile")).toBeGreaterThan(0);
-    expect(markdown.indexOf("## Version Mobile")).toBeLessThan(
+    // One heading per screen, then a subheading per size (responsive §6).
+    expect(markdown).toContain("## 01 · Landing");
+    expect(markdown.indexOf("### Mobile")).toBeGreaterThan(
+      markdown.indexOf("## 01 · Landing"),
+    );
+    expect(markdown.indexOf("### Mobile")).toBeLessThan(
       markdown.indexOf("Old landing"),
     );
-    expect(markdown.indexOf("## Version Desktop")).toBeGreaterThan(
+    expect(markdown.indexOf("### Desktop")).toBeGreaterThan(
       markdown.indexOf("Old landing"),
     );
     expect(markdown.indexOf("New landing")).toBeGreaterThan(
-      markdown.indexOf("## Version Desktop"),
+      markdown.indexOf("### Desktop"),
     );
-    expect(markdown).toContain("### 01 · Landing");
   });
 
   it("narrows Export to the current version on request (ux-11)", async () => {

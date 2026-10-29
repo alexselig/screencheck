@@ -16,6 +16,7 @@ export function CompareSizes({
   captureSrc,
   pinsFor,
   pinNumbers,
+  pinNumbersFor,
   onPick,
 }: {
   title: string;
@@ -26,6 +27,8 @@ export function CompareSizes({
   captureSrc: (version: string) => string | undefined;
   pinsFor: (version: string) => FeedbackRecord[];
   pinNumbers: ReadonlyMap<string, number>;
+  // Per-size numbers, when a size's pins are numbered apart from the rest.
+  pinNumbersFor?: (version: string) => ReadonlyMap<string, number>;
   onPick: (version: string) => void;
 }) {
   const [natural, setNatural] = useState<
@@ -111,7 +114,9 @@ export function CompareSizes({
                       top: `${pinAnchor(item).y * 100}%`,
                     }}
                   >
-                    {pinNumbers.get(item.id) ?? 0}
+                    {(pinNumbersFor?.(size.version) ?? pinNumbers).get(
+                      item.id,
+                    ) ?? 0}
                   </span>
                 ))}
               </button>

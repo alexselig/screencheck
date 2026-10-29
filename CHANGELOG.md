@@ -26,6 +26,20 @@ provenance.
   summarise a round; a "possible duplicate of #N" hint uses local text
   similarity. The CLI runs tool-less with a timeout, needs no keys, and the UI
   hides itself when the CLI is missing. Suggestions apply only when accepted.
+- **Open comments carry forward.** When a newer build of the same size has a
+  capture of the screen, open comments move to it (no duplicates), re-anchored
+  onto the element they were dropped on via the element maps. The record keeps
+  `carriedFrom`; pins whose element moved or vanished get a dashed yellow ring
+  and a **Check placement** label, cleared with **Placement OK**. New pins
+  record their `element`.
+- **All-sizes comments.** On a screen with several sizes the pin editor offers
+  **This size / All sizes** (`scope`, absent means this size). An all-sizes
+  comment is stored once and shows dashed on the other sizes and in Compare
+  sizes, with "Pinned at 1440" on its card; the rail counts it once.
+- `list_feedback`, `get_comment` and `reply --list --json` return `size`,
+  `scope`, `carriedFrom` and `checkPlacement`; the plain `reply --list` line
+  marks `(all sizes, check placement)`.
+
 - **Before | After** toggle in the footer (and **B**): flips the canvas to the
   previous build's capture of the same screen and size. On phones it is in the
   **…** menu.
@@ -76,6 +90,8 @@ provenance.
   green with a white tick; the open count is hidden.
 - The canvas toggles (size, zoom, Compare sizes) line up with the caption and
   share the Before | After look.
+- The Markdown export groups comments by screen, then **All sizes**, then one
+  heading per size, instead of by version first.
 - The site's install steps show `capture --config` instead of a partial
   capture snippet, and name the **Viewport** filter correctly.
 - **Responsive review.** Versions that share a `revision` are sizes of one

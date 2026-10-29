@@ -32,19 +32,20 @@ Tidewater has two builds: **build-41**, from before the agent's fixes, and
 right), which opens on the newer build-42. build-42 was captured at three
 sizes, **390**, **768** and **1440** wide, and opens at 1440; build-41 only at 1440. The table describes build-42 at 1440.
 
-| Screen                    | What's there                                       |
-| ------------------------- | -------------------------------------------------- |
-| 01 Sign in                | Approved at every size (solid teal check)          |
-| 02 Home                   | One Won't fix with an agent reply, one In progress |
-| 03 Choose route           | Pin 1 Fixed with a reply thread; pin 2 open        |
-| 04 Pick a sailing         | One Verified, a P0 and a P1 open                   |
-| 05 Vehicle and passengers | P0 In progress                                     |
-| 06 Review and pay         | Pin 1 Fixed with a reply; pin 2 P0 open            |
-| 07 Booking confirmed      | P2 open; approved at 1440 only (outlined check)    |
-| 08 My trips               | P1 open, for the agent to fix                      |
-| 09 Settings               | Blank and unapproved, for your own pins            |
+| Screen                    | What's there                                                             |
+| ------------------------- | ------------------------------------------------------------------------ |
+| 01 Sign in                | Approved at every size (solid teal check)                                |
+| 02 Home                   | One Won't fix with an agent reply, one In progress                       |
+| 03 Choose route           | Pin 1 Fixed with a reply thread; pin 2 open; pin 3 carried from build-41 |
+| 04 Pick a sailing         | One Verified, a P0 and a P1 open                                         |
+| 05 Vehicle and passengers | P0 In progress                                                           |
+| 06 Review and pay         | Pin 1 Fixed with a reply; pin 2 P0 open                                  |
+| 07 Booking confirmed      | P2 open; approved at 1440 only (outlined check)                          |
+| 08 My trips               | P1 open, for the agent to fix; a P2 for all sizes, pinned at 768         |
+| 09 Settings               | Blank and unapproved, for your own pins                                  |
 
-**build-41** is the older build, with two open comments of its own. At 390,
+**build-41** is the older build. Two of its comments are Fixed; its open
+one moved to build-42 as Choose route's pin 3 (see step 12). At 390,
 **02 Home** has one more open comment, about the headline wrapping.
 
 ## Part 1: Look around (2 min)
@@ -99,9 +100,19 @@ sizes, **390**, **768** and **1440** wide, and opens at 1440; build-41 only at 1
       pins. Click one to open it, or press Esc to go back where you were.
     - **Before / After** in the bottom bar only appears at 1440 here, the one
       size build-41 has.
+    - Go to **08 My trips**. Pin 2 was left at 768 for **All sizes**, so it
+      shows at 390 and 1440 too, with a dashed ring, and its card says
+      "All sizes · Pinned at 768". It's one comment: status and replies are
+      shared, and the rail counts it once. When you drop a pin on a screen
+      with several sizes, the editor asks **This size** or **All sizes**.
 12. **Compare builds.** Switch the **Revision** picker to **build-41**. The Route
-    screen has no "Save 10%" pill, and the old comments are there. Switch back
+    screen has no "Save 10%" pill, and its old comments are Fixed. Switch back
     to build-42.
+    - Open comments follow the newest build. On **03 Choose route**, pin 3 was
+      left on build-41's Return button. ScreenCheck found the same button in
+      build-42 and moved the pin with it, but the button grew, so the pin has a
+      dashed yellow ring and its card says **Check placement**. Open it and
+      click **Placement OK** to clear the flag.
 13. **Fullscreen.** Click the corner icon at the bottom left. The rail
     collapses and the feedback panel tucks away; ← → still work.
 14. **Export.** Click **Export**. Choose Markdown or JSON, all screens or this

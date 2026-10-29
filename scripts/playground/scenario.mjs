@@ -33,6 +33,7 @@ export const VERSIONS = {
 
 // Each scenario is staged for a step in docs/PLAYGROUND.md.
 export const SEED = {
+  // Fixed in build-42, so they stay here rather than carrying forward.
   "build-41": [
     {
       screen: "route",
@@ -40,7 +41,8 @@ export const SEED = {
       y: 0.53,
       note: "Return toggle is easy to miss; the 10% saving should sit next to it.",
       tags: ["P1", "Conversion"],
-      status: "OPEN",
+      status: "RESOLVED",
+      reply: "Fixed in build-42: the saving sits in the Return button.",
     },
     {
       screen: "sailing",
@@ -48,7 +50,8 @@ export const SEED = {
       y: 0.27,
       note: "Price per what? Say per vehicle in the column header.",
       tags: ["P2", "Copy"],
-      status: "OPEN",
+      status: "RESOLVED",
+      reply: "Fixed in build-42: the header says per vehicle.",
     },
   ],
   "build-42": [
@@ -182,6 +185,18 @@ export const APPROVED = { "build-42": ["sign-in"] };
 // Approve all sizes have something to show. The bundled demo keeps one size.
 export const EXTRA_SIZES = { "build-42": [390, 768] };
 export const SIZE_SEED = {
+  // One comment for every size, pinned at 768; 390 and 1440 show it dashed.
+  "build-42-768": [
+    {
+      screen: "trips",
+      x: 0.5,
+      y: 0.62,
+      note: "Past trips need a heading of their own at every size.",
+      tags: ["P2", "Hierarchy"],
+      status: "OPEN",
+      scope: "all",
+    },
+  ],
   "build-42-390": [
     {
       screen: "home",
@@ -199,4 +214,20 @@ export const SIZE_APPROVED = {
   "build-42": ["confirmation"],
   "build-42-390": ["sign-in"],
   "build-42-768": ["sign-in"],
+};
+
+// Playground only, seeded last: an open build-41 comment on the Return
+// button. ScreenCheck carries it to build-42 at 1440, where the button grew,
+// so it asks you to Check placement.
+export const CARRY_SEED = {
+  "build-41": [
+    {
+      screen: "route",
+      x: 0.275,
+      y: 0.517,
+      note: "Return looks disabled next to One way; give both the same weight.",
+      tags: ["P2", "Visual"],
+      status: "OPEN",
+    },
+  ],
 };

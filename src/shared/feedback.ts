@@ -1,6 +1,7 @@
 import { z } from "zod";
 
 import { pinBoxSchema } from "./pin-box";
+import { pinElementSchema } from "./reanchor";
 
 // Priority lives in tags: suggested P0-P2, plus any free-text tag.
 export const PRIORITY_TAGS = ["P0", "P1", "P2"] as const;
@@ -19,6 +20,16 @@ export const FEEDBACK_STATUSES = [
   "VERIFIED",
   "WONT_FIX",
 ] as const;
+
+// Which sizes a comment covers: the one it was pinned on (the default, and
+// what a record without `scope` means) or every size of its revision.
+export const FEEDBACK_SCOPES = ["size", "all"] as const;
+export const feedbackScopeSchema = z.enum(FEEDBACK_SCOPES);
+export type FeedbackScope = z.infer<typeof feedbackScopeSchema>;
+
+export function scopeOf(record: { scope?: unknown }): FeedbackScope {
+  return record.scope === "all" ? "all" : "size";
+}
 
 export const feedbackTagSchema = z.string().trim().min(1).max(32);
 export const feedbackTagsSchema = z
@@ -208,6 +219,15 @@ const feedbackRecordObjectSchema = z.looseObject({
   // fills it. Read it through `feedbackThread`.
   thread: z.array(feedbackMessageSchema).max(THREAD_MAX_MESSAGES).optional(),
   issue: issueLinkSchema.optional(),
+  // "all": shown on every size of the revision, stored once on this one. A
+  // value this build doesn't know reads as the default.
+  scope: feedbackScopeSchema.optional().catch(undefined),
+  // Versions an open comment was carried forward from, oldest first.
+  carriedFrom: z.array(z.string().min(1)).optional().catch(undefined),
+  // Set when a carried pin's element moved or vanished; cleared by the
+  // reviewer ("Placement OK"). The element the pin sits on is kept as
+  // `element`, undeclared like `box`; read it through `pinElementOf`.
+  checkPlacement: z.boolean().optional().catch(undefined),
   createdAt: z.iso.datetime(),
   updatedAt: z.iso.datetime(),
 });
@@ -229,6 +249,9 @@ export const createFeedbackInputSchema = z.object({
   tags: feedbackTagsSchema.optional().default([]),
   status: feedbackStatusSchema.optional().default("OPEN"),
   author: authorNameSchema.optional(),
+  scope: feedbackScopeSchema.optional(),
+  // The element under the pin; the server fills it from the element map.
+  element: pinElementSchema.optional(),
 });
 
 export const feedbackPatchSchema = z
@@ -242,6 +265,9 @@ export const feedbackPatchSchema = z
     message: messageInputSchema.optional(),
     // Links the comment to a tracker issue; null unlinks it.
     issue: issueLinkSchema.nullable().optional(),
+    scope: feedbackScopeSchema.optional(),
+    // false: the reviewer checked a carried pin's placement.
+    checkPlacement: z.literal(false).optional(),
   })
   .superRefine((patch, context) => {
     if (patch.reply !== undefined && patch.message !== undefined) {

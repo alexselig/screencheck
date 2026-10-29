@@ -122,7 +122,8 @@
         "y": 0.53,
         "note": "Return toggle is easy to miss; the 10% saving should sit next to it.",
         "tags": ["P1", "Conversion"],
-        "status": "OPEN"
+        "status": "RESOLVED",
+        "reply": "Fixed in build-42: the saving sits in the Return button."
       },
       {
         "screen": "sailing",
@@ -130,7 +131,8 @@
         "y": 0.27,
         "note": "Price per what? Say per vehicle in the column header.",
         "tags": ["P2", "Copy"],
-        "status": "OPEN"
+        "status": "RESOLVED",
+        "reply": "Fixed in build-42: the header says per vehicle."
       }
     ],
     "build-42": [
