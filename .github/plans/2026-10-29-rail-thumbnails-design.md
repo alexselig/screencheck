@@ -209,7 +209,9 @@ Deviations from the plan above:
   press first so that one-off stays out of the drag's frames.
 
 Measured on 120 screens (`node scripts/perf/rail-thumbnails.mjs`, after
-`npm run build`), three runs, all budgets passing:
+`npm run build`). Every budget passed in 8 of 9 runs; in the other, one
+frame interval was 33 ms (a single dropped frame) while main-thread work stayed
+at 6 ms, which points at headless software raster rather than page work:
 
 | Check                                        | Result     | Budget  |
 | -------------------------------------------- | ---------- | ------- |
