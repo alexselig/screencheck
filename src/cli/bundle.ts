@@ -14,14 +14,17 @@ import { appHome } from "../server/home";
 import { createProjectCatalog } from "../server/projects";
 import type { RuntimeInfo } from "../server/runtime";
 import { sharedFeedbackStorage } from "../server/storage";
+import { createThumbnailCache, defaultThumbsRoot } from "../server/thumbnails";
 import {
   BUNDLE_FORMAT,
   bundleCaptureKey,
+  bundleThumbnailKey,
   reviewExportSchema,
   type OfflineBundle,
 } from "../shared/bundle";
 import { elementMapSchema, type ElementMap } from "../shared/elements";
 import { ACTOR_HEADER, REVIEWER_ACTOR } from "../shared/feedback";
+import { THUMBNAIL_WIDTHS } from "../shared/thumbnails";
 import { readZip, writeZip, type ZipEntry } from "./zip";
 
 export const BUNDLE_USAGE = `Usage:
@@ -205,6 +208,8 @@ export async function runBundle(argv: string[], io: BundleIo = {}) {
     storage.listCaptions(project.id),
   ]);
 
+  const thumbs = createThumbnailCache(defaultThumbsRoot(env, dataRoot));
+  const thumbnails: Record<string, string> = {};
   const files: ZipEntry[] = [];
   const captures: Record<string, string> = {};
   const elements: Record<string, ElementMap> = {};
@@ -216,6 +221,14 @@ export async function runBundle(argv: string[], io: BundleIo = {}) {
         const name = `captures/${segment(version)}/${segment(screen.id)}.${CAPTURE_EXTENSIONS[capture.type] ?? "img"}`;
         files.push({ name, data: await streamToBuffer(capture.open()) });
         captures[key] = name;
+        const ids = { projectId: project.id, version, screenId: screen.id };
+        for (const width of THUMBNAIL_WIDTHS) {
+          const thumb = await thumbs.read(ids, width, capture.source);
+          if (!thumb) continue;
+          const file = `thumbs/${segment(version)}/${segment(screen.id)}-${width}.${thumb.type === "image/webp" ? "webp" : "png"}`;
+          files.push({ name: file, data: await streamToBuffer(thumb.open()) });
+          thumbnails[bundleThumbnailKey(version, screen.id, width)] = file;
+        }
       }
       const text = await catalog.elements(project.id, version, screen.id);
       if (text) {
@@ -255,6 +268,7 @@ export async function runBundle(argv: string[], io: BundleIo = {}) {
     captions: captions.filter(inVersions),
     captures,
     elements,
+    ...(Object.keys(thumbnails).length ? { thumbnails } : {}),
   };
 
   const folder = `${segment(project.id)}-${versions.map(segment).join("_")}`;
