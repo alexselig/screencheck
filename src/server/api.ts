@@ -6,6 +6,10 @@ import { elementMapSchema, resolvePinElement } from "../shared/elements";
 import { toPinElement } from "../shared/reanchor";
 import { carryOpenFeedback } from "./carry";
 import {
+  a11yReportSchema,
+  setSuggestionDismissalInputSchema,
+} from "../shared/a11y";
+import {
   assertMutationOrigin,
   isLoopbackHostHeader,
   loopbackOrigins,
@@ -135,6 +139,10 @@ const ELEMENTS_ROUTE =
 
 const THUMBNAIL_ROUTE =
   /^\/api\/projects\/([^/]+)\/thumbnails\/([^/]+)\/([^/]+)\/?$/;
+
+const A11Y_ROUTE = /^\/api\/projects\/([^/]+)\/a11y\/([^/]+)\/([^/]+)\/?$/;
+
+const SUGGESTIONS_ROUTE = /^\/api\/projects\/([^/]+)\/suggestions\/?$/;
 
 const APPROVALS_ROUTE = /^\/api\/projects\/([^/]+)\/approvals\/?$/;
 
@@ -304,29 +312,72 @@ export async function handleApi(
       });
       return true;
     }
-    const elements = ELEMENTS_ROUTE.exec(url.pathname);
-    if (elements && catalog) {
+    // JSON files stored beside a capture: element maps and a11y reports.
+    for (const sidecar of [
+      {
+        route: ELEMENTS_ROUTE,
+        read: catalog?.elements,
+        schema: elementMapSchema as z.ZodType,
+        label: "Element map",
+      },
+      {
+        route: A11Y_ROUTE,
+        read: catalog?.a11y,
+        schema: a11yReportSchema as z.ZodType,
+        label: "Accessibility report",
+      },
+    ]) {
+      const match = sidecar.route.exec(url.pathname);
+      if (!match || !sidecar.read) continue;
       if (request.method !== "GET")
         throw new HttpError(405, "Method not allowed.");
-      const [projectId, version, screenId] = elements
+      const [projectId, version, screenId] = match
         .slice(1)
         .map((part) => decodePart(part!));
-      const text = await catalog.elements(projectId!, version!, screenId!);
-      if (text === null) throw new HttpError(404, "Element map not found.");
+      const text = await sidecar.read(projectId!, version!, screenId!);
+      if (text === null)
+        throw new HttpError(404, `${sidecar.label} not found.`);
       let parsed: unknown;
       try {
         parsed = JSON.parse(text);
       } catch {
-        throw new HttpError(500, "Element map is not valid JSON.");
+        throw new HttpError(500, `${sidecar.label} is not valid JSON.`);
       }
-      const map = elementMapSchema.safeParse(parsed);
-      if (!map.success) {
+      const data = sidecar.schema.safeParse(parsed);
+      if (!data.success) {
         throw new HttpError(
           500,
-          `Element map is malformed: ${map.error.issues[0]?.path.join(".") || "root"} ${map.error.issues[0]?.message ?? ""}`.trim(),
+          `${sidecar.label} is malformed: ${data.error.issues[0]?.path.join(".") || "root"} ${data.error.issues[0]?.message ?? ""}`.trim(),
         );
       }
-      sendJson(response, 200, map.data);
+      sendJson(response, 200, data.data);
+      return true;
+    }
+    const suggestions = SUGGESTIONS_ROUTE.exec(url.pathname);
+    if (suggestions) {
+      const projectId = decodePart(suggestions[1]!);
+      if (request.method === "GET") {
+        await requireRegistered(projectId);
+        sendJson(response, 200, {
+          dismissed: await storage.listDismissedSuggestions(projectId),
+        });
+      } else if (request.method === "PUT") {
+        try {
+          assertMutationOrigin(request.headers.origin, loopbackOrigins(port));
+        } catch (error) {
+          throw new HttpError(403, (error as Error).message);
+        }
+        assertReviewer(request.headers, "dismiss or promote a suggestion");
+        const input = setSuggestionDismissalInputSchema.parse(
+          await readJsonBody(request),
+        );
+        await requireRegistered(projectId, input);
+        sendJson(response, 200, {
+          dismissed: await storage.setSuggestionDismissal(projectId, input),
+        });
+      } else {
+        throw new HttpError(405, "Method not allowed.");
+      }
       return true;
     }
     const approvals = APPROVALS_ROUTE.exec(url.pathname);

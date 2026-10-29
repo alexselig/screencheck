@@ -8,6 +8,7 @@ import { versionModel } from "../client/versions";
 import { createCaptureComparer } from "./changed";
 import { appHome } from "./home";
 import { sourceKey } from "./thumbnails";
+import { a11yReportPathFor } from "../shared/a11y";
 import { elementMapPathFor } from "../shared/elements";
 import { parseScreens, type ReviewScreen } from "../shared/manifest";
 import { formatZodError } from "../shared/zod-format";
@@ -393,21 +394,34 @@ export function createProjectCatalog({
     },
     // The element map stored beside a screen's capture, as raw text, or null
     // when there is none (or it would sit outside the captureRoot).
-    async elements(projectId: string, versionId: string, screenId: string) {
-      const found = await find(projectId, versionId, screenId);
-      if (!found) return null;
-      const { file: capture } = locateCapture(found.version, found.screen);
-      if (!capture) return null;
-      const file = elementMapPathFor(capture);
-      if (!(await isFile(file))) return null;
-      const [realFile, realRoot] = await Promise.all([
-        realpath(file),
-        realpath(found.version.captureRoot),
-      ]);
-      if (!inside(realRoot, realFile)) return null;
-      return readFile(realFile, "utf8");
+    elements(projectId: string, versionId: string, screenId: string) {
+      return sidecar(projectId, versionId, screenId, elementMapPathFor);
+    },
+    // The accessibility report beside a capture, on the same terms.
+    a11y(projectId: string, versionId: string, screenId: string) {
+      return sidecar(projectId, versionId, screenId, a11yReportPathFor);
     },
   };
+
+  async function sidecar(
+    projectId: string,
+    versionId: string,
+    screenId: string,
+    pathFor: (capture: string) => string,
+  ) {
+    const found = await find(projectId, versionId, screenId);
+    if (!found) return null;
+    const { file: capture } = locateCapture(found.version, found.screen);
+    if (!capture) return null;
+    const file = pathFor(capture);
+    if (!(await isFile(file))) return null;
+    const [realFile, realRoot] = await Promise.all([
+      realpath(file),
+      realpath(found.version.captureRoot),
+    ]);
+    if (!inside(realRoot, realFile)) return null;
+    return readFile(realFile, "utf8");
+  }
 }
 
 export type ProjectCatalog = ReturnType<typeof createProjectCatalog>;

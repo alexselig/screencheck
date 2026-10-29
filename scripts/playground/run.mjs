@@ -108,7 +108,13 @@ async function renderCaptures(browser, captureRoot, thumbsRoot) {
       await page.setContent(screen.html);
       if (width < 1024) await page.addStyleTag({ content: NARROW_CSS });
       const file = path.join(captureRoot, id, `${screen.id}.png`);
-      await captureFullPage(page, { path: file, elements: true });
+      await captureFullPage(page, {
+        path: file,
+        elements: true,
+        // Writes <screen>.a11y.json for suggested comments; skipped with a
+        // notice when axe-core isn't installed.
+        a11y: true,
+      });
       const images = await captureThumbnails(page);
       if (images)
         await storeThumbnails(thumbsRoot, id, screen.id, file, images);

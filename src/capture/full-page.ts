@@ -19,6 +19,7 @@
 import { mkdir, writeFile } from "node:fs/promises";
 import path from "node:path";
 
+import type { A11yReport } from "../shared/a11y";
 import type { ElementMap } from "../shared/elements";
 
 export type PinnedChromeReport = {
@@ -638,6 +639,10 @@ export type CaptureOptions = {
   // Element map beside the capture: on by default when `path` is set, at
   // `<path without extension>.elements.json`. `false` skips it.
   elements?: boolean | { path?: string };
+  // Accessibility findings beside the capture (`<path>.a11y.json`): off by
+  // default. Needs the optional `axe-core` package; without it the check is
+  // skipped and `a11yNotice` says so.
+  a11y?: boolean | A11yCaptureOption;
   // Anything else goes to Playwright's `page.screenshot`.
   [option: string]: unknown;
 };
@@ -645,6 +650,9 @@ export type CaptureOptions = {
 export type CaptureResult = PinnedChromeReport & {
   image: Uint8Array;
   elements: ElementMap | null;
+  a11y: A11yReport | null;
+  // Set when the accessibility check was asked for but skipped.
+  a11yNotice?: string;
 };
 
 // `shots/checkout.png` -> `shots/checkout.elements.json`. The same rule as
@@ -665,7 +673,11 @@ export async function captureFullPage(
   page: CapturePage,
   options: CaptureOptions = {},
 ): Promise<CaptureResult> {
-  const { elements: elementsOption, ...screenshotOptions } = options;
+  const {
+    elements: elementsOption,
+    a11y: a11yOption,
+    ...screenshotOptions
+  } = options;
   await page.evaluate(DEFINE_NAME_HELPER);
   const { pinned } = await page.evaluate(pinBottomChromeInPage);
   try {
@@ -673,7 +685,14 @@ export async function captureFullPage(
       ...screenshotOptions,
       fullPage: true,
     });
-    if (elementsOption === false) return { image, pinned, elements: null };
+    const a11y = await captureA11y(page, a11yOption, options.path).catch(
+      (error: unknown) => ({
+        a11y: null,
+        a11yNotice: `Accessibility checks failed: ${error instanceof Error ? error.message : String(error)}`,
+      }),
+    );
+    if (elementsOption === false)
+      return { image, pinned, elements: null, ...a11y };
     const elements = await page.evaluate(collectElementsInPage);
     const target =
       typeof elementsOption === "object" && elementsOption.path
@@ -685,8 +704,196 @@ export async function captureFullPage(
       await mkdir(path.dirname(target), { recursive: true });
       await writeFile(target, `${JSON.stringify(elements, null, 2)}\n`);
     }
-    return { image, pinned, elements };
+    return { image, pinned, elements, ...a11y };
   } finally {
     await page.evaluate(restoreBottomChromeInPage);
   }
+}
+
+// ---------------------------------------------------------------------------
+// Accessibility checks (axe-core), run while the bars are re-pinned so boxes
+// match the shot. The in-page code is a string, so bundler-added helpers
+// (esbuild's keepNames `__name`) never reach the page.
+
+export type A11yCaptureOption = {
+  path?: string;
+  // Resolves axe-core's browser source, or null when it isn't installed.
+  loadAxe?: () => Promise<string | null>;
+};
+
+export const AXE_MISSING_NOTICE =
+  "Accessibility checks skipped: axe-core is not installed (npm i -D axe-core).";
+
+// `shots/checkout.png` -> `shots/checkout.a11y.json` (a11yReportPathFor in
+// shared/a11y, repeated for the same reason as elementMapPath).
+export function a11yReportPath(capturePath: string) {
+  return `${capturePath.replace(/\.[^./\\]*$/, "")}.a11y.json`;
+}
+
+export async function loadAxeSource(
+  load: () => Promise<{
+    source?: unknown;
+    default?: { source?: unknown };
+  }> = () => import("axe-core") as never,
+): Promise<string | null> {
+  try {
+    const axe = await load();
+    const source = axe.source ?? axe.default?.source;
+    return typeof source === "string" ? source : null;
+  } catch (error) {
+    const code = (error as NodeJS.ErrnoException).code;
+    if (code === "ERR_MODULE_NOT_FOUND" || code === "MODULE_NOT_FOUND") {
+      return null;
+    }
+    throw error;
+  }
+}
+
+const AXE_NODE_LIMIT = 50;
+const AXE_SUMMARY_MAX = 300;
+
+// Returns RawA11y. Plain ES2017 so it runs as-is in any page.
+const RUN_AXE_IN_PAGE = `(async function () {
+  var results = await window.axe.run(document, {
+    runOnly: { type: "tag", values: ["wcag2a", "wcag2aa"] },
+    resultTypes: ["violations"]
+  });
+  var docElement = document.documentElement;
+  var scroller = document.scrollingElement || docElement;
+  var body = document.body;
+  var width = Math.max(scroller.scrollWidth, body ? body.scrollWidth : 0, docElement.clientWidth, 1);
+  var height = Math.max(scroller.scrollHeight, body ? body.scrollHeight : 0, docElement.clientHeight, 1);
+  var sx = window.scrollX, sy = window.scrollY;
+  function flat(target) {
+    return [].concat.apply([], target.map(function (part) {
+      return Array.isArray(part) ? flat(part) : [String(part)];
+    }));
+  }
+  function rectOf(target) {
+    if (target.length !== 1 || typeof target[0] !== "string") return null;
+    try {
+      var element = document.querySelector(target[0]);
+      if (!element) return null;
+      var r = element.getBoundingClientRect();
+      if (r.width <= 0 || r.height <= 0) return null;
+      return { left: r.left + sx, top: r.top + sy, right: r.right + sx, bottom: r.bottom + sy };
+    } catch (error) {
+      return null;
+    }
+  }
+  return {
+    engine: { name: "axe-core", version: String(window.axe.version || "") },
+    capture: { width: width, height: height },
+    url: /^(https?|file):/.test(location.href) ? location.href : undefined,
+    violations: results.violations.map(function (v) {
+      return {
+        id: v.id, impact: v.impact || null, help: v.help, helpUrl: v.helpUrl,
+        description: v.description,
+        nodes: v.nodes.slice(0, ${AXE_NODE_LIMIT}).map(function (n) {
+          return { target: flat(n.target).join(" >>> "), rect: rectOf(n.target), summary: n.failureSummary || undefined };
+        })
+      };
+    })
+  };
+})()`;
+
+type Rect = { left: number; top: number; right: number; bottom: number };
+
+export type RawA11y = {
+  engine?: { name: string; version: string };
+  capture: { width: number; height: number };
+  url?: string;
+  violations: {
+    id: string;
+    impact?: string | null;
+    help: string;
+    helpUrl?: string;
+    description?: string;
+    nodes: { target: string; rect?: Rect | null; summary?: string }[];
+  }[];
+};
+
+// A document-pixel rect as fractions of the capture: the same clamping and
+// rounding collectElementsInPage uses for element-map boxes.
+export function captureFractionBox(
+  rect: Rect,
+  capture: { width: number; height: number },
+) {
+  const round = (value: number) =>
+    Math.min(1, Math.max(0, Math.round(value * 1e5) / 1e5));
+  const left = Math.max(0, rect.left);
+  const top = Math.max(0, rect.top);
+  const right = Math.min(capture.width, rect.right);
+  const bottom = Math.min(capture.height, rect.bottom);
+  if (right <= left || bottom <= top) return undefined;
+  const box = {
+    x: round(left / capture.width),
+    y: round(top / capture.height),
+    w: round((right - left) / capture.width),
+    h: round((bottom - top) / capture.height),
+  };
+  return box.w > 0 && box.h > 0 ? box : undefined;
+}
+
+const IMPACTS = new Set(["minor", "moderate", "serious", "critical"]);
+
+export function toA11yReport(raw: RawA11y): A11yReport {
+  const report: A11yReport = {
+    version: 1,
+    ...(raw.engine ? { engine: raw.engine } : {}),
+    capture: raw.capture,
+    ...(raw.url ? { url: raw.url } : {}),
+    violations: raw.violations.map((violation) => ({
+      id: violation.id,
+      impact: IMPACTS.has(violation.impact ?? "")
+        ? (violation.impact as A11yReport["violations"][number]["impact"])
+        : null,
+      help: violation.help,
+      ...(violation.helpUrl ? { helpUrl: violation.helpUrl } : {}),
+      ...(violation.description ? { description: violation.description } : {}),
+      nodes: violation.nodes.map((node) => {
+        const box = node.rect
+          ? captureFractionBox(node.rect, raw.capture)
+          : undefined;
+        const summary = node.summary?.replace(/\s+/g, " ").trim();
+        return {
+          target: node.target,
+          ...(box ? { box } : {}),
+          ...(summary
+            ? {
+                summary:
+                  summary.length > AXE_SUMMARY_MAX
+                    ? `${summary.slice(0, AXE_SUMMARY_MAX - 1)}…`
+                    : summary,
+              }
+            : {}),
+        };
+      }),
+    })),
+  };
+  return report;
+}
+
+async function captureA11y(
+  page: CapturePage,
+  option: CaptureOptions["a11y"],
+  capturePath: unknown,
+): Promise<Pick<CaptureResult, "a11y" | "a11yNotice">> {
+  if (!option) return { a11y: null };
+  const settings = typeof option === "object" ? option : {};
+  const source = await (settings.loadAxe ?? (() => loadAxeSource()))();
+  if (!source) return { a11y: null, a11yNotice: AXE_MISSING_NOTICE };
+  const present = await page.evaluate<boolean>(
+    "typeof window.axe === 'object' && typeof window.axe.run === 'function'",
+  );
+  if (!present) await page.evaluate(`${source}\n;void 0`);
+  const report = toA11yReport(await page.evaluate<RawA11y>(RUN_AXE_IN_PAGE));
+  const target =
+    settings.path ??
+    (typeof capturePath === "string" ? a11yReportPath(capturePath) : null);
+  if (target) {
+    await mkdir(path.dirname(target), { recursive: true });
+    await writeFile(target, `${JSON.stringify(report, null, 2)}\n`);
+  }
+  return { a11y: report };
 }

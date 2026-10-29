@@ -96,6 +96,8 @@ const configSchema = z.object({
   height: z.number().int().positive().default(1000),
   // Where captures go, relative to the config file.
   outDir: z.string().min(1).default("captures"),
+  // axe-core accessibility checks beside each capture (needs axe-core).
+  a11y: z.boolean().default(true),
   screens: z.array(screenSchema).min(1),
 });
 
@@ -334,6 +336,7 @@ export async function runConfigCapture(
     path.join(outDir, revision, String(width));
 
   const thumbs = createThumbnailCache(defaultThumbsRoot(env));
+  let noticed = false;
   const { chromium } = await playwright();
   const browser = await chromium.launch();
   try {
@@ -351,7 +354,8 @@ export async function runConfigCapture(
             await screen.setup(page, { viewport: width, screen: screen.id });
           }
           if (screen.waitFor) await page.waitForSelector(screen.waitFor);
-          const { pinned } = await shoot(page, out, {
+          const { pinned, notice } = await shoot(page, out, {
+            a11y: config.a11y,
             cache: thumbs,
             ids: {
               projectId: config.project.id,
@@ -359,6 +363,10 @@ export async function runConfigCapture(
               screenId: screen.id,
             },
           });
+          if (notice && !noticed) {
+            noticed = true;
+            log(notice);
+          }
           log(
             `Captured ${screen.id} at ${width}px -> ${path.relative(cwd, out) || out}${pinned.length ? ` (pinned ${pinned.join(", ")})` : ""}`,
           );

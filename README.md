@@ -284,11 +284,14 @@ details (including file paths) go only to the server log.
 | `GET /api/projects`                                        | Registered projects and screens (no local paths or proxy settings)                                                                                                                                               |
 | `GET /api/projects/:projectId/captures/:version/:screenId` | A screen's capture image, only from inside that version's `captureRoot`; revalidated by `ETag`, so a re-capture shows at once                                                                                    |
 | `GET /api/projects/:projectId/elements/:version/:screenId` | A screen's element map (`<capture>.elements.json`), only from inside `captureRoot`; `404` when there is none, `500` if malformed                                                                                 |
+| `GET /api/projects/:projectId/a11y/:version/:screenId`     | A screen's accessibility report (`<capture>.a11y.json`), served like the element map                                                                                                                             |
 | `POST /api/projects/:projectId/feedback/import`            | Merge records saved elsewhere, keeping ids                                                                                                                                                                       |
 | `GET /api/projects/:projectId/approvals`                   | Approved screens (stored beside `feedback.json` in `approvals.json`)                                                                                                                                             |
 | `PUT /api/projects/:projectId/approvals`                   | Set `{version, screenId, approved}`; reviewer only (`x-screencheck-actor: reviewer`, else `403`); `409` with `unverified: N` while the screen has Fixed comments, unless `override: true`; returns the full list |
 | `GET /api/projects/:projectId/captions`                    | Screen descriptions (stored beside `feedback.json` in `captions.json`)                                                                                                                                           |
 | `PUT /api/projects/:projectId/captions`                    | Set `{version, screenId, text}`; empty text clears; returns the list                                                                                                                                             |
+| `GET /api/projects/:projectId/suggestions`                 | Dismissed or promoted suggested comments (stored beside `feedback.json` in `suggestions.json`)                                                                                                                   |
+| `PUT /api/projects/:projectId/suggestions`                 | Set `{version, screenId, suggestionId, feedbackId?, dismissed?}`; reviewer only; `dismissed: false` restores; returns the list                                                                                   |
 
 Feedback records carry `thread: [{id, author, role, note, at, status?}]`
 (`role` is `reviewer` or `agent`; `status` is the change that message made)
@@ -316,14 +319,14 @@ overwrites it.
 
 Each write goes to a unique temp file that is renamed into place, and the
 previous version is kept as `<file>.bak` (`feedback.json.bak`,
-`approvals.json.bak`, `captions.json.bak`). Fields this build doesn't know
-are kept when it rewrites a record, so an older build can't strip what a newer
-one added. If a single record is invalid, the others still load: `GET` lists
-the valid ones with a `problems` entry naming the bad record and field, and
-writes return `409` until it is fixed or quarantined. `screencheck doctor`
-checks every project; `--restore` puts a damaged file back from its `.bak`
-(keeping the damaged copy as `<file>.damaged-<time>`), and `--quarantine`
-moves invalid records to `feedback.rejected.json`.
+`approvals.json.bak`, `captions.json.bak`, `suggestions.json.bak`). Fields
+this build doesn't know are kept when it rewrites a record, so an older build
+can't strip what a newer one added. If a single record is invalid, the others
+still load: `GET` lists the valid ones with a `problems` entry naming the bad
+record and field, and writes return `409` until it is fixed or quarantined.
+`screencheck doctor` checks every project; `--restore` puts a damaged file
+back from its `.bak` (keeping the damaged copy as `<file>.damaged-<time>`), and
+`--quarantine` moves invalid records to `feedback.rejected.json`.
 
 Feedback saved by earlier builds in browser `localStorage` is imported on first
 load. The browser copy is removed only after every record is accepted; anything
@@ -642,6 +645,9 @@ is registered.
 A `.json` config takes the same fields except `setup`. A `.ts` config works
 where Node runs TypeScript directly (22.18 and later); otherwise use `.mjs`.
 Plain `screencheck capture <url> --out <file>` still takes a single shot.
+`capture --config` also runs accessibility checks on every screen unless the
+config says `a11y: false`; see
+[Suggested accessibility comments](#suggested-accessibility-comments).
 
 ## Register a project
 
@@ -973,6 +979,61 @@ that stamps JSX with a source attribute: for example
 `@react-dev-inspector/babel-plugin` (Babel),
 `@sentry/babel-plugin-component-annotate`, or an SWC plugin that writes
 `data-source="file:line"`. Keep it out of production builds.
+
+## Suggested accessibility comments
+
+Captures can carry automated accessibility findings, which the review shows as
+**suggested comments**: ghost pins a reviewer promotes or dismisses. Nothing
+becomes a comment until someone chooses to add it.
+
+The checks use [axe-core](https://github.com/dequelabs/axe-core), an optional
+peer dependency: `npm i -D axe-core` (4.14 or later). Without it, captures
+carry on and print one line saying the checks were skipped.
+
+- `screencheck capture --config` runs them on every screen by default; set
+  `a11y: false` in the config to turn them off.
+- `screencheck capture <url> --out shot.png --a11y` runs them for one shot.
+- In code, `captureFullPage(page, { path, a11y: true })` does the same, or pass
+  `a11y: { path }` to write the report elsewhere. The report is also returned
+  as `result.a11y`, with `result.a11yNotice` when the checks were skipped or
+  failed. A failing check never fails the capture.
+
+axe runs the WCAG 2 A and AA rules, colour contrast included, on the page as
+captured: after the footer adjustments, so its boxes line up with the
+full-page shot. The findings are written beside the capture: `checkout.png`
+gets `checkout.a11y.json`. Each violation keeps its rule id, impact, help text
+and link, and, for each failing element (50 at most per rule), its selector, a
+short "how to fix" summary and its box as fractions of the capture, worked out
+the same way as the [element map](#element-map). Elements with no visible box
+are listed but not pinned.
+
+In the review, each finding on the screen and size in view is drawn as a
+dashed box with a **Suggested** tab. Findings on the same element, such as
+page-level ones on `<html>`, stack their tabs. Clicking a tab opens a card with
+the rule, impact, help text, the element and a **How to fix** link, and two
+actions:
+
+- **Add as comment** creates an Open box-pin comment on that element. Its note
+  is the help text, the rule, the element and the link. It is tagged `a11y`
+  and `P1` for serious or critical findings, or `P2` otherwise. From there it
+  is an ordinary comment, so an agent can pick it up.
+- **Dismiss** hides the finding for that screen and version.
+
+Both are stored in `suggestions.json` in the data directory as
+`{ version, screenId, suggestionId, feedbackId?, dismissedAt }`, where
+`suggestionId` is `<rule id>|<selector>`. A re-capture with the same finding
+stays hidden; a new finding, or the same one in a new version, shows again.
+The **Suggestions** switch beside Before | After shows and hides the ghosts.
+It appears only when the screen has findings, and is on by default. Ghosts are
+hidden while Before shows the previous build and while you place a pin, and
+on phones the switch is hidden but the ghosts stay on. Screens without a
+report, including offline bundles, show none.
+
+The server serves reports at `GET /api/projects/:id/a11y/:version/:screen`
+like element maps. It lists dismissals at `GET /api/projects/:id/suggestions`
+and records them with `PUT` on the same path, taking
+`{ version, screenId, suggestionId, feedbackId?, dismissed? }`, where
+`dismissed: false` restores a finding.
 
 ## Project site
 

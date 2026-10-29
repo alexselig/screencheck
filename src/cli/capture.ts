@@ -13,6 +13,7 @@ import {
   type ThumbnailCache,
   type ThumbnailIds,
 } from "../server/thumbnails";
+import { a11yReportPathFor } from "../shared/a11y";
 import { elementMapPathFor } from "../shared/elements";
 
 export type CaptureJob = {
@@ -21,6 +22,8 @@ export type CaptureJob = {
   width: number;
   height: number;
   waitFor?: string;
+  // Run axe-core's accessibility checks into <file>.a11y.json.
+  a11y?: boolean;
 };
 
 // `capture --config`: every screen in a config file at every viewport.
@@ -32,23 +35,27 @@ export type ConfigCaptureJob = {
 };
 
 export const CAPTURE_USAGE = `Usage:
-  screencheck capture <url> --out <file> [--width 1440] [--height 1000] [--wait-for <selector>]
+  screencheck capture <url> --out <file> [--width 1440] [--height 1000] [--wait-for <selector>] [--a11y]
   screencheck capture --config <file> [--version <id>] [--screen <id>] [--projects <dir>]
 
 The first form writes one full-page screenshot (.png, .jpg or .webp) with
 bottom-anchored bars moved to the end of the page, plus its element map
-(<file>.elements.json).
+(<file>.elements.json). --a11y also runs axe-core's WCAG 2 A/AA checks
+into <file>.a11y.json; they show up as suggested comments.
 
 The second reads screencheck.config.mjs (or .json) and captures every screen
 at every viewport into one version per width, all sharing the revision
 --version (default: the config's "version"), then writes or updates the
-project's registration.
+project's registration. It runs the accessibility checks too unless the
+config sets "a11y: false".
   --screen    Re-capture one screen only
   --projects  Registry folder (default $SCREENCHECK_PROJECTS, else
               ~/.screencheck/projects)
 
 Needs Playwright:
-  npm i -D playwright && npx playwright install chromium`;
+  npm i -D playwright && npx playwright install chromium
+Accessibility checks need axe-core (skipped with a notice without it):
+  npm i -D axe-core`;
 
 const PLAYWRIGHT_HINT =
   "Playwright is not installed. Run: npm i -D playwright && npx playwright install chromium";
@@ -77,6 +84,7 @@ export function parseCaptureArgs(
       width: { type: "string" },
       height: { type: "string" },
       "wait-for": { type: "string" },
+      a11y: { type: "boolean" },
       config: { type: "string", short: "c" },
       version: { type: "string" },
       screen: { type: "string" },
@@ -91,7 +99,13 @@ export function parseCaptureArgs(
         `capture --config takes no URL (got ${positionals[0]}); the config lists the screens.`,
       );
     }
-    for (const flag of ["out", "width", "height", "wait-for"] as const) {
+    for (const flag of [
+      "out",
+      "width",
+      "height",
+      "wait-for",
+      "a11y",
+    ] as const) {
       if (values[flag] !== undefined) {
         throw new Error(
           `--${flag} is for a single capture; with --config, set it in the config file.`,
@@ -120,6 +134,7 @@ export function parseCaptureArgs(
     width: positiveInt("width", values.width, 1440),
     height: positiveInt("height", values.height, 1000),
     ...(values["wait-for"] ? { waitFor: values["wait-for"] } : {}),
+    ...(values.a11y ? { a11y: true } : {}),
   };
 }
 
@@ -182,31 +197,46 @@ async function writeAtomically(file: string, bytes: Uint8Array) {
 export type ShotPage = Parameters<typeof captureFullPage>[0];
 
 // One full-page shot of an open page: the image (swapped in whole) and its
-// element map beside it, where the server and the inspector look for it.
-// With `thumbs`, the screen index thumbnails go to the cache as well, keyed by
-// the capture just written so they are fresh.
+// element map beside it, where the server and the inspector look for it;
+// with `a11y`, its accessibility findings too. With `cache` and `ids`, the
+// screen index thumbnails go to the cache as well, keyed by the capture just
+// written so they are fresh.
 export async function shoot(
   page: ShotPage,
   out: string,
-  thumbs?: { cache: ThumbnailCache; ids: ThumbnailIds },
+  {
+    a11y = false,
+    cache,
+    ids,
+  }: { a11y?: boolean; cache?: ThumbnailCache; ids?: ThumbnailIds } = {},
 ) {
   const type = imageType(out);
   await mkdir(path.dirname(path.resolve(out)), { recursive: true });
-  const { image, pinned } = await captureFullPage(page, {
+  const result = await captureFullPage(page, {
     type: type === "jpeg" ? "jpeg" : "png",
     elements: { path: elementMapPathFor(out) },
+    ...(a11y ? { a11y: { path: a11yReportPathFor(out) } } : {}),
   });
-  const bytes = type === "webp" ? await toWebp(image) : image;
+  const bytes = type === "webp" ? await toWebp(result.image) : result.image;
   await writeAtomically(out, bytes);
-  if (thumbs) {
+  if (cache && ids) {
     const images = await captureThumbnails(page);
     if (images) {
-      await storeCaptureThumbnails(thumbs.cache, thumbs.ids, out, images).catch(
+      await storeCaptureThumbnails(cache, ids, out, images).catch(
         () => undefined,
       );
     }
   }
-  return { pinned };
+  return {
+    pinned: result.pinned,
+    violations: result.a11y?.violations.length ?? null,
+    ...(result.a11yNotice ? { notice: result.a11yNotice } : {}),
+  };
+}
+
+export function describeViolations(count: number | null) {
+  if (count === null) return "";
+  return `${count} accessibility suggestion${count === 1 ? "" : "s"}`;
 }
 
 export async function runCapture(
@@ -228,9 +258,16 @@ export async function runCapture(
     });
     await page.goto(job.url, { waitUntil: "networkidle" });
     if (job.waitFor) await page.waitForSelector(job.waitFor);
-    const { pinned } = await shoot(page, job.out);
+    const { pinned, violations, notice } = await shoot(page, job.out, {
+      a11y: job.a11y,
+    });
+    if (notice) log(notice);
+    const extra = [
+      pinned.length ? `pinned ${pinned.join(", ")}` : "",
+      describeViolations(violations),
+    ].filter(Boolean);
     log(
-      `Captured ${job.url} -> ${job.out}${pinned.length ? ` (pinned ${pinned.join(", ")})` : ""}`,
+      `Captured ${job.url} -> ${job.out}${extra.length ? ` (${extra.join("; ")})` : ""}`,
     );
   } finally {
     await browser.close();

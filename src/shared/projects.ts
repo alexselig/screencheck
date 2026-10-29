@@ -46,6 +46,14 @@ export function captureUrl(
   return `/api/projects/${encodeURIComponent(projectId)}/captures/${encodeURIComponent(version)}/${encodeURIComponent(screenId)}`;
 }
 
+export function a11yReportUrl(
+  projectId: string,
+  version: string,
+  screenId: string,
+) {
+  return `/api/projects/${encodeURIComponent(projectId)}/a11y/${encodeURIComponent(version)}/${encodeURIComponent(screenId)}`;
+}
+
 export function elementMapUrl(
   projectId: string,
   version: string,

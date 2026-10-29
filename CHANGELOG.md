@@ -40,6 +40,16 @@ provenance.
   `scope`, `carriedFrom` and `checkPlacement`; the plain `reply --list` line
   marks `(all sizes, check placement)`.
 
+- **Suggested accessibility comments.** `capture --config` (unless the config
+  says `a11y: false`), `capture --a11y` and the `captureFullPage` option
+  `a11y: true` run axe-core's WCAG 2 A/AA rules, colour contrast included.
+  They write `<capture>.a11y.json` with each failing element boxed in
+  fractions of the capture. axe-core is an optional peer dependency; without it the capture
+  prints one line and carries on. The review shows findings as dashed
+  **Suggested** ghost pins, with a **Suggestions** switch beside Before |
+  After. **Add as comment** makes a box-pin comment tagged `a11y` and `P1`
+  (serious or critical) or `P2`. **Dismiss** hides a finding for that screen
+  and version. Both are kept in `suggestions.json`.
 - **Before | After** toggle in the footer (and **B**): flips the canvas to the
   previous build's capture of the same screen and size. On phones it is in the
   **…** menu.
