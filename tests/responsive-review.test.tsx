@@ -320,12 +320,15 @@ describe("responsive review", () => {
     expect(screen.queryByRole("region", { name: "Compare sizes" })).toBeNull();
     expect((await capture()).getAttribute("src")).toContain("web-768");
 
-    // The close control is an X icon button with an accessible name.
-    fireEvent.click(screen.getByRole("button", { name: "Compare sizes" }));
-    fireEvent.click(
-      screen.getByRole("button", { name: "Close compare sizes" }),
-    );
+    // The toolbar button is the toggle: it shows an × while on and closes.
+    const toggle = screen.getByRole("button", { name: "Compare sizes" });
+    expect(toggle.querySelector("svg")).toBeNull();
+    fireEvent.click(toggle);
+    expect(toggle).toHaveAttribute("aria-pressed", "true");
+    expect(toggle.querySelector(".canvas-compare-close")).not.toBeNull();
+    fireEvent.click(toggle);
     expect(screen.queryByRole("region", { name: "Compare sizes" })).toBeNull();
+    expect(toggle.querySelector("svg")).toBeNull();
 
     fireEvent.click(screen.getByRole("button", { name: "Compare sizes" }));
     fireEvent.click(screen.getByRole("button", { name: "Show 1440 Desktop" }));

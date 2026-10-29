@@ -1,3 +1,5 @@
+import { readFileSync } from "node:fs";
+import path from "node:path";
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
@@ -48,7 +50,41 @@ describe("ScreenRail", () => {
     expect(rail).toHaveAttribute("data-expanded", "false");
   });
 
-  it("puts the open count beside the number, opposite the approved check", () => {
+  it("puts the open count beside the number, opposite the partial check", () => {
+    render(
+      <ScreenRail
+        mode="compact"
+        onModeChange={vi.fn()}
+        onSelect={vi.fn()}
+        openCounts={new Map([["one", 3]])}
+        partialApprovals={
+          new Map([["one", "Approved at 1440; 390 still to review"]])
+        }
+        screens={screens}
+        selectedId="one"
+      />,
+    );
+    const first = screen.getByRole("button", {
+      name: "01. Public landing (Approved at 1440; 390 still to review), 3 open",
+    });
+    const number = first.querySelector(".screen-number");
+    expect(
+      number?.querySelector("[data-testid=screen-open-count]"),
+    ).toHaveTextContent("3");
+    // Badges lead the digits: check outermost, then the count, then "01".
+    const parts = [...(number?.querySelectorAll("*") ?? [])].filter((node) =>
+      node.matches(
+        "[data-testid=screen-partial-mark], [data-testid=screen-open-count], .screen-ordinal",
+      ),
+    );
+    expect(
+      parts.map((node) => node.getAttribute("data-testid") ?? node.textContent),
+    ).toEqual(["screen-partial-mark", "screen-open-count", "01"]);
+    const second = screen.getByRole("button", { name: "02. Dashboard" });
+    expect(second.querySelector("[data-testid=screen-open-count]")).toBeNull();
+  });
+
+  it("shows only the check once a screen is approved at every size", () => {
     render(
       <ScreenRail
         approvedIds={new Set(["one"])}
@@ -63,24 +99,23 @@ describe("ScreenRail", () => {
     const first = screen.getByRole("button", {
       name: "01. Public landing (approved), 3 open",
     });
-    const number = first.querySelector(".screen-number");
     expect(
-      number?.querySelector("[data-testid=screen-approved-mark]"),
+      first.querySelector("[data-testid=screen-approved-mark]"),
     ).not.toBeNull();
-    expect(
-      number?.querySelector("[data-testid=screen-open-count]"),
-    ).toHaveTextContent("3");
-    // Badges lead the digits: check outermost, then the count, then "01".
-    const parts = [...(number?.querySelectorAll("*") ?? [])].filter((node) =>
-      node.matches(
-        "[data-testid=screen-approved-mark], [data-testid=screen-open-count], .screen-ordinal",
-      ),
+    expect(first.querySelector("[data-testid=screen-open-count]")).toBeNull();
+  });
+
+  it("draws the approved check green with a white tick", () => {
+    const css = readFileSync(
+      path.resolve(__dirname, "../src/client/styles.css"),
+      "utf8",
     );
-    expect(
-      parts.map((node) => node.getAttribute("data-testid") ?? node.textContent),
-    ).toEqual(["screen-approved-mark", "screen-open-count", "01"]);
-    const second = screen.getByRole("button", { name: "02. Dashboard" });
-    expect(second.querySelector("[data-testid=screen-open-count]")).toBeNull();
+    expect(css).toMatch(
+      /\.screen-approved-mark circle \{[^}]*fill: var\(--approved\);/,
+    );
+    expect(css).toMatch(
+      /\.screen-approved-mark path \{[^}]*stroke: var\(--on-approved\);/,
+    );
   });
 
   it("steps through screens with the up and down arrows, focus following", () => {

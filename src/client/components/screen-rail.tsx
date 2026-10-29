@@ -339,7 +339,8 @@ export function ScreenRail({
                         <path d="M3.2 6.2 5.2 8.1 8.9 4.2" />
                       </svg>
                     ) : null}
-                    {openCount ? (
+                    {/* Approved at every size: the tick says it all. */}
+                    {openCount && !approved ? (
                       <span
                         className="screen-open-count"
                         data-testid="screen-open-count"

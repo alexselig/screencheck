@@ -809,13 +809,17 @@ h1 {
   line-height: 1;
 }
 
+/* Filled green with a white tick; the white ring keeps it apart from the
+   blue of the selected row. */
 .screen-approved-mark circle {
-  fill: var(--success);
+  fill: var(--approved);
+  stroke: var(--surface);
+  stroke-width: 1px;
 }
 
 .screen-approved-mark path {
   fill: none;
-  stroke: var(--surface);
+  stroke: var(--on-approved);
   stroke-linecap: round;
   stroke-linejoin: round;
   stroke-width: 1.6px;
@@ -824,12 +828,12 @@ h1 {
 /* Approved at some sizes: an outlined tick. */
 .screen-approved-mark.is-partial circle {
   fill: var(--surface);
-  stroke: var(--success);
+  stroke: var(--approved);
   stroke-width: 1.5px;
 }
 
 .screen-approved-mark.is-partial path {
-  stroke: var(--success);
+  stroke: var(--approved);
 }
 
 .screen-name {
@@ -1009,7 +1013,8 @@ h1 {
   align-items: center;
   column-gap: var(--space-3);
   max-width: var(--screen-width, 1440px);
-  margin: 0 auto var(--space-3);
+  /* Left-aligned with the title, at every size. */
+  margin: 0 0 var(--space-3);
   padding: 0 0 0 var(--space-3);
   border: 1px solid var(--line-strong);
   background: var(--surface-alt);
@@ -1096,7 +1101,8 @@ h1 {
   display: grid;
   width: 100%;
   max-width: var(--screen-width, 1440px);
-  margin: 0 auto;
+  /* Left-aligned with the title and caption, at every size. */
+  margin: 0;
   aspect-ratio: var(--screen-ratio, 1440 / 1000);
   place-items: center;
   border: 1px solid var(--line-strong);
@@ -1112,7 +1118,7 @@ h1 {
 /* Says what a click will do, right above where the click lands. */
 .canvas-adding-hint {
   width: min(100%, var(--screen-width));
-  margin: 0 auto var(--space-3);
+  margin: 0 0 var(--space-3);
   padding: var(--space-2) var(--space-3);
   border-left: 4px solid var(--bauhaus-blue);
   background: var(--blue-soft);
@@ -1219,6 +1225,22 @@ h1 {
   color: var(--surface);
 }
 
+/* While on, the × is its own square at the end: a close button attached to
+   the toggle. */
+.canvas-compare-button[aria-pressed="true"] {
+  gap: 0;
+  padding-right: 0;
+}
+
+.canvas-compare-close {
+  display: grid;
+  align-self: stretch;
+  width: calc(var(--size-touch) - 10px);
+  margin-left: var(--space-3);
+  place-items: center;
+  border-left: 1px solid var(--line-strong);
+}
+
 .segmented button:hover,
 .canvas-compare-button:hover {
   border-color: var(--bauhaus-blue);
@@ -1270,9 +1292,10 @@ h1 {
 .compare-sizes-row {
   display: flex;
   align-items: flex-start;
-  justify-content: safe center;
+  /* Left-aligned with the title; the inset keeps focus outlines visible. */
+  justify-content: flex-start;
   gap: var(--space-4);
-  margin: 0;
+  margin: 0 0 0 calc(-1 * var(--space-1));
   padding: var(--space-1) var(--space-1) var(--space-3);
   overflow-x: auto;
   list-style: none;
