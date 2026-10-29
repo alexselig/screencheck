@@ -1,5 +1,12 @@
 // @vitest-environment node
-import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
+import {
+  mkdir,
+  mkdtemp,
+  readFile,
+  rm,
+  stat,
+  writeFile,
+} from "node:fs/promises";
 import { join } from "node:path";
 
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
@@ -15,6 +22,7 @@ import { readZip, writeZip } from "../src/cli/zip";
 import { createOfflineApi } from "../src/client/offline-api";
 import { startServer } from "../src/server/index";
 import { createFeedbackStorage } from "../src/server/storage";
+import { createThumbnailCache, sourceKey } from "../src/server/thumbnails";
 import type { OfflineBundle } from "../src/shared/bundle";
 import type { FeedbackRecord } from "../src/shared/feedback";
 
@@ -175,6 +183,42 @@ describe("screencheck bundle (#13)", () => {
       versions: ["v2"],
     });
     expect(log.join("\n")).toContain(out);
+  });
+
+  it("carries fresh screen index thumbnails, and skips stale ones", async () => {
+    const thumb = Buffer.from([
+      0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 0, 0, 0, 0,
+    ]);
+    const cache = createThumbnailCache(join(root, "thumbs"));
+    const info = await stat(join(root, "captures", "v2", "home.png"));
+    const ids = (screenId: string) => ({
+      projectId: "shop",
+      version: "v2",
+      screenId,
+    });
+    await cache.write(
+      ids("home"),
+      400,
+      thumb,
+      sourceKey(info.size, info.mtimeMs),
+    );
+    // Made from an older cart capture: left out.
+    await cache.write(ids("cart"), 400, thumb, "stale");
+    const out = join(root, "out.zip");
+    expect(
+      await runBundle(
+        ["--project", "shop", "--version", "v2", "--out", out],
+        io(),
+      ),
+    ).toBe(0);
+    const entries = readZip(await readFile(out));
+    expect(entries.get("shop-v2/thumbs/v2/home-400.png")?.equals(thumb)).toBe(
+      true,
+    );
+    expect(entries.has("shop-v2/thumbs/v2/cart-400.png")).toBe(false);
+    expect(bundleFrom(entries, "shop-v2").thumbnails).toEqual({
+      "v2/home/400": "thumbs/v2/home-400.png",
+    });
   });
 
   it("bundles several versions, defaulting to the latest", async () => {

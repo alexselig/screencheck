@@ -11,7 +11,7 @@
 import { spawn } from "node:child_process";
 import { randomUUID } from "node:crypto";
 import { existsSync } from "node:fs";
-import { mkdir, rm, writeFile } from "node:fs/promises";
+import { mkdir, rm, stat, writeFile } from "node:fs/promises";
 import { homedir } from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -19,6 +19,7 @@ import { fileURLToPath } from "node:url";
 import { chromium } from "playwright";
 
 import { captureFullPage } from "../../src/capture/full-page.ts";
+import { captureThumbnails } from "../../src/capture/thumbnail.ts";
 import {
   BUILDS,
   PROJECT,
@@ -73,17 +74,43 @@ function captureVersions() {
   return list;
 }
 
-async function renderCaptures(browser, captureRoot) {
+// Screen index thumbnails in the server's cache layout (src/server/thumbnails
+// writes the same files; plain node can't import it): thumbs/<project>/
+// <version>/<screen>-<w>.<type> with a sidecar naming the capture it fits.
+async function storeThumbnails(
+  thumbsRoot,
+  version,
+  screenId,
+  captureFile,
+  images,
+) {
+  const info = await stat(captureFile);
+  const source = `${info.size.toString(16)}-${Math.floor(info.mtimeMs).toString(16)}`;
+  const dir = path.join(thumbsRoot, PROJECT, version);
+  await mkdir(dir, { recursive: true });
+  for (const [width, bytes] of Object.entries(images)) {
+    const riff = bytes[0] === 0x52 && bytes[8] === 0x57;
+    const type = riff ? "webp" : "png";
+    await writeFile(path.join(dir, `${screenId}-${width}.${type}`), bytes);
+    await writeFile(
+      path.join(dir, `${screenId}-${width}.json`),
+      `${JSON.stringify({ source, type })}\n`,
+    );
+  }
+}
+
+async function renderCaptures(browser, captureRoot, thumbsRoot) {
   for (const { id, width, screens } of captureVersions()) {
     const page = await browser.newPage({ viewport: { width, height: 1000 } });
     await mkdir(path.join(captureRoot, id), { recursive: true });
     for (const screen of screens) {
       await page.setContent(screen.html);
       if (width < 1024) await page.addStyleTag({ content: NARROW_CSS });
-      await captureFullPage(page, {
-        path: path.join(captureRoot, id, `${screen.id}.png`),
-        elements: true,
-      });
+      const file = path.join(captureRoot, id, `${screen.id}.png`);
+      await captureFullPage(page, { path: file, elements: true });
+      const images = await captureThumbnails(page);
+      if (images)
+        await storeThumbnails(thumbsRoot, id, screen.id, file, images);
     }
     await page.close();
   }
@@ -220,7 +247,7 @@ await Promise.all(
 
 const browser = await chromium.launch();
 try {
-  await renderCaptures(browser, captureRoot);
+  await renderCaptures(browser, captureRoot, path.join(HOME, "thumbs"));
 } finally {
   await browser.close();
 }

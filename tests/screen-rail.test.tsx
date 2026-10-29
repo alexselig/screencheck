@@ -256,7 +256,7 @@ describe("ScreenRail", () => {
     expect(centeredScrollLeft(950, 50, 300, 1000)).toBe(700);
   });
 
-  it("keeps the title, mode control and filter in one sticky head (ds-9)", () => {
+  it("keeps the title and mode control in one sticky head (ds-9)", () => {
     render(
       <ScreenRail
         approvedIds={new Set(["one"])}
@@ -274,9 +274,36 @@ describe("ScreenRail", () => {
     expect(head).toContainElement(
       screen.getByRole("button", { name: "Collapse screen index" }),
     );
-    expect(head).toContainElement(
+    expect(head).not.toContainElement(
       screen.getByRole("switch", { name: /Hide approved screens/ }),
     );
     expect(head!.querySelector("ol")).toBeNull();
+  });
+
+  it("puts the settings in one group after the last screen", () => {
+    render(
+      <ScreenRail
+        approvedIds={new Set(["one"])}
+        mode="wide"
+        onModeChange={vi.fn()}
+        onSelect={vi.fn()}
+        screens={screens}
+        selectedId="two"
+        thumbnails={{ projectId: "demo", version: "v1", sizes: "216px" }}
+      />,
+    );
+    const rail = screen.getByRole("navigation", { name: "Screen navigation" });
+    const settings = screen.getByTestId("rail-settings");
+    // Last in the rail, after the list.
+    expect(rail.lastElementChild).toBe(settings);
+    expect(settings.previousElementSibling?.tagName).toBe("OL");
+    const switches = Array.from(settings.querySelectorAll('[role="switch"]'));
+    expect(switches.map((item) => item.textContent)).toEqual([
+      "Hide approved screens",
+      "Show thumbnails",
+    ]);
+    for (const item of switches) {
+      expect(item).toHaveClass("rail-filter-button");
+    }
   });
 });

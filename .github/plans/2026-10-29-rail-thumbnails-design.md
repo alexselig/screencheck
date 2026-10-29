@@ -1,6 +1,6 @@
 # Screen index thumbnails and a resizable rail
 
-Status: mock approved by Alex on 29 Oct 2026, with the toggles moved to the bottom of the list. In progress.
+Status: mock approved by Alex on 29 Oct 2026, with the toggles moved to the bottom of the list. Implemented on `feat/rail-thumbnails`; see "Implementation notes" at the end.
 
 ## What Alex asked for
 
@@ -10,16 +10,16 @@ Status: mock approved by Alex on 29 Oct 2026, with the toggles moved to the bott
 
 ## Decisions (made autonomously; flag any to change)
 
-| Question                       | Decision                                                                                                                                                                              | Why                                                                            |
-| ------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------ |
-| Where the toggles live         | At the **bottom of the scrolling screen list**, after the last screen: **Hide approved screens** (moved from the rail head) and **Show thumbnails**, as two switches under a 1px rule | Alex's call: set-and-forget settings shouldn't take space above the list       |
-| Default                        | Off                                                                                                                                                                                   | Keeps today's dense list; nothing changes until someone opts in                |
-| Remembered                     | Yes, all three (hide approved, show thumbnails, rail width) in `localStorage`, read on load, so a reviewer sets them once                                                             | Alex: "remembered between sessions so a user can set and forget"               |
-| What a thumbnail shows         | The **top of the screen**, cropped to the screen's viewport ratio (1440 × 1000 shows the first 1440 × 1000)                                                                           | A whole full-page capture squashed into a rail is an unreadable sliver         |
-| Which capture                  | The current revision at the current size (follows the size switcher)                                                                                                                  | Matches what the canvas shows                                                  |
-| Compact rail (64px) and phones | No thumbnails and no toggles (settings keep their stored values)                                                                                                                      | There is no room; the phone strip is a single row                              |
-| Rail width range               | 220px to `min(50vw, 640px)`, default 280px                                                                                                                                            | Below 220 the titles truncate; above half the window the canvas gets too small |
-| Dragging past the minimum      | Below 160px the rail snaps to compact mode                                                                                                                                            | Makes the existing collapse a natural end of the same gesture                  |
+| Question                       | Decision                                                                                                                                                                                                                                                                       | Why                                                                            |
+| ------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------ |
+| Where the toggles live         | **Bottom-aligned in the rail**: **Hide approved screens** (moved from the rail head) and **Show thumbnails**, stacked as one group under a 1px rule. A short list pushes them to the rail's bottom edge; a long list puts them after the last screen, at the end of the scroll | Alex's call: set-and-forget settings shouldn't take space above the list       |
+| Default                        | Off                                                                                                                                                                                                                                                                            | Keeps today's dense list; nothing changes until someone opts in                |
+| Remembered                     | Yes, all three (hide approved, show thumbnails, rail width) in `localStorage`, read on load, so a reviewer sets them once                                                                                                                                                      | Alex: "remembered between sessions so a user can set and forget"               |
+| What a thumbnail shows         | The **top of the screen**, cropped to the screen's viewport ratio (1440 × 1000 shows the first 1440 × 1000)                                                                                                                                                                    | A whole full-page capture squashed into a rail is an unreadable sliver         |
+| Which capture                  | The current revision at the current size (follows the size switcher)                                                                                                                                                                                                           | Matches what the canvas shows                                                  |
+| Compact rail (64px) and phones | No thumbnails and no toggles (settings keep their stored values)                                                                                                                                                                                                               | There is no room; the phone strip is a single row                              |
+| Rail width range               | 220px to `min(50vw, 640px)`, default 280px                                                                                                                                                                                                                                     | Below 220 the titles truncate; above half the window the canvas gets too small |
+| Dragging past the minimum      | Below 160px the rail snaps to compact mode                                                                                                                                                                                                                                     | Makes the existing collapse a natural end of the same gesture                  |
 
 ## Performance: the goal is zero cost on the main thread
 
@@ -167,8 +167,60 @@ Protocol metrics and fails on any of these:
   recorded in the PR description.
 - Design-token tests keep passing (token spacing only, 11/13px type).
 
+## Toggle placement (Alex, 29 Oct)
+
+Both switches are one group, `.rail-settings`, the last child of the rail's
+`<nav>`. The nav is a flex column at least as tall as its visible box, and the
+group has `margin-top: auto`, so in a short list it sits on the rail's bottom
+edge and in a long list it follows the last screen. The rail column is sticky
+under the header, so the visible box can start below the top of the window;
+a `--rail-offset` custom property (set from a ResizeObserver, no React state)
+keeps the nav's minimum height equal to what is actually visible. A
+component test checks the group is the nav's last child, after the list; the
+perf script's Playwright check measures that its bottom edge lines up with the
+rail's bottom in a short list (0px apart; jsdom has no layout).
+
 ## Out of scope
 
 - Thumbnails in the phone strip, the compact rail or Compare sizes.
 - Resizing the feedback panel on the right (same component could do it
   later).
+
+## Implementation notes
+
+Deviations from the plan above:
+
+- **WebP at capture time** is encoded in the page: Playwright can only write
+  PNG or JPEG, so `captureThumbnails` takes a second, viewport-only
+  screenshot and has the page's own `OffscreenCanvas` resize it to 400 and
+  800px WebP (PNG where WebP can't be written).
+- **The worker** is a Blob-URL worker built from an inlined string, so the
+  offline viewer (`dist/viewer`) needs no second file. It loads by dynamic
+  import only when the switch is on.
+- **Offline**, a bundle without thumbnails falls back to the worker in memory;
+  bundles now carry fresh cached thumbnails and skip stale ones.
+- **Fullscreen review** uses the shared rail width, so its default is 280px
+  (it was 320px).
+- **Phones and the stacked layout (≤900px)** hide the settings group with
+  CSS; the stored values are untouched.
+- **Perf script**: headless Chromium spends 20–40ms repainting a tall,
+  scrolled rail on the first press after idle, with or without thumbnails
+  (a plain row click costs the same). The drag measurement makes one warm-up
+  press first so that one-off stays out of the drag's frames.
+
+Measured on 120 screens (`node scripts/perf/rail-thumbnails.mjs`, after
+`npm run build`). Every budget passed in 8 of 9 runs; in the other, one
+frame interval was 33 ms (a single dropped frame) while main-thread work stayed
+at 6 ms, which points at headless software raster rather than page work:
+
+| Check                                        | Result     | Budget  |
+| -------------------------------------------- | ---------- | ------- |
+| Toggle on, cached: first visible thumbnails  | 38–62 ms   | ≤150 ms |
+| Toggle on, worker: first visible thumbnails  | 212–302 ms | ≤600 ms |
+| Longest task (toggle, scroll, drag)          | 0 ms       | ≤50 ms  |
+| Scroll layout shift                          | 0          | 0       |
+| Memory over the thumbnails-off baseline      | 1.2 MB     | ≤20 MB  |
+| Drag 220→640: slowest frame / p95 frame work | 6–7 / 6 ms | ≤16 ms  |
+| Drag 220→640: longest frame interval         | 16.8 ms    | ≤18 ms  |
+| React commits while dragging                 | 0          | 0       |
+| Short list: settings bottom to rail bottom   | 0 px       | ≤1 px   |

@@ -19,6 +19,7 @@ import {
   writeRuntimeInfo,
 } from "./runtime";
 import { PAGE_HEADERS } from "./send-file";
+import { createThumbnailCache, defaultThumbsRoot } from "./thumbnails";
 import { createStaticHandler } from "./static";
 import { sharedFeedbackStorage } from "./storage";
 
@@ -33,6 +34,8 @@ export type ServerOptions = {
   // AI assist through the reviewer's Copilot CLI (#14). Off unless true or
   // SCREENCHECK_ASSIST=1.
   assist?: boolean;
+  // Screen index thumbnails; defaults beside the data folder (thumbs/).
+  thumbsRoot?: string;
 };
 
 type Fallback = (
@@ -84,6 +87,7 @@ export async function startServer({
   projectsRoot = defaultProjectsRoot(),
   clientRoot,
   assist: assistOption,
+  thumbsRoot,
 }: ServerOptions = {}) {
   assertLoopbackHost(host);
   const lock = await acquireDataRootLock(dataRoot);
@@ -103,6 +107,9 @@ export async function startServer({
     });
     const assist =
       (assistOption ?? assistEnabledFromEnv()) ? createAssist() : undefined;
+    const thumbs = createThumbnailCache(
+      thumbsRoot ?? defaultThumbsRoot(process.env, dataRoot),
+    );
     let boundPort = port;
     // Assigned before listen(), so every request sees it.
     let fallback!: Awaited<ReturnType<typeof createFallback>>;
@@ -118,6 +125,7 @@ export async function startServer({
             port: boundPort,
             catalog,
             assist,
+            thumbs,
           })
         )
           return;

@@ -1,4 +1,4 @@
-import { useId, type ReactNode } from "react";
+import { useId, type CSSProperties, type ReactNode } from "react";
 
 export type FullscreenDrawer = { open: boolean; pinned: boolean };
 
@@ -11,6 +11,7 @@ export function FullscreenReview({
   drawer,
   onDrawerChange,
   openCount = 0,
+  style,
 }: {
   children: ReactNode;
   navigation: ReactNode;
@@ -19,10 +20,16 @@ export function FullscreenReview({
   onDrawerChange: (drawer: FullscreenDrawer) => void;
   // Open feedback on the current screen, badged on the collapsed handle.
   openCount?: number;
+  // Carries the remembered screen index width (--rail-width).
+  style?: CSSProperties;
 }) {
   const countId = useId();
   return (
-    <div className="fullscreen-review" data-testid="fullscreen-review">
+    <div
+      className="fullscreen-review"
+      data-testid="fullscreen-review"
+      style={style}
+    >
       {/* The screen rail sits on the edge in its compact form and expands on hover. */}
       <div className="fullscreen-rail">{navigation}</div>
       <div className="fullscreen-canvas">{children}</div>

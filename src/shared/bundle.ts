@@ -24,10 +24,21 @@ export type OfflineBundle = {
   captures: Record<string, string>;
   // "version/screenId" -> element map.
   elements: Record<string, ElementMap>;
+  // "version/screenId/400" -> path of a screen index thumbnail in the bundle.
+  // Absent in bundles made before thumbnails, and for screens without one.
+  thumbnails?: Record<string, string>;
 };
 
 export function bundleCaptureKey(version: string, screenId: string) {
   return `${version}/${screenId}`;
+}
+
+export function bundleThumbnailKey(
+  version: string,
+  screenId: string,
+  width: number,
+) {
+  return `${version}/${screenId}/${width}`;
 }
 
 // The file a reviewer sends back from the offline viewer.

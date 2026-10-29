@@ -130,8 +130,14 @@ h1 {
   /* Tall enough that the page can always scroll the header away, so the
      end of the screen list is never stranded below the window. */
   min-height: calc(100vh - var(--action-bar-height));
-  grid-template-columns: 280px minmax(0, 1fr) 320px;
+  grid-template-columns: var(--rail-width, 280px) minmax(0, 1fr) 320px;
   transition: grid-template-columns var(--fast) ease;
+}
+
+/* Dragging the rail edge tracks the pointer, not an eased transition. */
+.workbench-grid[data-resizing],
+.fullscreen-review[data-resizing] .screen-rail {
+  transition: none;
 }
 
 .workbench-grid[data-rail-mode="compact"] {
@@ -153,6 +159,11 @@ h1 {
 
 .feedback-column {
   border-left: 1px solid var(--ink);
+}
+
+/* Resizing the wide rail never re-lays out the canvas or feedback panel. */
+.workbench-grid[data-rail-mode="wide"] .rail-column {
+  contain: layout paint;
 }
 
 /* The screen list is navigation, so it keeps its own scroll when it is longer
@@ -945,6 +956,170 @@ h1 {
   white-space: nowrap;
 }
 
+/* Set-and-forget settings: one group under a rule after the last screen,
+   pushed to the foot of the rail when the list is shorter than the rail. */
+.rail-settings {
+  display: flex;
+  flex-direction: column;
+  flex-shrink: 0;
+  align-items: flex-start;
+  gap: var(--space-1);
+  margin: auto calc(var(--space-3) * -1) calc(var(--space-3) * -1);
+  padding: var(--space-2) var(--space-3) var(--space-3);
+  border-top: 1px solid var(--line);
+  background: var(--surface-alt);
+}
+
+.rail-settings .rail-filter-button {
+  margin: 0;
+}
+
+/* The top of a screen, under its title and as wide as the title column.
+   The box has the screen's ratio, so nothing moves as images arrive. */
+.screen-thumb {
+  display: block;
+  grid-column: 2 / -1;
+  grid-row: 2;
+  width: 100%;
+  overflow: hidden;
+  border: 1px solid var(--line);
+  background: var(--surface-alt);
+}
+
+.screen-thumb img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: top;
+}
+
+.screen-rail li button[aria-current="page"] .screen-thumb {
+  border-color: var(--on-blue);
+}
+
+/* The rail's right edge: an 8px handle over the rule, with a grip at the
+   middle of the visible rail. Blue while hovered or dragged. */
+.rail-resizer {
+  position: absolute;
+  z-index: 6;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: 8px;
+  cursor: col-resize;
+  touch-action: none;
+}
+
+.rail-resizer-track {
+  position: sticky;
+  top: 0;
+  display: block;
+  height: calc(100vh - var(--action-bar-height));
+  max-height: 100%;
+}
+
+.fullscreen-rail .rail-resizer-track {
+  height: 100%;
+}
+
+.rail-resizer-track::after {
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: 3px;
+  background: transparent;
+  content: "";
+  transition: background var(--fast) ease;
+}
+
+.rail-resizer:hover .rail-resizer-track::after,
+.rail-resizer[data-dragging] .rail-resizer-track::after,
+.rail-resizer:focus-visible .rail-resizer-track::after {
+  background: var(--bauhaus-blue);
+}
+
+.rail-resizer:focus-visible {
+  outline: none;
+}
+
+.rail-resizer-grip {
+  position: absolute;
+  top: calc(50% - 12px);
+  right: 2px;
+  width: 4px;
+  height: 24px;
+  border-inline: 1px solid var(--line-strong);
+}
+
+.rail-resizer-readout {
+  position: absolute;
+  top: var(--space-2);
+  right: calc(100% + var(--space-1));
+  display: none;
+  padding: 0 var(--space-1);
+  background: var(--bauhaus-blue);
+  color: var(--on-blue);
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+  line-height: 20px;
+  white-space: nowrap;
+}
+
+.rail-resizer[data-dragging] .rail-resizer-readout {
+  display: block;
+}
+
+/* The readout takes the collapse button's corner while dragging. */
+[data-resizing] .rail-mode-button {
+  visibility: hidden;
+}
+
+@media (min-width: 901px) {
+  /* A column, so the settings can sit at the foot of a short list. */
+  .screen-rail[data-mode="wide"] {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .screen-rail[data-mode="wide"] > * {
+    flex-shrink: 0;
+  }
+
+  /* Full width, so its rows can carry the rail's inset without overflowing
+     it (an overflowing list would be re-centred on every resize). */
+  .screen-rail[data-mode="wide"] > ol {
+    margin-inline: calc(var(--space-3) * -1);
+    margin-bottom: var(--space-3);
+  }
+
+  .screen-rail[data-mode="wide"] > ol h3 {
+    margin-inline: 0;
+  }
+
+  /* As tall as the visible rail; --rail-offset is the page header still in
+     view above it, set by the settings group while it is shown. */
+  .rail-column > .screen-rail[data-mode="wide"] {
+    min-height: calc(
+      100vh - var(--action-bar-height) - var(--rail-offset, 0px)
+    );
+  }
+
+  /* The browser skips off-screen rows. Each row carries the rail's inset
+     itself, because the skipping clips a row to its own box. */
+  .screen-rail[data-mode="wide"] li {
+    padding-inline: var(--space-3);
+    content-visibility: auto;
+    contain-intrinsic-size: auto 48px;
+  }
+
+  /* Only rows with a thumbnail have a second grid row for the gap to open. */
+  .screen-rail[data-mode="wide"] li button {
+    row-gap: var(--space-2);
+  }
+}
+
 .review-canvas {
   position: relative;
   min-width: 0;
@@ -1453,7 +1628,7 @@ h1 {
 }
 
 .fullscreen-rail .screen-rail[data-mode="wide"] {
-  width: 320px;
+  width: var(--rail-width, 280px);
 }
 
 /* Desktop rail rows, and the fullscreen strip that hugs the numbers. */
@@ -2748,7 +2923,7 @@ button.tag-chip:hover {
 
 @media (max-width: 1200px) {
   .workbench-grid {
-    grid-template-columns: 232px minmax(0, 1fr) 300px;
+    grid-template-columns: var(--rail-width, 232px) minmax(0, 1fr) 300px;
   }
 
   .workbench-grid[data-rail-mode="compact"] {
@@ -2780,7 +2955,10 @@ button.tag-chip:hover {
 
   .rail-head,
   .screen-rail h2,
-  .screen-rail h3 {
+  .screen-rail h3,
+  .rail-settings,
+  .rail-resizer,
+  .screen-thumb {
     display: none;
   }
 

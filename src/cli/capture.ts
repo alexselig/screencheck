@@ -7,6 +7,12 @@ import path from "node:path";
 import { parseArgs } from "node:util";
 
 import { captureFullPage } from "../capture/full-page";
+import { captureThumbnails } from "../capture/thumbnail";
+import {
+  storeCaptureThumbnails,
+  type ThumbnailCache,
+  type ThumbnailIds,
+} from "../server/thumbnails";
 import { elementMapPathFor } from "../shared/elements";
 
 export type CaptureJob = {
@@ -177,7 +183,13 @@ export type ShotPage = Parameters<typeof captureFullPage>[0];
 
 // One full-page shot of an open page: the image (swapped in whole) and its
 // element map beside it, where the server and the inspector look for it.
-export async function shoot(page: ShotPage, out: string) {
+// With `thumbs`, the screen index thumbnails go to the cache as well, keyed by
+// the capture just written so they are fresh.
+export async function shoot(
+  page: ShotPage,
+  out: string,
+  thumbs?: { cache: ThumbnailCache; ids: ThumbnailIds },
+) {
   const type = imageType(out);
   await mkdir(path.dirname(path.resolve(out)), { recursive: true });
   const { image, pinned } = await captureFullPage(page, {
@@ -186,6 +198,14 @@ export async function shoot(page: ShotPage, out: string) {
   });
   const bytes = type === "webp" ? await toWebp(image) : image;
   await writeAtomically(out, bytes);
+  if (thumbs) {
+    const images = await captureThumbnails(page);
+    if (images) {
+      await storeCaptureThumbnails(thumbs.cache, thumbs.ids, out, images).catch(
+        () => undefined,
+      );
+    }
+  }
   return { pinned };
 }
 

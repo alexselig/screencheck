@@ -1,6 +1,12 @@
 import { type KeyboardEvent, useEffect, useRef, useState } from "react";
 
 import type { ReviewScreen } from "../../shared/manifest";
+import {
+  RailSettings,
+  readShowThumbnails,
+  writeShowThumbnails,
+} from "./rail-settings";
+import { ScreenThumbnail } from "./screen-thumbnail";
 
 export type RailMode = "wide" | "compact";
 
@@ -80,6 +86,7 @@ export function ScreenRail({
   onSelect,
   hideApproved: hideApprovedProp,
   onHideApprovedChange,
+  thumbnails,
 }: {
   // versionLabel is set when the rail lists one row per version.
   screens: (ReviewScreen & { versionLabel?: string })[];
@@ -96,7 +103,17 @@ export function ScreenRail({
   // rail keeps the choice itself.
   hideApproved?: boolean;
   onHideApprovedChange?: (hide: boolean) => void;
+  // Where thumbnails come from; omitted where there is no room (phones).
+  // `width` is the current size's width, `sizes` how wide they are drawn.
+  thumbnails?: {
+    projectId: string;
+    version: string;
+    width?: number;
+    sizes: string;
+  };
 }) {
+  const [showThumbnails, setShowThumbnails] = useState(readShowThumbnails);
+  const thumbs = showThumbnails && mode === "wide" ? thumbnails : undefined;
   const [temporaryExpanded, setTemporaryExpanded] = useState(false);
   const [hideApprovedState, setHideApproved] = useState(readHideApproved);
   const hideApproved = hideApprovedProp ?? hideApprovedState;
@@ -265,21 +282,6 @@ export function ScreenRail({
             </button>
           ) : null}
         </div>
-        {approvedCount > 0 ? (
-          <button
-            aria-checked={hideApproved}
-            className="rail-filter-button"
-            onClick={toggleHideApproved}
-            role="switch"
-            type="button"
-          >
-            <span aria-hidden="true" className="rail-filter-switch" />
-            <span>Hide approved screens</span>
-            {hideApproved ? (
-              <span className="rail-filter-count">{hiddenCount} hidden</span>
-            ) : null}
-          </button>
-        ) : null}
       </div>
       <ol onKeyDown={onListKeyDown}>
         {visibleScreens.map((screen, index) => {
@@ -359,6 +361,19 @@ export function ScreenRail({
                   ) : null}
                 </span>
                 <span className="screen-name">{screen.title}</span>
+                {thumbs &&
+                (screen as { hasCapture?: boolean }).hasCapture !== false ? (
+                  <ScreenThumbnail
+                    projectId={thumbs.projectId}
+                    screenId={screen.id}
+                    sizes={thumbs.sizes}
+                    version={thumbs.version}
+                    viewport={{
+                      width: thumbs.width ?? screen.viewport.width,
+                      height: screen.viewport.height,
+                    }}
+                  />
+                ) : null}
                 {screen.versionLabel ? (
                   <span aria-hidden="true" className="screen-version">
                     {versionTag(screen.versionLabel)}
@@ -369,6 +384,30 @@ export function ScreenRail({
           );
         })}
       </ol>
+      {mode === "wide" ? (
+        <RailSettings
+          hideApproved={
+            approvedCount > 0
+              ? {
+                  checked: hideApproved,
+                  hiddenCount,
+                  onToggle: toggleHideApproved,
+                }
+              : undefined
+          }
+          showThumbnails={
+            thumbnails
+              ? {
+                  checked: showThumbnails,
+                  onToggle: () => {
+                    setShowThumbnails(!showThumbnails);
+                    writeShowThumbnails(!showThumbnails);
+                  },
+                }
+              : undefined
+          }
+        />
+      ) : null}
     </nav>
   );
 }
