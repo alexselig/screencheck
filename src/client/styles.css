@@ -1267,16 +1267,6 @@ h1 {
   margin-bottom: var(--space-3);
 }
 
-.compare-sizes-head button {
-  min-height: calc(var(--size-touch) - 8px);
-  padding: 0 var(--space-3);
-  border: 1px solid var(--ink);
-  background: var(--surface);
-  color: var(--ink);
-  font-weight: 700;
-  cursor: pointer;
-}
-
 .compare-sizes-row {
   display: flex;
   align-items: flex-start;

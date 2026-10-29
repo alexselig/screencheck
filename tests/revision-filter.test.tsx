@@ -53,10 +53,10 @@ describe("revision filter", () => {
     const sizes = await screen.findByRole("group", { name: "Screen size" });
     const buttons = within(sizes).getAllByRole("button");
     expect(buttons.map((button) => button.textContent)).toEqual([
-      "390Phone",
       "1440Desktop",
+      "390Phone",
     ]);
     // The size you were on carries over to the other build.
-    expect(buttons[1]).toHaveAttribute("aria-pressed", "true");
+    expect(buttons[0]).toHaveAttribute("aria-pressed", "true");
   });
 });

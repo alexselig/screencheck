@@ -713,9 +713,9 @@ With several sizes:
 - The screen index lists each screen once. Its orange badge counts open
   comments across every size; a solid teal check means approved at every size,
   an outlined check approved at some, with a tooltip such as "Approved at 1440;
-  390 and 768 still to review".
-- A switcher above the capture picks the size: **390 Phone · 768 Tablet ·
-  1440 Desktop** (Phone up to 480 wide, Tablet up to 1024, Desktop beyond).
+  768 and 390 still to review".
+- A switcher above the capture picks the size: **1440 Desktop · 768 Tablet ·
+  390 Phone** (Phone up to 480 wide, Tablet up to 1024, Desktop beyond).
   **Shift+← / Shift+→** step through it. The size stays as you move between
   screens or switch revision, and the address bar's `version` keeps it. The
   build opens at its last registered size.
