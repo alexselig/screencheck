@@ -32,18 +32,24 @@ export function sizesOf(
   labelOf: (version: string) => string,
   viewportOf: (version: string) => number | undefined = () => undefined,
 ): Size[] {
-  return versions
-    .map((version, index) => {
-      const label = labelOf(version);
-      const width = viewportOf(version) ?? sizeWidth(label);
-      return { size: { version, label, width, name: sizeName(width) }, index };
-    })
-    .sort(
-      (a, b) =>
-        (a.size.width ?? Infinity) - (b.size.width ?? Infinity) ||
-        a.index - b.index,
-    )
-    .map(({ size }) => size);
+  return (
+    versions
+      .map((version, index) => {
+        const label = labelOf(version);
+        const width = viewportOf(version) ?? sizeWidth(label);
+        return {
+          size: { version, label, width, name: sizeName(width) },
+          index,
+        };
+      })
+      // Largest first: Desktop, Tablet, Phone. Unknown widths go last.
+      .sort(
+        (a, b) =>
+          (b.size.width ?? -Infinity) - (a.size.width ?? -Infinity) ||
+          a.index - b.index,
+      )
+      .map(({ size }) => size)
+  );
 }
 
 // "390", "390 and 768", "390, 768 and 1440".

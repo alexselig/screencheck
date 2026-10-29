@@ -57,6 +57,11 @@ provenance.
 
 ### Changed
 
+- The size switcher and Compare sizes run widest first: **1440 Desktop · 768
+  Tablet · 390 Phone**. Shift+← / Shift+→ follow that layout. Compare sizes
+  closes with an × icon button.
+- The canvas toggles (size, zoom, Compare sizes) line up with the caption and
+  share the Before | After look.
 - The site's install steps show `capture --config` instead of a partial
   capture snippet, and name the **Viewport** filter correctly.
 - **Responsive review.** Versions that share a `revision` are sizes of one

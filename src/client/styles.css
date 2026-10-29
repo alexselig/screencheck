@@ -1161,28 +1161,34 @@ h1 {
   font-variant-numeric: tabular-nums;
 }
 
-/* Above the capture: size, zoom and Compare sizes. Segments share edges. */
+/* Above the capture: size, zoom and Compare sizes, left-aligned with the
+   canvas. They copy the footer's Before | After: the selected segment is
+   full height and ink, the others sit 3px shorter top and bottom, hover is
+   the rail's selected blue, and no stroke separates a segment from the
+   selected one beside it. */
 .canvas-toolbar {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  justify-content: center;
+  justify-content: flex-start;
   gap: var(--space-2) var(--space-3);
-  margin: 0 auto var(--space-3);
+  margin: 0 0 var(--space-3);
 }
 
 .segmented {
   display: inline-flex;
   flex: none;
+  align-items: center;
 }
 
 .segmented button,
 .canvas-compare-button {
   display: inline-flex;
-  min-height: calc(var(--size-touch) - 8px);
-  align-items: baseline;
+  min-height: calc(var(--size-touch) - 16px);
+  align-items: center;
+  justify-content: center;
   gap: var(--space-1);
-  padding: var(--space-1) var(--space-3);
+  padding: 0 var(--space-3);
   border: 1px solid var(--ink);
   border-radius: 0;
   background: var(--surface);
@@ -1190,6 +1196,7 @@ h1 {
   font: inherit;
   font-size: 13px;
   font-weight: 700;
+  line-height: 1;
   font-variant-numeric: tabular-nums;
   cursor: pointer;
 }
@@ -1198,15 +1205,25 @@ h1 {
   border-left: 0;
 }
 
-.segmented button:hover,
-.canvas-compare-button:hover {
-  background: var(--surface-hover);
+.segmented
+  button:not([aria-pressed="true"]):has(+ button[aria-pressed="true"]) {
+  border-right: 0;
 }
 
 .segmented button[aria-pressed="true"],
 .canvas-compare-button[aria-pressed="true"] {
+  position: relative;
+  z-index: 1;
+  min-height: calc(var(--size-touch) - 10px);
   background: var(--ink);
   color: var(--surface);
+}
+
+.segmented button:hover,
+.canvas-compare-button:hover {
+  border-color: var(--bauhaus-blue);
+  background: var(--bauhaus-blue);
+  color: var(--on-blue);
 }
 
 .segmented button:focus-visible,
@@ -1221,7 +1238,8 @@ h1 {
   font-weight: 500;
 }
 
-.segmented button[aria-pressed="true"] .size-switcher-name {
+.segmented button[aria-pressed="true"] .size-switcher-name,
+.segmented button:hover .size-switcher-name {
   color: inherit;
 }
 
@@ -1247,16 +1265,6 @@ h1 {
   justify-content: space-between;
   gap: var(--space-3);
   margin-bottom: var(--space-3);
-}
-
-.compare-sizes-head button {
-  min-height: calc(var(--size-touch) - 8px);
-  padding: 0 var(--space-3);
-  border: 1px solid var(--ink);
-  background: var(--surface);
-  color: var(--ink);
-  font-weight: 700;
-  cursor: pointer;
 }
 
 .compare-sizes-row {

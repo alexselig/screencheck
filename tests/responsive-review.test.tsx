@@ -56,7 +56,7 @@ describe("sizes", () => {
     expect(size).toMatchObject({ label: "Mobile", width: 375, name: "Phone" });
   });
 
-  it("orders sizes narrowest first", () => {
+  it("orders sizes widest first, matching the switcher", () => {
     const labels: Record<string, string> = {
       a: "1440",
       b: "390",
@@ -67,7 +67,7 @@ describe("sizes", () => {
       sizesOf(["a", "b", "c", "d"], (id) => labels[id]!).map(
         (size) => size.label,
       ),
-    ).toEqual(["390", "768", "1440", "Mobile"]);
+    ).toEqual(["1440", "768", "390", "Mobile"]);
   });
 
   it("rolls badges and approval up across sizes", () => {
@@ -96,7 +96,7 @@ describe("sizes", () => {
     expect(rollup.openCounts.get("two")).toBeUndefined();
     expect([...rollup.approvedIds]).toEqual(["two"]);
     expect(rollup.partialApprovals.get("one")).toBe(
-      "Approved at 1440; 390 and 768 still to review",
+      "Approved at 1440; 768 and 390 still to review",
     );
     expect(rollup.partialApprovals.has("three")).toBe(false);
     expect(listLabels(["390", "768", "1440"])).toBe("390, 768 and 1440");
@@ -193,11 +193,11 @@ describe("responsive review", () => {
     render(<App />);
     await capture();
     const partial = await within(rail()).findByRole("button", {
-      name: /^01\..*\(Approved at 1440; 390 and 768 still to review\)/,
+      name: /^01\..*\(Approved at 1440; 768 and 390 still to review\)/,
     });
     expect(partial).toHaveAttribute(
       "title",
-      expect.stringContaining("Approved at 1440; 390 and 768 still to review"),
+      expect.stringContaining("Approved at 1440; 768 and 390 still to review"),
     );
     expect(within(partial).getByTestId("screen-partial-mark")).toBeTruthy();
     const full = within(rail()).getByRole("button", {
@@ -222,27 +222,28 @@ describe("responsive review", () => {
     const switcher = screen.getByRole("group", { name: "Screen size" });
     const buttons = within(switcher).getAllByRole("button");
     expect(buttons.map((button) => button.textContent)).toEqual([
-      "390Phone",
-      "768Tablet",
       "1440Desktop",
+      "768Tablet",
+      "390Phone",
     ]);
     // Registration order picks the opening size, as before.
     expect(buttons[1]).toHaveAttribute("aria-pressed", "true");
     expect(image.getAttribute("src")).toContain("web-768");
 
-    fireEvent.click(buttons[0]!);
-    expect(buttons[0]).toHaveAttribute("aria-pressed", "true");
+    fireEvent.click(buttons[2]!);
+    expect(buttons[2]).toHaveAttribute("aria-pressed", "true");
     expect((await capture()).getAttribute("src")).toContain("web-390");
     await waitFor(() =>
       expect(window.location.hash).toContain("version=web-390"),
     );
 
-    fireEvent.keyDown(window, { key: "ArrowRight", shiftKey: true });
-    expect(buttons[1]).toHaveAttribute("aria-pressed", "true");
-    fireEvent.keyDown(window, { key: "ArrowRight", shiftKey: true });
-    fireEvent.keyDown(window, { key: "ArrowRight", shiftKey: true });
-    expect(buttons[2]).toHaveAttribute("aria-pressed", "true");
+    // Shift+arrows move the way the buttons are laid out: left is wider.
     fireEvent.keyDown(window, { key: "ArrowLeft", shiftKey: true });
+    expect(buttons[1]).toHaveAttribute("aria-pressed", "true");
+    fireEvent.keyDown(window, { key: "ArrowLeft", shiftKey: true });
+    fireEvent.keyDown(window, { key: "ArrowLeft", shiftKey: true });
+    expect(buttons[0]).toHaveAttribute("aria-pressed", "true");
+    fireEvent.keyDown(window, { key: "ArrowRight", shiftKey: true });
     expect(buttons[1]).toHaveAttribute("aria-pressed", "true");
 
     // Plain arrows step screens and keep the size.
@@ -304,20 +305,27 @@ describe("responsive review", () => {
     const view = screen.getByRole("region", { name: "Compare sizes" });
     const shots = within(view).getAllByRole("button", { name: /^Show / });
     expect(shots.map((shot) => shot.getAttribute("aria-label"))).toEqual([
-      "Show 390 Phone",
-      "Show 768 Tablet",
       "Show 1440 Desktop",
+      "Show 768 Tablet",
+      "Show 390 Phone",
     ]);
     await waitFor(() =>
-      expect(within(shots[0]!).getAllByTestId("compare-pin")).toHaveLength(2),
+      expect(within(shots[2]!).getAllByTestId("compare-pin")).toHaveLength(2),
     );
-    expect(within(shots[2]!).getAllByTestId("compare-pin")).toHaveLength(1);
+    expect(within(shots[0]!).getAllByTestId("compare-pin")).toHaveLength(1);
     expect(shots[1]).toHaveAttribute("aria-current", "true");
 
     // Closing returns to the size you were on.
     fireEvent.keyDown(window, { key: "Escape" });
     expect(screen.queryByRole("region", { name: "Compare sizes" })).toBeNull();
     expect((await capture()).getAttribute("src")).toContain("web-768");
+
+    // The close control is an X icon button with an accessible name.
+    fireEvent.click(screen.getByRole("button", { name: "Compare sizes" }));
+    fireEvent.click(
+      screen.getByRole("button", { name: "Close compare sizes" }),
+    );
+    expect(screen.queryByRole("region", { name: "Compare sizes" })).toBeNull();
 
     fireEvent.click(screen.getByRole("button", { name: "Compare sizes" }));
     fireEvent.click(screen.getByRole("button", { name: "Show 1440 Desktop" }));
@@ -343,7 +351,7 @@ describe("responsive review", () => {
     );
     expect(
       await within(rail()).findByRole("button", {
-        name: /^01\..*\(Approved at 768; 390 and 1440 still to review\)/,
+        name: /^01\..*\(Approved at 768; 1440 and 390 still to review\)/,
       }),
     ).toBeInTheDocument();
 
@@ -419,7 +427,7 @@ describe("before/after at a size", () => {
     fireEvent.keyDown(window, { key: "b" });
     expect((await capture()).getAttribute("src")).toContain("b41-390");
     // Stepping size while Before shows keeps Before, at the new size.
-    fireEvent.keyDown(window, { key: "ArrowRight", shiftKey: true });
+    fireEvent.keyDown(window, { key: "ArrowLeft", shiftKey: true });
     expect((await capture()).getAttribute("src")).toContain("b41-1440");
   });
 });

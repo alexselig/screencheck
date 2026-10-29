@@ -64,8 +64,22 @@ export function CompareSizes({
     >
       <header className="compare-sizes-head">
         <span className="eyebrow">Compare sizes · {title}</span>
-        <button onClick={onClose} ref={closeRef} type="button">
-          Close
+        <button
+          aria-label="Close compare sizes"
+          className="icon-button"
+          onClick={onClose}
+          ref={closeRef}
+          title="Close (Esc)"
+          type="button"
+        >
+          <svg aria-hidden="true" height="14" viewBox="0 0 14 14" width="14">
+            <path
+              d="M2 2l10 10M12 2 2 12"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="1.75"
+            />
+          </svg>
         </button>
       </header>
       <ol className="compare-sizes-row" ref={rowRef}>
