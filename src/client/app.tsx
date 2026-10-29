@@ -44,6 +44,13 @@ import {
 import { isApproved, type ScreenApproval } from "../shared/approvals";
 import { rollUpSizes } from "./sizes";
 import { useSizes, viewportLookup } from "./use-sizes";
+import { RailResizer } from "./components/rail-resizer";
+import {
+  RAIL_DEFAULT,
+  railThumbnailSizes,
+  railWidthStyle,
+  useRailWidth,
+} from "./use-rail-width";
 import { captionFor, type ScreenCaption as Caption } from "../shared/captions";
 import { createPinNumbers } from "../shared/export";
 import {
@@ -410,6 +417,8 @@ function Workbench({
     null,
   );
   const phone = useMediaQuery(PHONE_QUERY);
+  const railWidth = useRailWidth();
+  const railStyle = railWidthStyle(railWidth.width);
   const [sheetOpen, setSheetOpen] = useState(false);
   const [moreOpen, setMoreOpen] = useState(false);
   const moreRef = useRef<HTMLDivElement>(null);
@@ -898,19 +907,42 @@ function Workbench({
       : undefined,
   });
 
+  const navigationMode = fullscreen ? fullscreenRailMode : railMode;
   const navigation = (
-    <ScreenRail
-      mode={fullscreen ? fullscreenRailMode : railMode}
-      onModeChange={fullscreen ? setFullscreenRailMode : setRailMode}
-      approvedIds={rollup.approvedIds}
-      partialApprovals={rollup.partialApprovals}
-      hideApproved={hideApproved}
-      onHideApprovedChange={changeHideApproved}
-      onSelect={selectScreen}
-      openCounts={rollup.openCounts}
-      screens={screens}
-      selectedId={selectedId}
-    />
+    <>
+      <ScreenRail
+        thumbnails={
+          phone
+            ? undefined
+            : {
+                projectId: project.id,
+                version,
+                width: sizing.current?.width,
+                sizes: railThumbnailSizes(railWidth.width),
+              }
+        }
+        mode={navigationMode}
+        onModeChange={fullscreen ? setFullscreenRailMode : setRailMode}
+        approvedIds={rollup.approvedIds}
+        partialApprovals={rollup.partialApprovals}
+        hideApproved={hideApproved}
+        onHideApprovedChange={changeHideApproved}
+        onSelect={selectScreen}
+        openCounts={rollup.openCounts}
+        screens={screens}
+        selectedId={selectedId}
+      />
+      {navigationMode === "wide" && !phone ? (
+        <RailResizer
+          max={railWidth.max}
+          onChange={railWidth.setWidth}
+          onCompact={() =>
+            (fullscreen ? setFullscreenRailMode : setRailMode)("compact")
+          }
+          width={railWidth.width ?? RAIL_DEFAULT}
+        />
+      ) : null}
+    </>
   );
   const feedback = (
     <FeedbackInspector
@@ -1495,6 +1527,7 @@ function Workbench({
         <FullscreenReview
           feedback={feedback}
           navigation={navigation}
+          style={railStyle}
           drawer={drawer}
           onDrawerChange={setDrawer}
           openCount={openCounts.get(selectedId) ?? 0}
@@ -1623,6 +1656,7 @@ function Workbench({
         data-sheet-open={sheetOpen}
         aria-label="Review workspace"
         ref={gridRef}
+        style={railStyle}
       >
         <div className="rail-column">{navigation}</div>
         {canvas}
